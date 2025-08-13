@@ -3,13 +3,29 @@ import CardList from "@/components/CardList";
 import EditUser from "@/components/EditUser";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import { HoverCardTrigger } from "@radix-ui/react-hover-card";
 import { BadgeCheck, Candy, Citrus, Shield } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "POSX",
+  description: "ข้อมูลเกี่ยวกับผู้ใช้งานของเรา",
+  icons: {
+    icon: "/icon.png",
+  },
+};
 
 const SingleUserPage = () => {
   return (
@@ -29,7 +45,7 @@ const SingleUserPage = () => {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-        {/* CONTAINER */}
+      {/* CONTAINER */}
       <div className="mt-4 flex flex-col xl:flex-row gap-8">
         {/* LEFT */}
         <div className="w-full xl:w-1/3 space-y-6">
