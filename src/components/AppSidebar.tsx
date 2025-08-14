@@ -94,7 +94,7 @@ const AppSidebar = () => {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarSeparator />
-      <SidebarContent className="p-3">
+      <SidebarContent className="p-0">
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
