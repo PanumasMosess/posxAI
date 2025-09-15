@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `employees` MODIFY `status` VARCHAR(191) NOT NULL DEFAULT 'ON';
+
+-- AlterTable
+ALTER TABLE `stock` ADD COLUMN `status` VARCHAR(191) NOT NULL DEFAULT 'ON';

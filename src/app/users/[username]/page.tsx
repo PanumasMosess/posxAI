@@ -1,6 +1,6 @@
 import AppLineChart from "@/components/AppLineChart";
 import CardList from "@/components/CardList";
-import EditUser from "@/components/EditUser";
+// import EditUser from "@/components/EditUser";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -120,7 +120,7 @@ const SingleUserPage = () => {
                 <SheetTrigger asChild>
                   <Button>Edit User</Button>
                 </SheetTrigger>
-                <EditUser />
+                {/* <EditUser /> */}
               </Sheet>
             </div>
             <div className="space-y-4 mt-4">
@@ -166,7 +166,7 @@ const SingleUserPage = () => {
           <div className="bg-primary-foreground p-4 rounded-lg space-y-2">
             <div className="flex items-center gap-2">
               <Avatar className="size-12">
-                <AvatarImage src="https://avatars.githubusercontent.com/u/1486366" />
+                <AvatarImage src="https://avatars.githubusercontent.com/u/1486366" />   
                 <AvatarFallback>JD</AvatarFallback>
               </Avatar>
               <h1 className="text-xl font-semibold">John Doe</h1>

@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Employees {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique
+  password    String
+  name        String
+  surname     String
+  email       String?
+  img         String?  
+  status      String   @default("ON")
+  position_id Int
+  login_fail  Int
+  created_by  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  birthday    DateTime
+
+  stocks         Stock[]
+  categoryStocks CategoryStock[]
+  suppliers      Supplier[]
+}
+
+model CategoryStock {
+  id           Int      @id @default(autoincrement())
+  categoryName String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdById Int
+  creator     Employees @relation(fields: [createdById], references: [id])
+
+  stocks Stock[]
+}
+
+model Supplier {
+  id           Int      @id @default(autoincrement())
+  supplierName String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdById Int
+  creator     Employees @relation(fields: [createdById], references: [id])
+
+  stocks Stock[]
+}
+
+model Stock {
+  id          Int      @id @default(autoincrement())
+  productName String   @unique
+  quantity    Int
+  price       Float
+  unit        String
+  description String?
+  img         String?
+  status      String   @default("ON_STOCK")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById Int
+  creator     Employees     @relation(fields: [createdById], references: [id])
+  categoryId  Int
+  category    CategoryStock @relation(fields: [categoryId], references: [id])
+  supplierId  Int
+  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+}

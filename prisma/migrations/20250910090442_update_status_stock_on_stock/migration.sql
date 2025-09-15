@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `stock` MODIFY `status` VARCHAR(191) NOT NULL DEFAULT 'ON_STOCK';
