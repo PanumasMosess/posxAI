@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `employees` ADD COLUMN `status` VARCHAR(191) NOT NULL DEFAULT 'ON_STOCK';
