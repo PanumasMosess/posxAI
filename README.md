@@ -18,7 +18,7 @@ posxAI คือระบบจัดการสต็อกสินค้า�
 
 🚀 Getting Started (เริ่มต้นใช้งาน)
 1. Clone a Repository
-- git clone https://your-repository-url.com/posxAI.git
+- git clone https://your-repository-url.com/posxAI.git](https://github.com/PanumasMosess/posxAI.git
 - cd posxAI
 2. ติดตั้ง Dependencies
 - npm install
