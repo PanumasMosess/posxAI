@@ -226,7 +226,11 @@ export const createStockByImg = async (
         skipDuplicates: true,
       });
       createdCount = createResult.count;
+      console.log(createResult);
     }
+
+    
+    
 
     await Promise.all(updatePromises);
 
