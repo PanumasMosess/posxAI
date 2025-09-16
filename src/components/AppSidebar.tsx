@@ -25,17 +25,17 @@ import Image from "next/image";
 
 const items = [
   {
-    title: "Home",
+    title: "หน้าหลัก",
     url: "/",
     icon: Home,
   },
   {
-    title: "Menu",
+    title: "เมนู",
     url: "#",
     icon: SendToBack,
   },
   {
-    title: "Stock",
+    title: "คลังสินค้า",
     url: "/stocks",
     icon: Warehouse,
   },
@@ -86,7 +86,7 @@ const AppSidebar = () => {
             <SidebarMenuButton asChild>
               <Link href="#">
                 <Settings className="h-[1.2rem] w-[1.2rem] mr-1"/>
-                <span>{"Settings"}</span>
+                <span>{"ตั้งค่า"}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -94,7 +94,7 @@ const AppSidebar = () => {
             <SidebarMenuButton  asChild>
               <Link href="#" >
                 <LogOut  className="h-[1.2rem] w-[1.2rem] mr-1" />
-                <span>{"Logout"}</span>
+                <span>{"ออกจากระบบ"}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
