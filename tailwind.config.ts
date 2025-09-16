@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+const defaultTheme = require("tailwindcss/defaultTheme");
 
 const config: Config = {
   content: [
@@ -20,6 +21,9 @@ const config: Config = {
         lamaPurpleLight: "#F1F0FF",
         lamaYellow: "#FAE27C",
         lamaYellowLight: "#FEFCE8",
+      },
+      fontFamily: {
+        sans: ["var(--font-kanit)", ...defaultTheme.fontFamily.sans],
       },
     },
   },
