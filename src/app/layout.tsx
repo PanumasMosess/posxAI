@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Kanit } from "next/font/google";
 import "./globals.css";
 import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
@@ -16,6 +16,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const kanit = Kanit({
+  subsets: ["latin", "thai"], 
+  weight: ["300", "400", "500", "700"],
+  variable: "--font-kanit",
 });
 
 export const metadata: Metadata = {
@@ -37,11 +43,11 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex`}
+        className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable} font-sans antialiased flex`}
       >
         <ToastContainer
           position="top-right"
-          autoClose={5000} 
+          autoClose={5000}
           hideProgressBar={false}
           newestOnTop={false}
           closeOnClick
