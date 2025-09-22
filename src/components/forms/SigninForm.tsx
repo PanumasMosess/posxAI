@@ -13,8 +13,7 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import {  useState } from "react";
 import { verifyCredentials } from "@/lib/actions/actionAuths";
 import { toast } from "react-toastify";
 
@@ -27,8 +26,6 @@ const SigninForm = () => {
     },
   });
 
-  const searchParams = useSearchParams();
-  const router = useRouter();
   // state ต่างๆ
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,14 +48,7 @@ const SigninForm = () => {
     }
   };
 
-  useEffect(() => {
-    const callbackUrl = searchParams.get("callbackUrl");
-    if (callbackUrl) {
-      router.replace("/", { scroll: false });
-    }
-  }, [searchParams, router]);
-
-  return (
+  return (  
     <div className="w-full max-w-sm">
       <div className="text-right mb-4">
         <p className="text-sm text-muted-foreground">
