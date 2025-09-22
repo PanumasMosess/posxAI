@@ -2,6 +2,7 @@ import StockPageClient from "@/components/stocks/StockPageClient";
 import prisma from "@/lib/prisma";
 
 const Page = async () => {
+  
   const itemsData = await prisma.stock.findMany({
     where: {
       status: "ON_STOCK",

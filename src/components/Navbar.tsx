@@ -1,5 +1,4 @@
 "use client";
-
 import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
@@ -11,12 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { useTheme } from "next-themes";
 import { SidebarTrigger } from "./ui/sidebar";
+import { NavbarTheme } from "./navbar-theme";
+import { useSession } from "next-auth/react";
+import { handleSignOut } from "@/lib/actions/actionAuths";
 
-const Navbar = () => {
-  const { theme, setTheme } = useTheme();
-  // const {state, toggleSidebar } = useSidebar();
+const Navbar =  () => {
+  const session = useSession();
+  const img_user = session.data?.user.image?.toString();
 
   return (
     <nav className="p-4 flex items-center justify-between">
@@ -37,28 +38,18 @@ const Navbar = () => {
               <span className="sr-only">Toggle theme</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              Light
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              Dark
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              System
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          <NavbarTheme />
         </DropdownMenu>
         {/* USER MENU */}
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Avatar>
-              <AvatarImage src="https://github.com/evilrabbit.png" />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarImage src={img_user} />
+              <AvatarFallback>NO</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent sideOffset={10}>
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel> {session.data?.user?.name}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="h-[1.2rem] w-[1.2rem] mr-2" /> ผู้ใช้งาน
@@ -67,7 +58,7 @@ const Navbar = () => {
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
               ตั้งค่า
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive">
+            <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
               <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
               ออกจากระบบ
             </DropdownMenuItem>

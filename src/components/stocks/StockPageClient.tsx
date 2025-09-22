@@ -60,6 +60,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+import { useSession } from "next-auth/react";
 
 interface StockPageClientProps {
   initialItems: any[];
@@ -73,6 +74,8 @@ const StockPageClient = ({
   initialItems,
   relatedData,
 }: StockPageClientProps) => {
+  const session = useSession();
+  const id_user = session.data?.user.id || "1";
   //reload data
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
   const router = useRouter();
@@ -182,8 +185,8 @@ const StockPageClient = ({
   };
 
   const handleOpenUpdateForm = async (item: any) => {
-    setEditingItem(item);  
-    setOpenSheetUpdate(true);   
+    setEditingItem(item);
+    setOpenSheetUpdate(true);
   };
 
   useEffect(() => {
@@ -268,7 +271,7 @@ const StockPageClient = ({
                 <StockForm
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={1}
+                  currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
                 />
@@ -282,7 +285,7 @@ const StockPageClient = ({
                 <StockFormBill
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={1}
+                  currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheetBill}
                   stateForm={openSheetBill}
                 />
@@ -347,7 +350,7 @@ const StockPageClient = ({
                                 handleGenerateImage(
                                   item.description,
                                   item.id,
-                                  1,
+                                  parseInt(id_user),
                                   item.img
                                 )
                               }
@@ -441,8 +444,8 @@ const StockPageClient = ({
           <StockForm
             type={"update"}
             relatedData={relatedData}
-            currentUserId={1}
-            data={editingItem} 
+            currentUserId={parseInt(id_user)}
+            data={editingItem}
             stateSheet={setOpenSheetUpdate}
             stateForm={openSheetUpdate}
           />

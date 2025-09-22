@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Kanit } from "next/font/google";
 import "./globals.css";
-import AppSidebar from "@/components/AppSidebar";
-import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { cookies } from "next/headers";
+
+import { SessionProvider } from "next-auth/react";
 import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({
@@ -19,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 const kanit = Kanit({
-  subsets: ["latin", "thai"], 
+  subsets: ["latin", "thai"],
   weight: ["300", "400", "500", "700"],
   variable: "--font-kanit",
 });
@@ -37,41 +35,34 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
-
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable} font-sans antialiased flex`}
-      >
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+    <SessionProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable} font-sans antialiased flex`}
         >
-          <SidebarProvider defaultOpen={defaultOpen}>
-            <AppSidebar />
-            <main className="w-full">
-              <Navbar />
-              <div className="px-4">{children}</div>
-            </main>
-          </SidebarProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </body>
+      </html>
+    </SessionProvider>
   );
 }
