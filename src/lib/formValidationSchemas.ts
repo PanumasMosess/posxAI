@@ -13,7 +13,6 @@ export const stockSchema_ = z.object({
 
   img_stock: z.any().optional(),
 });
-
 export type StockSchema = z.infer<typeof stockSchema_>;
 
 export const stockSchemaImg_ = z.object({
@@ -31,7 +30,11 @@ export const stockSchemaImg_ = z.object({
     z.instanceof(File, { message: "กรุณาอัปโหลดไฟล์" }),
     z.string().url({ message: "URL ของรูปภาพไม่ถูกต้อง" }),
   ]),
-
 });
-
 export type StockSchemaImg = z.infer<typeof stockSchemaImg_>;
+
+export const signInSchema_ = z.object({
+  username:  z.string().min(1, { message: "กรุณากรอก Username" }).max(50),
+  password:  z.string().min(1, { message: "กรุณากรอกรหัสผ่าน" }).max(50),
+});
+export type SignInSchema = z.infer<typeof signInSchema_>;

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Home,
-  Settings,
-  Warehouse,
-  SendToBack,
-  LogOut,
-} from "lucide-react";
+import { Home, Settings, Warehouse, SendToBack, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -22,11 +16,12 @@ import {
 } from "./ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
+import { handleSignOut } from "@/lib/actions/actionAuths";
 
 const items = [
   {
     title: "หน้าหลัก",
-    url: "/",
+    url: "/home",
     icon: Home,
   },
   {
@@ -41,7 +36,7 @@ const items = [
   },
 ];
 
-const AppSidebar = () => {
+const AppSidebar =  () => {
   const { state, toggleSidebar } = useSidebar();
   return (
     <Sidebar collapsible="icon">
@@ -49,7 +44,7 @@ const AppSidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/" className="flex justify-center items-center">
+              <Link href="/Home" className="flex justify-center items-center">
                 <Image
                   src={state === "collapsed" ? "/icon.png" : "/POSX_2.png"}
                   alt="logo"
@@ -68,9 +63,9 @@ const AppSidebar = () => {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton    asChild>
+                  <SidebarMenuButton asChild>
                     <Link href={item.url} className="py-3 text-base">
-                      <item.icon  className="mr-2"/>
+                      <item.icon className="mr-2" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -84,18 +79,16 @@ const AppSidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem key={"Settings"}>
             <SidebarMenuButton asChild>
-              <Link href="#">
-                <Settings className="h-[1.2rem] w-[1.2rem] mr-1"/>
+              <Link href="#" className="flex items-center w-full">
+                <Settings className="h-[1.2rem] w-[1.2rem] mr-1" />
                 <span>{"ตั้งค่า"}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem key={"logout"} >
-            <SidebarMenuButton  asChild>
-              <Link href="#" >
-                <LogOut  className="h-[1.2rem] w-[1.2rem] mr-1" />
-                <span>{"ออกจากระบบ"}</span>
-              </Link>
+          <SidebarMenuItem key={"logout"}>
+            <SidebarMenuButton onClick={handleSignOut}>
+              <LogOut className="h-[1.2rem] w-[1.2rem] mr-1" />
+              <span>{"ออกจากระบบ"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

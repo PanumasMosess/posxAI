@@ -10,7 +10,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean};
 
 export type BillItem = {
   productName: string;
@@ -228,9 +228,6 @@ export const createStockByImg = async (
       createdCount = createResult.count;
       console.log(createResult);
     }
-
-    
-    
 
     await Promise.all(updatePromises);
 

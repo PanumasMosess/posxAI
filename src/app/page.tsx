@@ -1,27 +1,35 @@
-import AppAreaChart from "@/components/AppAreaChart";
-import AppBarChart from "@/components/AppBarChart";
-import AppPieChart from "@/components/AppPieChart";
-import CardList from "@/components/CardList";
-import TodoList from "@/components/TodoList";
+import SigninForm from "@/components/forms/SigninForm";
+import Image from "next/image";
 
 const Home = () => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
-      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-        <AppBarChart />
+    <div className="w-full lg:grid min-h-screen lg:grid-cols-2 xl:grid-cols-5">
+      <div className="relative hidden bg-muted lg:flex items-center justify-center xl:col-span-2">
+        <Image
+          src="https://wallpapercave.com/wp/wp8284081.jpg"
+          alt="Background Image"
+          fill
+          className="object-cover opacity-20 dark:opacity-40"
+          priority
+        />
+        <div className="relative z-10 flex flex-col  justify-start gap-8 h-full p-12 text-white">
+          <a href="/" title="POSX">
+            <img
+              src="https://app.posx.co/img/POSX_2.png"
+              alt="Logo"
+              className="h-15"
+            />
+          </a>
+          <div>
+            <h1 className="text-4xl font-light leading-snug">
+              <span className="font-medium">ยินดีต้อนรับสู่</span>{" "}
+              ระบบผู้ช่วยร้านอาหาร Online
+            </h1>
+          </div>
+        </div>
       </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <CardList title="Latest Transactions" />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <AppPieChart />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg"><TodoList /></div>
-      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-        <AppAreaChart />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <CardList title="Popular Content" />
+      <div className="flex items-center justify-center min-h-screen py-12 px-4 sm:px-6 lg:px-8 xl:col-span-3 bg-background">
+        <SigninForm />
       </div>
     </div>
   );
