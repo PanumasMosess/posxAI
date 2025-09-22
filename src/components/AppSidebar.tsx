@@ -44,7 +44,7 @@ const AppSidebar =  () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/Home" className="flex justify-center items-center">
+              <Link href="/home" className="flex justify-center items-center">
                 <Image
                   src={state === "collapsed" ? "/icon.png" : "/POSX_2.png"}
                   alt="logo"
