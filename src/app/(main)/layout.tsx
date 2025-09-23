@@ -5,9 +5,9 @@ import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { SessionProvider } from "next-auth/react";
+import IdleTimeoutHandler from "@/components/IdleTimeoutHandler";
 
 export const metadata: Metadata = {
   title: "POSX",
@@ -36,7 +36,10 @@ export default async function MainLayout({
           <AppSidebar />
           <main className="w-full">
             <Navbar />
-            <div className="px-4">{children}</div>
+            <div className="px-4">
+              {children}
+              <IdleTimeoutHandler />
+            </div>
           </main>
         </SidebarProvider>
       </ThemeProvider>
