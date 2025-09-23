@@ -1,4 +1,3 @@
-"use client";
 import type { Metadata } from "next";
 import "../globals.css";
 import AppSidebar from "@/components/AppSidebar";
@@ -8,7 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import "react-toastify/dist/ReactToastify.css";
 import { SessionProvider } from "next-auth/react";
-import { useIdleTimeout } from "@/lib/useIdleTimeout";
+import IdleTimeoutHandler from "@/components/IdleTimeoutHandler";
 
 export const metadata: Metadata = {
   title: "POSX",
@@ -24,7 +23,6 @@ export default async function MainLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  useIdleTimeout(3600000); 
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
     <SessionProvider>
@@ -38,7 +36,10 @@ export default async function MainLayout({
           <AppSidebar />
           <main className="w-full">
             <Navbar />
-            <div className="px-4">{children}</div>
+            <div className="px-4">
+              {children}
+              <IdleTimeoutHandler />
+            </div>
           </main>
         </SidebarProvider>
       </ThemeProvider>
