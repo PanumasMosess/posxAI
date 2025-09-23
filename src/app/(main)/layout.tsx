@@ -1,3 +1,4 @@
+"use client";
 import type { Metadata } from "next";
 import "../globals.css";
 import AppSidebar from "@/components/AppSidebar";
@@ -5,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { SessionProvider } from "next-auth/react";
 import { useIdleTimeout } from "@/lib/useIdleTimeout";
