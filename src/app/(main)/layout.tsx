@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { SessionProvider } from "next-auth/react";
+import { useIdleTimeout } from "@/lib/useIdleTimeout";
 
 export const metadata: Metadata = {
   title: "POSX",
@@ -23,6 +24,7 @@ export default async function MainLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
+  useIdleTimeout(3600000); 
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
     <SessionProvider>
