@@ -19,6 +19,9 @@ const Navbar =  () => {
   const session = useSession();
   const img_user = session.data?.user.image?.toString();
 
+  console.log(session);
+  
+
   return (
     <nav className="p-4 flex items-center justify-between">
       {/* LEFT */}

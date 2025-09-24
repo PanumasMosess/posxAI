@@ -15,12 +15,13 @@ datasource db {
 
 model Employees {
   id          Int      @id @default(autoincrement())
+  id_google   String?  @unique
   username    String   @unique
   password    String
   name        String
   surname     String
   email       String?
-  img         String?  
+  img         String?
   status      String   @default("ON")
   position_id Int
   login_fail  Int
