@@ -53,8 +53,8 @@ const StockFormBill = ({
       price_now_stock: 1,
       img_stock: "",
       creator_id: currentUserId,
-      category_id: 1,
-      supplier_id: 1,
+      category_id: 5,
+      supplier_id: 3,
     },
   });
 
