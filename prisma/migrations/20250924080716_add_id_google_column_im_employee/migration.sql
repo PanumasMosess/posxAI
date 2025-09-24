@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `employees` ADD COLUMN `id_google` VARCHAR(191) NULL;
+ALTER TABLE `Employees` ADD COLUMN `id_google` VARCHAR(191) NULL;
 
 -- CreateIndex
 CREATE UNIQUE INDEX `Employees_id_google_key` ON `Employees`(`id_google`);
