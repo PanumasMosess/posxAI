@@ -33,5 +33,9 @@ export const verifyCredentials = async (finalData: SignInSchema) => {
 };
 
 export const handleSignOut = async () => {
-  await signOut({ redirectTo: '/' });
+  await signOut({ redirectTo: "/" });
+};
+
+export const googleLogin = async () => {
+  const result = await signIn("google", { redirectTo: "/home" });
 };
