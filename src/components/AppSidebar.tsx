@@ -1,6 +1,13 @@
 "use client";
 
-import { Home, Settings, Warehouse, SendToBack, LogOut } from "lucide-react";
+import {
+  Home,
+  Computer,
+  Settings,
+  Warehouse,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +24,17 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { handleSignOut } from "@/lib/actions/actionAuths";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 const items = [
   {
@@ -25,18 +43,38 @@ const items = [
     icon: Home,
   },
   {
-    title: "เมนู",
+    title: "เมนู (POS)",
     url: "#",
-    icon: SendToBack,
+    icon: Computer,
+     subItems: [
+      {
+        title: "เมนู (POS)",
+        url: "#",
+      },
+       {
+        title: "เมนู (Kiosk)",
+        url: "#",
+      },
+    ],
   },
   {
     title: "คลังสินค้า",
-    url: "/stocks",
+    url: "#",
     icon: Warehouse,
+    subItems: [
+      {
+        title: "สินค้าทั้งหมด",
+        url: "/stocks",
+      },
+      {
+        title: "สูตรตัดสินค้า",
+        url: "#",
+      },
+    ],
   },
 ];
 
-const AppSidebar =  () => {
+const AppSidebar = () => {
   const { state, toggleSidebar } = useSidebar();
   return (
     <Sidebar collapsible="icon">
@@ -61,16 +99,75 @@ const AppSidebar =  () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url} className="py-3 text-base">
-                      <item.icon className="mr-2" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const hasSubItems = item.subItems && item.subItems.length > 0;
+                if (!hasSubItems) {
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <Link href={item.url} className="py-3 text-base">
+                          <div className="flex items-center">
+                            <item.icon className="mr-3 h-5 w-5" />
+                            <span>{item.title}</span>
+                          </div>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+                if (state === "collapsed") {
+                  return (
+                    <DropdownMenu key={item.title}>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton className="w-full justify-center py-3 text-base">
+                          <item.icon className="h-5 w-5" />
+                        </SidebarMenuButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        side="right"
+                        align="start"
+                        className="w-48"
+                      >
+                        {item.subItems!.map((subItem) => (
+                          <DropdownMenuItem key={subItem.title} asChild>
+                            <Link href={subItem.url}>{subItem.title}</Link>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+                } else {
+                  return (
+                    <Collapsible key={item.title} asChild>
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton className="w-full justify-between py-3 text-base">
+                            <div className="flex items-center">
+                              <item.icon className="mr-3 h-5 w-5" />
+                              <span>{item.title}</span>
+                            </div>
+                            <ChevronDown className="h-4 w-4" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="py-2 pl-6 space-y-1">
+                            {item.subItems!.map((subItem) => (
+                              <SidebarMenuButton
+                                key={subItem.title}
+                                variant="ghost"
+                                className="w-full justify-start"
+                                asChild
+                              >
+                                <Link href={subItem.url}>{subItem.title}</Link>
+                              </SidebarMenuButton>
+                            ))}
+                          </div>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
