@@ -13,9 +13,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Employees {
+model employees {
   id          Int      @id @default(autoincrement())
-  id_google   String?  @unique
   username    String   @unique
   password    String
   name        String
@@ -29,37 +28,40 @@ model Employees {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   birthday    DateTime
+  id_google   String?  @unique
 
-  stocks         Stock[]
-  categoryStocks CategoryStock[]
-  suppliers      Supplier[]
+  stocks         stock[]
+  categoryStocks categorystock[]
+  suppliers      supplier[]
+  menu           menu[]
 }
 
-model CategoryStock {
+model categorystock {
   id           Int      @id @default(autoincrement())
   categoryName String   @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   createdById Int
-  creator     Employees @relation(fields: [createdById], references: [id])
+  creator     employees @relation(fields: [createdById], references: [id])
 
-  stocks Stock[]
+  stocks stock[]
+  menu   menu[]
 }
 
-model Supplier {
+model supplier {
   id           Int      @id @default(autoincrement())
   supplierName String   @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   createdById Int
-  creator     Employees @relation(fields: [createdById], references: [id])
+  creator     employees @relation(fields: [createdById], references: [id])
 
-  stocks Stock[]
+  stocks stock[]
 }
 
-model Stock {
+model stock {
   id          Int      @id @default(autoincrement())
   productName String   @unique
   quantity    Int
@@ -72,9 +74,27 @@ model Stock {
   updatedAt   DateTime @updatedAt
 
   createdById Int
-  creator     Employees     @relation(fields: [createdById], references: [id])
+  creator     employees     @relation(fields: [createdById], references: [id])
   categoryId  Int
-  category    CategoryStock @relation(fields: [categoryId], references: [id])
+  category    categorystock @relation(fields: [categoryId], references: [id])
   supplierId  Int
-  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+  supplier    supplier      @relation(fields: [supplierId], references: [id])
+}
+
+model menu {
+  id          Int      @id @default(autoincrement())
+  menuName    String   @unique
+  price_sale  Float
+  price_cost  Float
+  unit        String
+  img         String?
+  description String?
+  status      String   @default("OFF_SALE") //@default("ON_SALE") for SALE menu
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById    Int
+  creator        employees     @relation(fields: [createdById], references: [id])
+  categoryMenuId Int
+  category       categorystock @relation(fields: [categoryMenuId], references: [id])
 }
