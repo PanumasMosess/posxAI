@@ -15,7 +15,7 @@ const Page = async () => {
     },
   });
 
-  const categoriesData = await prisma.categoryStock.findMany({
+  const categoriesData = await prisma.categorystock.findMany({
     select: { id: true, categoryName: true },
   });
   const suppliersData = await prisma.supplier.findMany({

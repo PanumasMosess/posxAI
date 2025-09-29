@@ -47,6 +47,8 @@ model categorystock {
 
   stocks stock[]
   menu   menu[]
+
+  @@map("categorystock")
 }
 
 model supplier {
