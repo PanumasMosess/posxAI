@@ -1,10 +1,7 @@
 "use client";
 
 import {
-  Home,
-  Computer,
   Settings,
-  Warehouse,
   LogOut,
   ChevronDown,
 } from "lucide-react";
@@ -35,44 +32,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import menuList from "@/lib/data_temp";
 
-const items = [
-  {
-    title: "หน้าหลัก",
-    url: "/home",
-    icon: Home,
-  },
-  {
-    title: "เมนู (POS)",
-    url: "#",
-    icon: Computer,
-     subItems: [
-      {
-        title: "เมนู (POS)",
-        url: "#",
-      },
-       {
-        title: "เมนู (Kiosk)",
-        url: "#",
-      },
-    ],
-  },
-  {
-    title: "คลังสินค้า",
-    url: "#",
-    icon: Warehouse,
-    subItems: [
-      {
-        title: "สินค้าทั้งหมด",
-        url: "/stocks",
-      },
-      {
-        title: "สูตรตัดสินค้า",
-        url: "#",
-      },
-    ],
-  },
-];
+const items = menuList;
 
 const AppSidebar = () => {
   const { state, toggleSidebar } = useSidebar();
