@@ -31,7 +31,7 @@ const menuList = [
         url: "/stocks",
       },
       {
-        title: "สูตรตัดสินค้า",
+        title: "สูตรและตั้งค่าสินค้าในคลัง",
         url: "/stocks/stock_fomular",
       },
     ],
