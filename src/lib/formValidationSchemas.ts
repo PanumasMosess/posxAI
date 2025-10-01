@@ -34,7 +34,21 @@ export const stockSchemaImg_ = z.object({
 export type StockSchemaImg = z.infer<typeof stockSchemaImg_>;
 
 export const signInSchema_ = z.object({
-  username:  z.string().min(1, { message: "กรุณากรอก Username" }).max(50),
-  password:  z.string().min(1, { message: "กรุณากรอกรหัสผ่าน" }).max(50),
+  username: z.string().min(1, { message: "กรุณากรอก Username" }).max(50),
+  password: z.string().min(1, { message: "กรุณากรอกรหัสผ่าน" }).max(50),
 });
 export type SignInSchema = z.infer<typeof signInSchema_>;
+
+export const categorySchema_ = z.object({
+  id: z.number().optional(),
+  categoryName: z.string().min(1, { message: "กรุณากรอก Category" }).max(50),
+  createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
+});
+export type CategorySchema = z.infer<typeof categorySchema_>;
+
+export const supplierSchema_ = z.object({
+  id: z.number().optional(),
+  supplierName: z.string().min(1, { message: "กรุณากรอก supplier" }).max(50),
+  createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
+});
+export type SupplierSchema = z.infer<typeof supplierSchema_>;

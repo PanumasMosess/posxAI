@@ -1,6 +1,6 @@
 "use server";
 
-import { StockSchema } from "../formValidationSchemas";
+import { CategorySchema, StockSchema, SupplierSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
   S3Client,
@@ -10,7 +10,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 
-type CurrentState = { success: boolean; error: boolean};
+type CurrentState = { success: boolean; error: boolean };
 
 export type BillItem = {
   productName: string;
@@ -328,5 +328,101 @@ export const deleteStock = async (data: any) => {
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
+  }
+};
+
+export const crearteCategories = async (
+  currentState: CurrentState,
+  data: CategorySchema
+) => {
+  try {
+    await prisma.categorystock.create({
+      data: {
+        categoryName: data.categoryName,
+        creator: {
+          connect: {
+            id: data.createdById,
+          },
+        },
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateCategories = async (
+  currentState: CurrentState,
+  data: CategorySchema
+) => {
+  try {
+    const updatedCategory = await prisma.categorystock.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        categoryName: data.categoryName,
+        updatedAt: new Date(),
+        createdById: data.createdById,
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedCategory };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
+};
+
+export const crearteSupplier = async (
+  currentState: CurrentState,
+  data: SupplierSchema
+) => {
+  try {
+    await prisma.supplier.create({
+      data: {
+        supplierName: data.supplierName,
+        creator: {
+          connect: {
+            id: data.createdById,
+          },
+        },
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateSupplier = async (
+  currentState: CurrentState,
+  data: SupplierSchema
+) => {
+  try {
+    const updatedSupplierName = await prisma.supplier.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        supplierName: data.supplierName,
+        updatedAt: new Date(),
+        createdById: data.createdById,
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedSupplierName };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "Supplier" };
   }
 };

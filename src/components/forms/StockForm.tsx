@@ -125,21 +125,12 @@ const StockForm = ({
       router.refresh();
       stateSheet(false);
     }
-
-    if (type === "create" && categories?.length > 0 && suppliers?.length > 0) {
-      const firstCategoryId = categories[0].id;
-      formAddStock.setValue("category_id", firstCategoryId);
-
-      const firstSupplierId = suppliers[0].id;
-      formAddStock.setValue("supplier_id", firstSupplierId);
-    }
   }, [state, stateSheet, formAddStock, type, router, setIsSubmitting]);
 
   useEffect(() => {
     if (stateForm) {
       formAddStock.reset();
     }
-
     // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
     if (type === "update" && data) {
       formAddStock.setValue("category_id", data.categoryId);
@@ -153,7 +144,15 @@ const StockForm = ({
       setOldImg("");
       setOldImg(data.img);
     }
-  }, [type, data, categories, suppliers, formAddStock, setOldImg]);
+
+    if (type === "create" && categories?.length > 0 && suppliers?.length > 0) {
+      const firstCategoryId = categories[0].id;
+      formAddStock.setValue("category_id", firstCategoryId);
+
+      const firstSupplierId = suppliers[0].id;
+      formAddStock.setValue("supplier_id", firstSupplierId);
+    }
+  }, [type, data, stateForm, categories, suppliers, formAddStock, setOldImg]);
 
   return (
     <SheetContent

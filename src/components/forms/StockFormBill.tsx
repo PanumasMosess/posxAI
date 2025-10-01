@@ -124,6 +124,12 @@ const StockFormBill = ({
     }
   }, [formAddStockBill, type, stateBill, stateSheet]);
 
+  useEffect(() => {
+    if (stateForm) {
+      formAddStockBill.reset();
+    }
+  }, [stateForm]);
+
   return (
     <SheetContent
       className="w-[400px] sm:w-[540px] flex flex-col"
