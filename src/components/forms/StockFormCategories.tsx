@@ -109,8 +109,8 @@ const StockFormCategories = ({
       className="w-[400px] sm:w-[540px] flex flex-col"
       onInteractOutside={(e) => e.preventDefault()}
     >
-      <SheetHeader>
-        <SheetTitle className="mb-2">
+      <SheetHeader className="px-6 pt-6 pb-4">
+        <SheetTitle >
           {type === "create"
             ? "เพิ่มรายการหมวดหมู่สินค้า"
             : "แก้ไขรายการหมวดหมู่สินค้า"}
@@ -120,7 +120,7 @@ const StockFormCategories = ({
         <Form {...formAddCat}>
           <form
             id="addCatForm"
-            className="space-y-8 px-6 py-4"
+            className="space-y-6 px-6 pb-6"
             onSubmit={formAddCat.handleSubmit(onSubmit)}
           >
             {data && (
