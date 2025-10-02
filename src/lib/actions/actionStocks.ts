@@ -1,6 +1,10 @@
 "use server";
 
-import { CategorySchema, StockSchema, SupplierSchema } from "../formValidationSchemas";
+import {
+  CategorySchema,
+  StockSchema,
+  SupplierSchema,
+} from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
   S3Client,
@@ -379,6 +383,22 @@ export const updateCategories = async (
   }
 };
 
+export const deleteCategories = async (data: any) => {
+  try {
+    await prisma.categorystock.delete({
+      where: {
+        id: data.id,
+      },
+    });
+
+    // revalidatePath("/stocks");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
 export const crearteSupplier = async (
   currentState: CurrentState,
   data: SupplierSchema
@@ -424,5 +444,21 @@ export const updateSupplier = async (
   } catch (err) {
     console.log(err);
     return { success: false, error: true, data: "Supplier" };
+  }
+};
+
+export const deleteSupplier = async (data: any) => {
+  try {
+    await prisma.supplier.delete({
+      where: {
+        id: data.id,
+      },
+    });
+
+    // revalidatePath("/stocks");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
   }
 };

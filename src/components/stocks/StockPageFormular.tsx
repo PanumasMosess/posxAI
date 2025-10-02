@@ -1,16 +1,31 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { ChartColumnStacked, Container, Layers, Truck } from "lucide-react";
+import { Layers, Truck } from "lucide-react";
 import { Button } from "../ui/button";
 import { Sheet, SheetTrigger } from "../ui/sheet";
 import { useEffect, useState } from "react";
 import StockFormCategories from "../forms/StockFormCategories";
 import StockFormSupplier from "../forms/StockFormSupplier";
+
 import { Data_table_categories } from "./tables/data-table-categories";
-import { CategoriesColumns } from "./tables/column_categories";
+import { Categories, CategoriesColumns } from "./tables/column_categories";
+
 import { Data_table_suppliers } from "./tables/data-table-supplier";
-import { SupplierColumns } from "./tables/culumn_supplier";
+import { Supplier, SupplierColumns } from "./tables/culumn_supplier";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
+import { deleteCategories, deleteSupplier } from "@/lib/actions/actionStocks";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 interface StockPageFormularProps {
   initialItems: any[];
@@ -31,6 +46,60 @@ const StockPageFormular = ({
   const [openSheetCata, setOpenSheetCata] = useState(false);
   const [openSheetSupply, setOpenSheetSupply] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>("All");
+  const [openSheetCataUpdate, setOpenSheetCataUpdate] = useState(false);
+  const [openSheetSupplyUpdate, setOpenSheetSupplyUpdate] = useState(false);
+  const [editingItemCat, setEditingItemCat] = useState<Categories | null>(null);
+  const [deleteItemCat, setDeleteItemCat] = useState<Categories | null>(null);
+  const [editingItemSup, setEditingItemSup] = useState<Supplier | null>(null);
+  const [deleteItemSup, setDeleteItemSup] = useState<Supplier | null>(null);
+
+  const router = useRouter();
+
+  const handleEditCat = (category: Categories) => {
+    setEditingItemCat(category);
+    setOpenSheetCataUpdate(true);
+  };
+
+  const handleDeleteCat = (category: Categories) => {
+    setDeleteItemCat(category);
+  };
+
+  const handleDeleteCatConfirm = async (data: any) => {
+    const delete_status = await deleteCategories(data);
+
+    if (delete_status.success) {
+      toast.success("ยกเลิกสำเร็จ!");
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+  };
+
+  const handleEditSup = (supplier: Supplier) => {
+    setEditingItemSup(supplier);
+    setOpenSheetSupplyUpdate(true);
+  };
+
+  const handleDeleteSup = (supplier: Supplier) => {
+    setDeleteItemSup(supplier);
+  };
+
+  const handleDeleteSupConfirm = async (data: any) => {
+    const delete_status = await deleteSupplier(data);
+
+    if (delete_status.success) {
+      toast.success("ยกเลิกสำเร็จ!");
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+  };
+
+  const columns_categories = CategoriesColumns({
+    handleEditCat,
+    handleDeleteCat,
+  });
+  const columns_supplier = SupplierColumns({ handleEditSup, handleDeleteSup });
 
   useEffect(() => {
     if (filterCategory === "All") {
@@ -106,20 +175,102 @@ const StockPageFormular = ({
             <Layers className="h-6 w-6 mr-2" />
             <h3 className="text-lg font-semibold">หมวดหมู่</h3>
           </div>
-          <Data_table_categories
-            columns={CategoriesColumns}
-            data={relatedData.categories}
-          />
+          <AlertDialog
+            open={!!deleteItemCat}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setDeleteItemCat(null);
+              }
+            }}
+          >
+            <Data_table_categories
+              columns={columns_categories}
+              data={relatedData.categories}
+            />
+
+            <Sheet
+              open={openSheetCataUpdate}
+              onOpenChange={setOpenSheetCataUpdate}
+            >
+              <StockFormCategories
+                type={"update"}
+                relatedData={relatedData}
+                currentUserId={parseInt(id_user)}
+                data={editingItemCat}
+                stateSheet={setOpenSheetCataUpdate}
+                stateForm={openSheetCataUpdate}
+              />
+            </Sheet>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะของ "
+                  {deleteItemCat?.categoryName}" เป็น "ยกเลิกหมวกหมู่" อย่างถาวร
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDeleteCatConfirm(deleteItemCat)}
+                >
+                  ยืนยันการลบ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         <div className="bg-primary-foreground p-4 rounded-lg">
           <div className="flex items-center mb-4">
             <Truck className="h-6 w-6 mr-2" />
             <h3 className="text-lg font-semibold">ซัพพลายเออร์</h3>
           </div>
+           <AlertDialog
+            open={!!deleteItemSup}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setDeleteItemSup(null);
+              }
+            }}
+          >
           <Data_table_suppliers
-            columns={SupplierColumns}
+            columns={columns_supplier}
             data={relatedData.suppliers}
           />
+
+          <Sheet
+            open={openSheetSupplyUpdate}
+            onOpenChange={setOpenSheetSupplyUpdate}
+          >
+            <StockFormSupplier
+              type={"update"}
+              relatedData={relatedData}
+              data={editingItemSup}
+              currentUserId={parseInt(id_user)}
+              stateSheet={setOpenSheetSupplyUpdate}
+              stateForm={openSheetSupplyUpdate}
+            />
+          </Sheet>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะของ "
+                  {deleteItemSup?.supplierName}" เป็น "ยกเลิกซัพพลายเออร์" อย่างถาวร
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDeleteSupConfirm(deleteItemSup)}
+                >
+                  ยืนยันการลบ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
