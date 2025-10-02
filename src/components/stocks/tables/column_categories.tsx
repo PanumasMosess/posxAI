@@ -7,13 +7,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
+import { Dispatch, SetStateAction } from "react";
 
 export type Categories = {
   id: number;
   categoryName: string;
 };
 
-export const CategoriesColumns: ColumnDef<Categories>[] = [
+export const CategoriesColumns = ({
+  handleEditCat,
+  handleDeleteCat,
+}: {
+  handleEditCat: (category: Categories) => void;
+  handleDeleteCat: (category: Categories) => void;
+}): ColumnDef<Categories>[] => [
   {
     id: "sequence",
     header: () => <div className="text-left">#</div>,
@@ -46,14 +53,14 @@ export const CategoriesColumns: ColumnDef<Categories>[] = [
             <DropdownMenuContent align="start">
               <DropdownMenuItem
                 onClick={() => {
-                  console.log(category.id);
+                  handleEditCat(category);
                 }}
               >
                 UPDATE
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  console.log(category.id);
+                 handleDeleteCat(category);
                 }}
               >
                 DELETE

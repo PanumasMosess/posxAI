@@ -13,7 +13,13 @@ export type Supplier = {
   supplierName: string;
 };
 
-export const SupplierColumns: ColumnDef<Supplier>[] = [
+export const SupplierColumns = ({
+  handleEditSup,
+  handleDeleteSup,
+}: {
+  handleEditSup: (supplier: Supplier) => void;
+  handleDeleteSup: (supplier: Supplier) => void;
+}): ColumnDef<Supplier>[] => [
   {
     id: "sequence",
     header: () => <div className="text-left">#</div>,
@@ -46,14 +52,14 @@ export const SupplierColumns: ColumnDef<Supplier>[] = [
             <DropdownMenuContent align="start">
               <DropdownMenuItem
                 onClick={() => {
-                  console.log(supplier.id);
+                  handleEditSup(supplier);
                 }}
               >
                 UPDATE
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  console.log(supplier.id);
+                  handleDeleteSup(supplier);
                 }}
               >
                 DELETE
