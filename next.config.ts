@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "wallpapercave.com",
       },
+       {
+        protocol: "https",
+        hostname: "imgcp.aacdn.jp",
+      },
+        {
+        protocol: "https",
+        hostname: "sgp1.digitaloceanspaces.com",
+      },
     ],
   },
   eslint: {

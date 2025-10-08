@@ -1,7 +1,7 @@
 "use server";
 
 import { GoogleGenAI } from "@google/genai";
-import { sendbase64toS3Data } from "../actions/actionStocks";
+import { sendbase64toS3Data } from "../actions/actionIndex";
 
 const ai_gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model_version = process.env.GEMINI_MODEL || "gemini-2.5-flash";

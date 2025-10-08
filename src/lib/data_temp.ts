@@ -37,4 +37,46 @@ const menuList = [
     ],
   },
 ];
-export default menuList;
+
+// ข้อมูลตัวอย่างสำหรับเมนู
+const menuItems = [
+  {
+    name: "Super Delicious Pizza",
+    price: 15,
+    image:
+      "https://imgcp.aacdn.jp/img-a/1440/auto/global-aaj-front/article/2019/01/5c35764ceeb39_5c35764136a54_283103980.jpg",
+  },
+  {
+    name: "Super Delicious Chicken",
+    price: 12,
+    image:
+      "https://imgcp.aacdn.jp/img-a/1440/auto/global-aaj-front/article/2019/01/5c35764ceeb39_5c35764136a54_283103980.jpg",
+  },
+  {
+    name: "Super Delicious Burger",
+    price: 10,
+    image:
+      "https://imgcp.aacdn.jp/img-a/1440/auto/global-aaj-front/article/2019/01/5c35764ceeb39_5c35764136a54_283103980.jpg",
+  },
+  {
+    name: "Super Delicious Chips",
+    price: 5,
+    image:
+      "https://imgcp.aacdn.jp/img-a/1440/auto/global-aaj-front/article/2019/01/5c35764ceeb39_5c35764136a54_283103980.jpg",
+  },
+  {
+    name: "Super Delicious Chips2",
+    price: 5,
+    image:
+      "https://imgcp.aacdn.jp/img-a/1440/auto/global-aaj-front/article/2019/01/5c35764ceeb39_5c35764136a54_283103980.jpg",
+  },
+  {
+    name: "Super Delicious Chips3",
+    price: 5,
+    image:
+      "https://imgcp.aacdn.jp/img-a/1440/auto/global-aaj-front/article/2019/01/5c35764ceeb39_5c35764136a54_283103980.jpg",
+  },
+  // ... add more items
+];
+
+export default { menuList, menuItems };

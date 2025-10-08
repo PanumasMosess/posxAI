@@ -113,7 +113,7 @@ export function FormFieldImageUpload({
                   ) : (
                     <div className="text-center text-gray-500 flex flex-col items-center">
                       <Upload className="h-8 w-8 mb-2" />
-                      <p>คลิกเพื่ออัปโหลดรูปภาพหรือ PDF</p>
+                      <p>คลิกเพื่ออัปโหลดข้อมูล</p>
                     </div>
                   )}
                 </div>

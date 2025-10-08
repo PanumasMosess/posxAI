@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/select";
 import { generationImage } from "@/lib/ai/geminiAI";
 import {
-  deleteFileS3,
   deleteStock,
   updateImageStock,
 } from "@/lib/actions/actionStocks";
@@ -61,6 +60,7 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import { useSession } from "next-auth/react";
+import { deleteFileS3 } from "@/lib/actions/actionIndex";
 
 interface StockPageClientProps {
   initialItems: any[];
