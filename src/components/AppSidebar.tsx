@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  Settings,
-  LogOut,
-  ChevronDown,
-} from "lucide-react";
+import { Settings, LogOut, ChevronDown } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,7 +30,7 @@ import {
 } from "./ui/dropdown-menu";
 import menuList from "@/lib/data_temp";
 
-const items = menuList;
+const items = menuList.menuList;
 
 const AppSidebar = () => {
   const { state, toggleSidebar } = useSidebar();

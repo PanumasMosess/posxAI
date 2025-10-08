@@ -23,12 +23,11 @@ import {
 import {
   BillItem,
   createStockByImg,
-  deleteFileS3,
-  handleImageUpload,
 } from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { StockSchemaImg, stockSchemaImg_ } from "@/lib/formValidationSchemas";
 import { getPresignedUrltoAI } from "@/lib/ai/geminiAI";
+import { deleteFileS3, handleImageUpload } from "@/lib/actions/actionIndex";
 
 const StockFormBill = ({
   type,
