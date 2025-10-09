@@ -8,21 +8,23 @@ import {
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Dispatch, SetStateAction } from "react";
-
-type Item = {
-  menuName: string;
-  price_sale: number;
-  img: string;
-  description: string;
-};
+import { MenuSchema } from "@/lib/formValidationSchemas";
 
 interface MenuItemCardProps {
-  item: Item;
+  item: MenuSchema;
+  relatedData: any;
   stateSheet: Dispatch<SetStateAction<boolean>>;
+  handelDetail: (item: MenuSchema) => void;
 }
-const MenuPOSItemCard = ({ item, stateSheet }: MenuItemCardProps) => {
-  const handleDetailCat = (itemMenu: Item) => {
+const MenuPOSItemCard = ({
+  item,
+  relatedData,
+  stateSheet,
+  handelDetail,
+}: MenuItemCardProps) => {
+  const handleDetailCat = (itemMenu: MenuSchema) => {
     stateSheet(true);
+    handelDetail(itemMenu);
   };
 
   return (
@@ -50,7 +52,13 @@ const MenuPOSItemCard = ({ item, stateSheet }: MenuItemCardProps) => {
         </CardTitle>
         {item.price_sale && (
           <p className="text-sm text-muted-foreground mt-1">
-            ฿{item.price_sale.toFixed(2)}
+             {item.price_sale.toFixed(2)} /{" "}
+            {
+              relatedData.categories.find(
+                (category: { id: number; categoryName: string }) =>
+                  category.id === item.categoryMenuId
+              )?.categoryName
+            }
           </p>
         )}
       </CardContent>

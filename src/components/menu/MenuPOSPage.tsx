@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { MenuSchema } from "@/lib/formValidationSchemas";
 
 interface MenuPOSPageClientProps {
   initialItems: any[];
@@ -45,6 +46,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const [openSheetDetail, setOpenSheetDetail] = useState(false);
   const [itemDetail, setItemDetail] = useState();
   const [displayItems, setDisplayItems] = useState(initialItems);
+  const [detailMenu, setDetailMenu] = useState<MenuSchema | null>(null);
 
   // State สำหรับจัดการการแสดงผลและการค้นหา
   const [filterCategory, setFilterCategory] = useState<string>("All");
@@ -169,7 +171,9 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                     <MenuPOSItemCard
                       key={item.menuName}
                       item={item}
+                      relatedData={relatedData}
                       stateSheet={setOpenSheetDetail}
+                      handelDetail={setDetailMenu}
                     />
                   );
                 })}
@@ -201,6 +205,9 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
               </div>
             )}
           </div>
+          <Sheet open={openSheetDetail} onOpenChange={setOpenSheetDetail}>
+              <MunuDetailForm item={detailMenu} stateSheet={setOpenSheetUpdate} />
+          </Sheet>
         </div>
       </div>
     </div>
