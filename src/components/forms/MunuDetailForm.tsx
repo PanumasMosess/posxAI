@@ -48,7 +48,7 @@ const MunuDetailForm = ({
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <div className="relative w-full h-64 rounded-lg overflow-hidden shadow-lg border border-border/50">
           <Image
-            src={item?.img || "/placeholder.png"}
+            src={item?.img || "default-image-url.png"}
             alt={item?.menuName}
             fill
             className="object-cover"
