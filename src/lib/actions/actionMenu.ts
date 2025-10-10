@@ -45,31 +45,55 @@ export const updateMenu = async (
   currentState: CurrentState,
   data: MenuSchema
 ) => {
-//    try {
-//     const updatedStock = await prisma.menu.update({
-//       where: {
-//         id: data.id,
-//       },
-//       data: {
-//         productName: data.product_stock,
-//         quantity: data.pcs_stock,
-//         price: data.price_now_stock,
-//         unit: data.unit_stock,
-//         description: data.description_stock || null,
-//         img: data.img_stock || null,
-//         updatedAt: new Date(),
-//         createdById: data.creator_id,
-//         categoryId: data.category_id,
-//         supplierId: data.supplier_id,
-//       },
-//     });
+   try {
+    const updatedStock = await prisma.menu.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        menuName: data.menuName,
+        price_sale: data.price_sale,
+        price_cost: data.price_cost,
+        unit: data.unit,
+        description: data.description || null,
+        img: data.img || null,
+        status: data.status,
+        updatedAt: new Date(),
+        createdById: data.createdById,
+        categoryMenuId: data.categoryMenuId,
+      },
+    });
 
-//     // revalidatePath("/list/subjects");
-//     return { success: true, error: false, data: updatedStock };
-//   } catch (err) {
-//     console.log(err);
-//     return { success: false, error: true, data: "" };
-//   }
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedStock };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
 
  return { success: true, error: false, data: "" };
+};
+
+export const deleteMenu = async (data: any) => {
+  try {
+    await prisma.stock.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        status: data.status,
+        creator: {
+          connect: {
+            id: data.creator_id,
+          },
+        },
+      },
+    });
+
+    // revalidatePath("/stocks");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
 };

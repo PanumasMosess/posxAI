@@ -9,6 +9,7 @@ import {
 import { Button } from "../ui/button";
 import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "@/lib/formValidationSchemas";
+import { Badge } from "../ui/badge";
 
 interface MenuItemCardProps {
   item: MenuSchema;
@@ -22,9 +23,24 @@ const MenuPOSItemCard = ({
   stateSheet,
   handelDetail,
 }: MenuItemCardProps) => {
+  //กดดู detail
   const handleDetailCat = (itemMenu: MenuSchema) => {
     stateSheet(true);
     handelDetail(itemMenu);
+  };
+
+  const statusStyles: { [key: string]: string } = {
+    READY_TO_SELL:
+      "bg-green-100 text-green-800 border-green-200 hover:bg-green-100",
+    STOP_TO_SELL:
+      "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100",
+    OUT_OF_MENU: "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-100",
+  };
+
+  const statusTexts: { [key: string]: string } = {
+    READY_TO_SELL: "พร้อมขาย",
+    STOP_TO_SELL: "งดขาย",
+    OUT_OF_MENU: "หมด",
   };
 
   return (
@@ -52,7 +68,7 @@ const MenuPOSItemCard = ({
         </CardTitle>
         {item.price_sale && (
           <p className="text-sm text-muted-foreground mt-1">
-             {item.price_sale.toFixed(2)} /{" "}
+            {item.price_sale.toFixed(2)} /{" "}
             {
               relatedData.categories.find(
                 (category: { id: number; categoryName: string }) =>
@@ -60,6 +76,16 @@ const MenuPOSItemCard = ({
               )?.categoryName
             }
           </p>
+        )}
+
+        {item.status && (
+          <div className="mt-2 flex justify-center">
+            <Badge
+              className={`font-semibold ${statusStyles[item.status] || ""}`}
+            >
+              {statusTexts[item.status] || item.status}
+            </Badge>
+          </div>
         )}
       </CardContent>
 
