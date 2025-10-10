@@ -5,19 +5,36 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../ui/sheet";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import Image from "next/image";
 
 const MunuDetailForm = ({
   stateSheet,
   item,
+  dataForUpdata,
 }: {
   stateSheet: Dispatch<SetStateAction<boolean>>;
   item: any;
+  dataForUpdata: any;
 }) => {
-  const handleDetailCat = () => {
+
+  ///กดแก้ไข
+  const handleDetailCat = (item: any) => {
     stateSheet(true);
+    dataForUpdata(item);
+  };
+
+  const statusStyles: { [key: string]: string } = {
+    READY_TO_SELL: "text-green-500",
+    STOP_TO_SELL: "text-orange-500",
+    OUT_OF_MENU: "text-gray-400",
+  };
+
+  const statusTexts: { [key: string]: string } = {
+    READY_TO_SELL: "พร้อมขาย",
+    STOP_TO_SELL: "งดขาย",
+    OUT_OF_MENU: "หมด",
   };
   return (
     <SheetContent className="w-[400px] sm:w-[540px] flex flex-col p-0 bg-background text-foreground">
@@ -62,25 +79,29 @@ const MunuDetailForm = ({
             <span className="text-muted-foreground">สถานะ</span>
             <span
               className={`font-semibold ${
-                item?.status === "READY_TO_SELL"
-                  ? "text-green-500"
-                  : "text-red-600"
+                statusStyles[item?.status] || "text-foreground"
               }`}
             >
-              {item?.status === "READY_TO_SELL" ? "พร้อมขาย" : item?.status}
+              {statusTexts[item?.status] || item?.status}{" "}           
             </span>
           </div>
         </div>
 
         <div className="flex gap-4 pt-4">
-          <Button variant="outline" className="flex-1" onClick={() => {}}>
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => {
+              handleDetailCat(item);
+            }}
+          >
             <Pencil className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="destructive" className="flex-1" onClick={() => {}}>
+          {/* <Button variant="destructive" className="flex-1" onClick={() => {}}>
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
-          </Button>
+          </Button> */}
         </div>
       </div>
     </SheetContent>

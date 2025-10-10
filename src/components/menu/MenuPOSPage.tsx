@@ -93,6 +93,17 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
     setCurrentPage(1);
   }, [searchTerm, initialItems]);
 
+  useEffect(() => {
+    if (detailMenu) {
+      const updatedItemData = initialItems.find(
+        (item) => item.id === detailMenu.id
+      );
+      if (updatedItemData) {
+        setDetailMenu(updatedItemData);
+      }
+    }
+  }, [initialItems]);
+
   return (
     <div className="">
       {/* CONTAINER */}
@@ -147,6 +158,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                 <MenuFormPOS
                   type={"update"}
                   relatedData={relatedData}
+                  data={itemDetail}
                   currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheetUpdate}
                   stateForm={openSheetUpdate}
@@ -206,7 +218,11 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
             )}
           </div>
           <Sheet open={openSheetDetail} onOpenChange={setOpenSheetDetail}>
-              <MunuDetailForm item={detailMenu} stateSheet={setOpenSheetUpdate} />
+            <MunuDetailForm
+              item={detailMenu}
+              stateSheet={setOpenSheetUpdate}
+              dataForUpdata={setItemDetail}
+            />
           </Sheet>
         </div>
       </div>

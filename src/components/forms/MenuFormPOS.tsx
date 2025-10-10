@@ -36,6 +36,7 @@ import {
 } from "../ui/select";
 import { createMenu, updateMenu } from "@/lib/actions/actionMenu";
 import {
+  deleteFileS3,
   handleImageUpload,
   menu_handleImageUpload,
 } from "@/lib/actions/actionIndex";
@@ -65,6 +66,7 @@ const MenuFormPOS = ({
       description: "",
       price_sale: 0,
       price_cost: 0,
+      status: "READY_TO_SELL",
       img: undefined,
       createdById: currentUserId,
       categoryMenuId: undefined,
@@ -88,6 +90,15 @@ const MenuFormPOS = ({
     try {
       setIsSubmitting(true);
       const finalData = { ...dataForm };
+
+      if (type === "update" && OldImg && dataForm.img) {
+        const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!;
+        const urlObject = new URL(OldImg);
+        const pathname = urlObject.pathname;
+        const key = pathname.substring(`/${bucketName}/`.length);
+        const status_del_old = await deleteFileS3(key);
+      }
+
       if (dataForm.img && dataForm.img instanceof File) {
         const imageUrl = await menu_handleImageUpload(dataForm.img);
         finalData.img = imageUrl;
@@ -116,19 +127,20 @@ const MenuFormPOS = ({
     if (stateForm) {
       formAddMenu.reset();
     }
-    // // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
-    // if (type === "update" && data) {
-    //   formAddStock.setValue("category_id", data.categoryId);
-    //   formAddStock.setValue("supplier_id", data.supplierId);
-    //   formAddStock.setValue("product_stock", data.productName);
-    //   formAddStock.setValue("unit_stock", data.unit);
-    //   formAddStock.setValue("price_now_stock", data.price);
-    //   formAddStock.setValue("pcs_stock", data.quantity);
-    //   formAddStock.setValue("description_stock", data.description);
-    //   formAddStock.setValue("id", data.id);
-    //   setOldImg("");
-    //   setOldImg(data.img);
-    // }
+
+    // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
+    if (type === "update" && data) {
+      formAddMenu.setValue("menuName", data.menuName);
+      formAddMenu.setValue("price_sale", data.price_sale);
+      formAddMenu.setValue("price_cost", data.price_cost);
+      formAddMenu.setValue("unit", data.unit);
+      formAddMenu.setValue("description", data.description || "");
+      formAddMenu.setValue("status", data.status);
+      formAddMenu.setValue("categoryMenuId", data.categoryMenuId);
+      formAddMenu.setValue("id", data.id);
+      setOldImg("");
+      setOldImg(data.img);
+    }
 
     if (type === "create" && categories?.length > 0) {
       const firstCategoryId = categories[0].id;
@@ -238,7 +250,6 @@ const MenuFormPOS = ({
                 </FormItem>
               )}
             />
-
             <FormField
               control={formAddMenu.control}
               name="categoryMenuId"
@@ -268,6 +279,43 @@ const MenuFormPOS = ({
                 </FormItem>
               )}
             />
+
+            {data && (
+              <FormField
+                control={formAddMenu.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>หมวดหมู่</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={String(field.value)}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="เลือกสถานะเมนู" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem
+                          key={"READY_TO_SELL"}
+                          value={"READY_TO_SELL"}
+                        >
+                          พร้อมขาย
+                        </SelectItem>
+                        <SelectItem key={"STOP_TO_SELL"} value={"STOP_TO_SELL"}>
+                          งดขาย
+                        </SelectItem>
+                        <SelectItem key={"OUT_OF_MENU"} value={"OUT_OF_MENU"}>
+                          หมด
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormFieldImageUpload
               control={formAddMenu.control}
               name="img"
