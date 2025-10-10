@@ -2,6 +2,7 @@ import Image from "next/image";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -10,6 +11,7 @@ import { Button } from "../ui/button";
 import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "@/lib/formValidationSchemas";
 import { Badge } from "../ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 interface MenuItemCardProps {
   item: MenuSchema;
@@ -51,15 +53,11 @@ const MenuPOSItemCard = ({
         handleDetailCat(item);
       }}
     >
-      <CardHeader className="p-4 relative h-60 flex items-center justify-center">
-        <div className="relative w-60 h-60 rounded-full overflow-hidden border">
-          <Image
-            src={item.img || "default-image-url.png"}
-            alt={item.menuName}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        </div>
+      <CardHeader className="p-6 flex flex-col items-center justify-center gap-4">
+        <Avatar className="h-55 w-55 border-2 border-primary">
+          <AvatarImage src={item.img || "/default-image-url.png"} />
+          <AvatarFallback>JD</AvatarFallback>
+        </Avatar>
       </CardHeader>
 
       <CardContent className="px-4 pb-2 text-center flex-grow flex flex-col justify-end">
