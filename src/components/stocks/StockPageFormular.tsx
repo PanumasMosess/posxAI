@@ -26,12 +26,14 @@ import {
 import { deleteCategories, deleteSupplier } from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import StockFormularManament from "../forms/StockFormularManament";
 
 interface StockPageFormularProps {
   initialItems: any[];
   relatedData: {
     categories: { id: number; categoryName: string }[];
     suppliers: { id: number; supplierName: string }[];
+    menu: { id: number; menuName: string }[];
   };
 }
 
@@ -171,7 +173,7 @@ const StockPageFormular = ({
       </div>
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-primary-foreground p-4 rounded-lg">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center">
             <Layers className="h-6 w-6 mr-2" />
             <h3 className="text-lg font-semibold">หมวดหมู่</h3>
           </div>
@@ -222,11 +224,11 @@ const StockPageFormular = ({
           </AlertDialog>
         </div>
         <div className="bg-primary-foreground p-4 rounded-lg">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center">
             <Truck className="h-6 w-6 mr-2" />
             <h3 className="text-lg font-semibold">ซัพพลายเออร์</h3>
           </div>
-           <AlertDialog
+          <AlertDialog
             open={!!deleteItemSup}
             onOpenChange={(isOpen) => {
               if (!isOpen) {
@@ -234,31 +236,32 @@ const StockPageFormular = ({
               }
             }}
           >
-          <Data_table_suppliers
-            columns={columns_supplier}
-            data={relatedData.suppliers}
-          />
-
-          <Sheet
-            open={openSheetSupplyUpdate}
-            onOpenChange={setOpenSheetSupplyUpdate}
-          >
-            <StockFormSupplier
-              type={"update"}
-              relatedData={relatedData}
-              data={editingItemSup}
-              currentUserId={parseInt(id_user)}
-              stateSheet={setOpenSheetSupplyUpdate}
-              stateForm={openSheetSupplyUpdate}
+            <Data_table_suppliers
+              columns={columns_supplier}
+              data={relatedData.suppliers}
             />
-          </Sheet>
+
+            <Sheet
+              open={openSheetSupplyUpdate}
+              onOpenChange={setOpenSheetSupplyUpdate}
+            >
+              <StockFormSupplier
+                type={"update"}
+                relatedData={relatedData}
+                data={editingItemSup}
+                currentUserId={parseInt(id_user)}
+                stateSheet={setOpenSheetSupplyUpdate}
+                stateForm={openSheetSupplyUpdate}
+              />
+            </Sheet>
 
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
                 <AlertDialogDescription>
                   การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะของ "
-                  {deleteItemSup?.supplierName}" เป็น "ยกเลิกซัพพลายเออร์" อย่างถาวร
+                  {deleteItemSup?.supplierName}" เป็น "ยกเลิกซัพพลายเออร์"
+                  อย่างถาวร
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -272,6 +275,12 @@ const StockPageFormular = ({
             </AlertDialogContent>
           </AlertDialog>
         </div>
+      </div>
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 bg-primary-foreground p-4 rounded-lg">
+        <StockFormularManament
+          relatedData={relatedData}
+          currentUserId={parseInt(id_user)}
+        />
       </div>
     </div>
   );
