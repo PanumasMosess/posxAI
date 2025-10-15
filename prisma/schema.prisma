@@ -75,12 +75,13 @@ model stock {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  createdById Int
-  creator     employees     @relation(fields: [createdById], references: [id])
-  categoryId  Int
-  category    categorystock @relation(fields: [categoryId], references: [id])
-  supplierId  Int
-  supplier    supplier      @relation(fields: [supplierId], references: [id])
+  createdById   Int
+  creator       employees       @relation(fields: [createdById], references: [id])
+  categoryId    Int
+  category      categorystock   @relation(fields: [categoryId], references: [id])
+  supplierId    Int
+  supplier      supplier        @relation(fields: [supplierId], references: [id])
+  formularstock formularstock[]
 }
 
 model menu {
@@ -96,7 +97,21 @@ model menu {
   updatedAt   DateTime @updatedAt
 
   createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
+  creator        employees       @relation(fields: [createdById], references: [id])
   categoryMenuId Int
-  category       categorystock @relation(fields: [categoryMenuId], references: [id])
+  category       categorystock   @relation(fields: [categoryMenuId], references: [id])
+  formularstock  formularstock[]
+}
+
+model formularstock {
+  id         Int      @id @default(autoincrement())
+  pcs_update Int
+  status     String   @default("RUN_FORMULAR")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  menuId  Int
+  menu    menu  @relation(fields: [menuId], references: [id])
+  stockId Int
+  stock   stock @relation(fields: [stockId], references: [id])
 }

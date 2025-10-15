@@ -21,7 +21,19 @@ const page = async () => {
     select: { id: true, supplierName: true },
   });
 
-  const relatedData = { categories: categoriesData, suppliers: suppliersData };
+  const itemsMenu = await prisma.menu.findMany({
+    where: {
+      status: "READY_TO_SELL",
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+  const relatedData = { categories: categoriesData, suppliers: suppliersData, menu: itemsMenu, stocks: itemsData };
 
   return <StockPageFormular initialItems={itemsData} relatedData={relatedData} />;
 };

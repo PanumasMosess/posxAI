@@ -25,14 +25,16 @@ import { useState } from "react";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onRowClick: (row: TData) => void;
 }
-export function Data_table_suppliers<TData, TValue>({
+export function Data_table_stock<TData, TValue>({
   columns,
   data,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
-   const [globalFilter, setGlobalFilter] = useState("");
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const table = useReactTable({
     data,
@@ -58,9 +60,9 @@ export function Data_table_suppliers<TData, TValue>({
 
   return (
     <>
-      <div className="flex items-center py-4 justify-start">
+      <div className="flex items-center py-4 justify-end">
         <Input
-          placeholder="ค้นหาซัพพลายเออร์..."
+          placeholder="ค้นหาข้อมูลสินค้าในคลัง..."
           value={globalFilter ?? ""}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="w-full sm:w-[200px]"
@@ -92,6 +94,8 @@ export function Data_table_suppliers<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => onRowClick(row.original)}
+                  className="cursor-pointer hover:bg-primary-foreground transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -115,24 +119,6 @@ export function Data_table_suppliers<TData, TValue>({
             )}
           </TableBody>
         </Table>
-        {/* <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
-      </div> */}
         <DataTablePagination table={table} />
       </div>
     </>
