@@ -2,6 +2,7 @@
 
 import {
   CategorySchema,
+  FormularStockSchema_,
   StockSchema,
   SupplierSchema,
 } from "../formValidationSchemas";
@@ -25,6 +26,14 @@ interface CreateStockPayload {
   supplier_id: number;
 }
 
+interface FormularPayload {
+  items: {
+    pcs_update: number;
+    status: string;
+    stockId: number;
+    menuId: number;
+  }[];
+}
 
 export const createStock = async (
   currentState: CurrentState,
@@ -349,6 +358,31 @@ export const deleteSupplier = async (data: any) => {
     });
 
     // revalidatePath("/stocks");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const crearteFormularStock = async (
+  currentState: CurrentState,
+  data: FormularPayload
+) => {
+  try {
+    const dataToCreate = data.items.map((item) => (
+      {
+      stockId: item.stockId,
+      pcs_update: item.pcs_update,
+      menuId: item.menuId,
+    }
+
+  ));
+    await prisma.formularstock.createMany({
+      data: dataToCreate,
+    });
+
+    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
