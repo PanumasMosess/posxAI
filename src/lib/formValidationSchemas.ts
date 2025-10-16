@@ -67,3 +67,13 @@ export const MenuSchema_ = z.object({
   img: z.any().optional(),
 });
 export type MenuSchema = z.infer<typeof MenuSchema_>;
+
+export const formularStockSchema_ = z.object({
+  id: z.number().optional(),
+  pcs_update: z.coerce.number().min(0, "ห้ามติดลบ"),
+  status: z.string().optional(),
+  menuId: z.coerce.number().min(1, "ต้องมี ID เมนู"),
+  stockId: z.coerce.number().min(1, "ต้องมี ID สินค้าในคลัง"),
+
+});
+export type FormularStockSchema_ = z.infer<typeof formularStockSchema_>;
