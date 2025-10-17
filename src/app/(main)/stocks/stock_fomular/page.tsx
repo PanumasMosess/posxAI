@@ -21,9 +21,23 @@ const page = async () => {
     select: { id: true, supplierName: true },
   });
 
+  const excludedMenus = await prisma.formularstock.findMany({
+    select: {
+      menuId: true,
+    },
+    distinct: ["menuId"],
+  });
+
+  const excludedMenuIds = excludedMenus.map((item) => item.menuId);
+
   const itemsMenu = await prisma.menu.findMany({
     where: {
       status: "READY_TO_SELL",
+      id: {
+        not: {
+          in: excludedMenuIds,
+        },
+      },
     },
     include: {
       category: true,
@@ -33,9 +47,16 @@ const page = async () => {
     },
   });
 
-  const relatedData = { categories: categoriesData, suppliers: suppliersData, menu: itemsMenu, stocks: itemsData };
+  const relatedData = {
+    categories: categoriesData,
+    suppliers: suppliersData,
+    menu: itemsMenu,
+    stocks: itemsData,
+  };
 
-  return <StockPageFormular initialItems={itemsData} relatedData={relatedData} />;
+  return (
+    <StockPageFormular initialItems={itemsData} relatedData={relatedData} />
+  );
 };
 
 export default page;
