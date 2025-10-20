@@ -7,33 +7,7 @@ import {
   SupplierSchema,
 } from "../formValidationSchemas";
 import prisma from "../prisma";
-
-type CurrentState = { success: boolean; error: boolean };
-
-export type BillItem = {
-  productName: string;
-  description: string;
-  unit: string;
-  quantity: number;
-  price: number;
-  img?: string;
-};
-
-interface CreateStockPayload {
-  items: BillItem[];
-  creator_id: number;
-  category_id: number;
-  supplier_id: number;
-}
-
-interface FormularPayload {
-  items: {
-    pcs_update: number;
-    status: string;
-    stockId: number;
-    menuId: number;
-  }[];
-}
+import { CreateStockPayload, CurrentState, FormularPayload } from "../type";
 
 export const createStock = async (
   currentState: CurrentState,
@@ -370,14 +344,11 @@ export const crearteFormularStock = async (
   data: FormularPayload
 ) => {
   try {
-    const dataToCreate = data.items.map((item) => (
-      {
+    const dataToCreate = data.items.map((item) => ({
       stockId: item.stockId,
       pcs_update: item.pcs_update,
       menuId: item.menuId,
-    }
-
-  ));
+    }));
     await prisma.formularstock.createMany({
       data: dataToCreate,
     });
@@ -387,5 +358,45 @@ export const crearteFormularStock = async (
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
+  }
+};
+
+export const deleteFormularStock = async (data: any) => {
+  try {
+    const updatedCategory = await prisma.formularstock.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        status: data.status,
+        updatedAt: new Date(),
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedCategory };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
+};
+
+export const updateFormularStock = async (data: any) => {
+  try {
+    const updatedCategory = await prisma.formularstock.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        pcs_update: data.pcs_update,
+        updatedAt: new Date(),
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedCategory };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
   }
 };

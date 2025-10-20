@@ -27,15 +27,7 @@ import { deleteCategories, deleteSupplier } from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import StockFormularManament from "../forms/StockFormularManament";
-
-interface StockPageFormularProps {
-  initialItems: any[];
-  relatedData: {
-    categories: { id: number; categoryName: string }[];
-    suppliers: { id: number; supplierName: string }[];
-    menu: { id: number; menuName: string }[];
-  };
-}
+import { StockPageFormularProps } from "@/lib/type";
 
 const StockPageFormular = ({
   initialItems,

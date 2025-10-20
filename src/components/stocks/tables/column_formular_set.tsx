@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Trash2 } from "lucide-react";
-import { useState } from "react";
 
 export type StocksFormular = {
   id: number;
