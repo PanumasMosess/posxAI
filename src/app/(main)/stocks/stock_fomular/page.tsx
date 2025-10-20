@@ -26,9 +26,22 @@ const page = async () => {
       status: "RUN_FORMULAR",
     },
     select: {
+      id: true,
       menuId: true,
+      stockId: true,
+      pcs_update: true,
+      menu: {
+        select: {
+          menuName: true,
+        },
+      },
+      stock: {
+        select: {
+          productName: true,
+        },
+      },
     },
-    distinct: ["menuId"],
+    // distinct: ["menuId"],
   });
 
   const excludedMenuIds = excludedMenus.map((item) => item.menuId);
@@ -55,6 +68,7 @@ const page = async () => {
     suppliers: suppliersData,
     menu: itemsMenu,
     stocks: itemsData,
+    formular: excludedMenus,
   };
 
   return (

@@ -8,16 +8,42 @@ import {
 } from "../ui/select";
 import { Data_table_stock } from "../stocks/tables/data-table-stock";
 import { StockColumns, Stocks } from "../stocks/tables/column_stock";
-import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { Data_table_formulat_set } from "../stocks/tables/data-table-formular-set";
 import {
   FormularColumns,
   StocksFormular,
 } from "../stocks/tables/column_formular_set";
 import { Button } from "../ui/button";
-import { crearteFormularStock } from "@/lib/actions/actionStocks";
+import {
+  crearteFormularStock,
+  deleteFormularStock,
+  updateFormularStock,
+} from "@/lib/actions/actionStocks";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { Data_table_formulat_running } from "../stocks/tables/data-table-formular-running";
+import { FormularRunningColumns } from "../stocks/tables/column_formular_running";
+import { StocksFormularRunning } from "@/lib/type";
+
+type FormularData = {
+  id: number;
+  menuId: number;
+  stockId: number;
+  pcs_update: number;
+  menu: {
+    menuName: string;
+  };
+  stock: {
+    productName: string;
+  };
+};
 
 const StockFormularManament = ({
   relatedData,
@@ -27,7 +53,20 @@ const StockFormularManament = ({
   currentUserId: number;
 }) => {
   const router = useRouter();
-  const { menu, stocks } = relatedData;
+  const { menu, stocks, formular } = relatedData;
+  const typedFormular = formular as FormularData[];
+
+  const stocksFormularRunning: StocksFormularRunning[] = typedFormular.map(
+    (item) => ({
+      id: item.id,
+      menuName: item.menu.menuName,
+      productName: item.stock.productName,
+      pcs_update: item.pcs_update || 0,
+      menuId: item.menuId,
+      stockId: item.stockId,
+    })
+  );
+
   const [sourceItems, setSourceItems] = useState<any[]>(stocks);
   const [destinationItems, setDestinationItems] = useState<any[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
@@ -83,8 +122,37 @@ const StockFormularManament = ({
     });
   };
 
+  const handleUpdatePCSFormularRunning = async (id: number, newValue: number) => {
+    const data = {
+      id: id,
+      pcs_update: newValue,
+    };
+    const update_status = await updateFormularStock(data);
+    if (update_status.success) {
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+  };
+
+  const handleRemoveFormularRunning = async (data: any) => {
+    data.status = "CANCEL_FORMULAR";
+    const delete_status = await deleteFormularStock(data);
+
+    if (delete_status.success) {
+      toast.success("ยกเลิกสำเร็จ!");
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+  };
+
   const columns_stock = StockColumns({});
   const formular_stock = FormularColumns({ handleUpdatePCS, handleRemoveItem });
+  const formular_stock_running = FormularRunningColumns({
+    handleUpdatePCSFormularRunning,
+    handleRemoveFormularRunning,
+  });
 
   useEffect(() => {
     if (stateFormular.success) {
@@ -143,6 +211,16 @@ const StockFormularManament = ({
             )}
           </div>
         </div>
+      </div>
+      <div className="lg:col-span-2 flex items-center mb-1 mt-2">
+        <ClipboardMinus className="h-6 w-6 mr-2" />
+        <h3 className="text-lg font-semibold">สูตรที่เพิ่มแล้ว</h3>
+      </div>
+      <div className="bg-muted p-4 rounded-lg">
+        <Data_table_formulat_running
+          columns={formular_stock_running}
+          data={stocksFormularRunning}
+        />
       </div>
     </>
   );
