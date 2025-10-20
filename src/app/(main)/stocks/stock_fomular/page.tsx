@@ -23,9 +23,7 @@ const page = async () => {
 
   const excludedMenus = await prisma.formularstock.findMany({
     where: {
-      status: {
-        not: "RUN_FORMULAR",
-      },
+      status: "RUN_FORMULAR",
     },
     select: {
       menuId: true,
