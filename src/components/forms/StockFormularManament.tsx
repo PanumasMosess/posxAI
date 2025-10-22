@@ -1,4 +1,4 @@
-import { ClipboardMinus } from "lucide-react";
+import { ArrowLeftRight, ClipboardMinus, Cog } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -31,6 +31,8 @@ import { useRouter } from "next/navigation";
 import { Data_table_formulat_running } from "../stocks/tables/data-table-formular-running";
 import { FormularRunningColumns } from "../stocks/tables/column_formular_running";
 import { StocksFormularRunning } from "@/lib/type";
+import { Card, CardContent } from "../ui/card";
+import StockMenuCard from "../stocks/StockMenuCard";
 
 type FormularData = {
   id: number;
@@ -53,7 +55,7 @@ const StockFormularManament = ({
   currentUserId: number;
 }) => {
   const router = useRouter();
-  const { menu, stocks, formular } = relatedData;
+  const { stocks, formular } = relatedData;
   const typedFormular = formular as FormularData[];
 
   const stocksFormularRunning: StocksFormularRunning[] = typedFormular.map(
@@ -122,7 +124,10 @@ const StockFormularManament = ({
     });
   };
 
-  const handleUpdatePCSFormularRunning = async (id: number, newValue: number) => {
+  const handleUpdatePCSFormularRunning = async (
+    id: number,
+    newValue: number
+  ) => {
     const data = {
       id: id,
       pcs_update: newValue,
@@ -166,9 +171,10 @@ const StockFormularManament = ({
 
   return (
     <>
-      <div className="lg:col-span-2 flex items-center mb-1">
-        <ClipboardMinus className="h-6 w-6 mr-2" />
+      <div className="lg:col-span-2 flex items-center mb-1 justify-center">
+        <ArrowLeftRight className="h-4 w-4  mr-2" />
         <h3 className="text-lg font-semibold">เพิ่มสูตรตัดสินค้าในคลัง</h3>
+        <ArrowLeftRight className="h-4 w-4 ml-2" />
       </div>
       <div className="bg-muted p-4 rounded-lg">
         <Data_table_stock
@@ -178,25 +184,16 @@ const StockFormularManament = ({
         />
       </div>
       <div className="bg-muted p-4 rounded-lg">
-        <div className="flex items-center justify-end gap-2 flex-wrap">
-          <Select
-            value={selectedMenu || ""}
-            onValueChange={(value) => {
-              setSelectedMenu(value === "ALL" ? null : value);
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="เลือกเมนู" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">เลือกเมนู</SelectItem>
-              {relatedData?.menu.map((menu: any) => (
-                <SelectItem key={menu.id} value={menu.id}>
-                  {menu.menuName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center justify-between gap-2 flex-wrap mt-1">
+          <div className="lg:col-span-2 flex items-center mb-1">
+            <Cog className="h-6 w-6 mr-2" />
+            <h3 className="text-lg font-semibold">จัดการสินค้าที่ขาย</h3>
+          </div>
+          <StockMenuCard
+            menuItems={relatedData?.menu || []}
+            selectedMenu={selectedMenu}
+            onSelectMenu={setSelectedMenu}
+          />
         </div>
         <div className="bg-primary-foreground p-4 rounded-lg mt-4">
           <Data_table_formulat_set
@@ -212,9 +209,9 @@ const StockFormularManament = ({
           </div>
         </div>
       </div>
-      <div className="lg:col-span-2 flex items-center mb-1 mt-2">
+      <div className="lg:col-span-2 flex items-center mb-1 mt-2 ">
         <ClipboardMinus className="h-6 w-6 mr-2" />
-        <h3 className="text-lg font-semibold">สูตรที่เพิ่มแล้ว</h3>
+        <h3 className="text-lg font-semibold">รายการสูตรที่ถูกเพิ่ม</h3>
       </div>
       <div className="bg-muted p-4 rounded-lg">
         <Data_table_formulat_running

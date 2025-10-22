@@ -53,3 +53,16 @@ export interface StockPageFormularProps {
     }[];
   };
 }
+
+type MenuFormular = {
+  id: number;
+  menuName: string;
+  img: string;
+  description: string;
+};
+
+export interface MenuScrollerProps {
+  menuItems: MenuFormular[];
+  selectedMenu: string | null;
+  onSelectMenu: (menuId: string | null) => void;
+}

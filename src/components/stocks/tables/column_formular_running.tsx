@@ -66,7 +66,7 @@ export const FormularRunningColumns = ({
   },
   {
     accessorKey: "pcs_update",
-    header: () => <div className="text-center">จำนวนที่ต้องการตัด</div>,
+    header: () => <div className="text-center">จำนวนที่ถูกตัด</div>,
     cell: ({ row }) => {
       const initialValue = row.getValue("pcs_update");
       const [value, setValue] = useState(initialValue);

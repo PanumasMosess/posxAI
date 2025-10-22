@@ -58,7 +58,7 @@ export function Data_table_formulat_running<TData, TValue>({
 
   return (
     <>
-      <div className="flex items-center py-4 justify-end">
+      <div className="flex items-center justify-end  gap-2 flex-wrap mb-4">
         <Input
           placeholder="ค้นหาสูตร..."
           value={globalFilter ?? ""}
