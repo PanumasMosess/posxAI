@@ -177,13 +177,6 @@ const StockFormularManament = ({
         <ArrowLeftRight className="h-4 w-4 ml-2" />
       </div>
       <div className="bg-muted p-4 rounded-lg">
-        <Data_table_stock
-          columns={columns_stock}
-          data={sourceItems}
-          onRowClick={handleClickToMenu}
-        />
-      </div>
-      <div className="bg-muted p-4 rounded-lg">
         <div className="flex items-center justify-between gap-2 flex-wrap mt-1">
           <div className="lg:col-span-2 flex items-center mb-1">
             <Cog className="h-6 w-6 mr-2" />
@@ -195,6 +188,9 @@ const StockFormularManament = ({
             onSelectMenu={setSelectedMenu}
           />
         </div>
+        <p className="text-sm text-muted-foreground mb-2 mt-2">
+          *คลิกที่เมนูด้านบน แล้วกดเลือกสินค้าที่จะตัดที่ตารางด้านขวา
+        </p>
         <div className="bg-primary-foreground p-4 rounded-lg mt-4">
           <Data_table_formulat_set
             columns={formular_stock}
@@ -209,6 +205,14 @@ const StockFormularManament = ({
           </div>
         </div>
       </div>
+      <div className="bg-muted p-4 rounded-lg">
+        <Data_table_stock
+          columns={columns_stock}
+          data={sourceItems}
+          onRowClick={handleClickToMenu}
+        />
+      </div>
+
       <div className="lg:col-span-2 flex items-center mb-1 mt-2 ">
         <ClipboardMinus className="h-6 w-6 mr-2" />
         <h3 className="text-lg font-semibold">รายการสูตรที่ถูกเพิ่ม</h3>
