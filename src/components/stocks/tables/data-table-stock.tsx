@@ -54,7 +54,7 @@ export function Data_table_stock<TData, TValue>({
     },
     initialState: {
       pagination: {
-        pageSize: 5,
+        pageSize: 10,
       },
     },
   });
