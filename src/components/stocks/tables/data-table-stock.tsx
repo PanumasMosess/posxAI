@@ -20,6 +20,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { ClipboardMinus, Warehouse } from "lucide-react";
 import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
@@ -60,7 +61,11 @@ export function Data_table_stock<TData, TValue>({
 
   return (
     <>
-      <div className="flex items-center py-4 justify-end">
+      <div className="flex items-center justify-between gap-2 flex-wrap mt-1 mb-4">
+        <div className="lg:col-span-2 flex items-center mb-1">
+          <Warehouse className="h-6 w-6 mr-2" />
+          <h3 className="text-lg font-semibold">รายการสินค้าในคลัง</h3>
+        </div>
         <Input
           placeholder="ค้นหาข้อมูลสินค้าในคลัง..."
           value={globalFilter ?? ""}
