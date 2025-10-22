@@ -22,7 +22,6 @@ const StockMenuCard = ({
               onClick={() => onSelectMenu(String(menu.id))}
             >
               <CardContent className="flex flex-col items-center justify-center p-4">
-                {/* 2. เพิ่ม Image ที่นี่ */}
                 <div className="relative h-24 w-24 mb-4">
                   <Image
                     src={menu.img || "/default-image-url.png"}

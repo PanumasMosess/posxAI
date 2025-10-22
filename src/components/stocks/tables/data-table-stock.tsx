@@ -64,7 +64,7 @@ export function Data_table_stock<TData, TValue>({
       <div className="flex items-center justify-between gap-2 flex-wrap mt-1 mb-4">
         <div className="lg:col-span-2 flex items-center mb-1">
           <Warehouse className="h-6 w-6 mr-2" />
-          <h3 className="text-lg font-semibold">รายการสินค้าในคลัง</h3>
+          <h3 className="text-lg font-semibold">รายการสินค้าในคลัง </h3>
         </div>
         <Input
           placeholder="ค้นหาข้อมูลสินค้าในคลัง..."
