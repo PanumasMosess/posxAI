@@ -51,7 +51,7 @@ export const FormularRunningColumns = ({
     accessorKey: "pcs_update",
     header: () => (
       <div className="flex flex-col items-center justify-center text-center mb-1">
-        <ArrowRight className="h-4 w-4 mb-1" />
+        <ArrowRight className="h-4 w-4 mb-0.5" />
         <p>จำนวนที่ถูกตัด</p>
       </div>
     ),
