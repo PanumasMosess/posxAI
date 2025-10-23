@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StocksFormularRunning } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Trash2 } from "lucide-react";
+import {  ArrowRight, ArrowUpDown, Trash2 } from "lucide-react";
 
 import { useState, useEffect, KeyboardEvent, FocusEvent } from "react";
 
@@ -49,7 +49,12 @@ export const FormularRunningColumns = ({
   },
   {
     accessorKey: "pcs_update",
-    header: () => <div className="text-center">จำนวนที่ถูกตัด</div>,
+    header: () => (
+      <div className="flex flex-col items-center justify-center text-center mb-1">
+        <ArrowRight className="h-4 w-4 mb-1" />
+        <p>จำนวนที่ถูกตัด</p>
+      </div>
+    ),
     cell: ({ row }) => {
       const initialValue = row.getValue("pcs_update");
       const [value, setValue] = useState(initialValue);
@@ -98,7 +103,7 @@ export const FormularRunningColumns = ({
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          สินค้าที่ต้องการขาย
+          สินค้าที่ตัด
           <ArrowUpDown className="h-4 w-4" />
         </Button>
       </div>
