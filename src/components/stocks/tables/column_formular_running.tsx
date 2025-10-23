@@ -48,23 +48,6 @@ export const FormularRunningColumns = ({
     },
   },
   {
-    accessorKey: "menuName",
-    header: ({ column }) => (
-      <div className="text-center">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          สินค้าที่ต้องการขาย
-          <ArrowUpDown className="h-4 w-4" />
-        </Button>
-      </div>
-    ),
-    cell: ({ row }) => {
-      return <div className="text-center">{row.getValue("menuName")}</div>;
-    },
-  },
-  {
     accessorKey: "pcs_update",
     header: () => <div className="text-center">จำนวนที่ถูกตัด</div>,
     cell: ({ row }) => {
@@ -74,7 +57,6 @@ export const FormularRunningColumns = ({
       useEffect(() => {
         setValue(row.getValue("pcs_update"));
       }, [row.getValue("pcs_update")]);
-
 
       const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
@@ -99,13 +81,30 @@ export const FormularRunningColumns = ({
           <Input
             type="number"
             value={value as string}
-            onChange={(e) => setValue(e.target.value)} 
-            onKeyDown={handleKeyDown} 
-            onBlur={handleBlur} 
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
             className="max-w-[120px] mx-auto"
           />
         </div>
       );
+    },
+  },
+  {
+    accessorKey: "menuName",
+    header: ({ column }) => (
+      <div className="text-center">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          สินค้าที่ต้องการขาย
+          <ArrowUpDown className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
+    cell: ({ row }) => {
+      return <div className="text-center">{row.getValue("menuName")}</div>;
     },
   },
 
