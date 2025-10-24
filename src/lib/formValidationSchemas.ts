@@ -6,6 +6,8 @@ export const stockSchema_ = z.object({
   unit_stock: z.string().min(1, { message: "กรุณากรอกหน่วยสินค้า" }).max(50),
   description_stock: z.string().optional(),
   pcs_stock: z.coerce.number().min(0, "จำนวนห้ามติดลบ"),
+  max_stock: z.coerce.number().min(0, "จำนวนห้ามติดลบ"),
+  min_stock: z.coerce.number().min(0, "จำนวนห้ามติดลบ"),
   price_now_stock: z.coerce.number().min(0, "ราคาห้ามติดลบ"),
   creator_id: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   category_id: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),

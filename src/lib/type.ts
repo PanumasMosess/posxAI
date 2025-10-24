@@ -66,3 +66,10 @@ export interface MenuScrollerProps {
   selectedMenu: string | null;
   onSelectMenu: (menuId: string | null) => void;
 }
+
+export interface MenuPOSPageClientProps {
+  initialItems: any[];
+  relatedData: {
+    categories: { id: number; categoryName: string }[];
+  };
+}

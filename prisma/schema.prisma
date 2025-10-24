@@ -68,6 +68,8 @@ model stock {
   productName String   @unique
   quantity    Int
   price       Float
+  max         Float    @default(0)
+  min         Float    @default(0)
   unit        String
   description String?
   img         String?

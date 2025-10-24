@@ -28,10 +28,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import {
-  createStock,
-  updateStock,
-} from "@/lib/actions/actionStocks";
+import { createStock, updateStock } from "@/lib/actions/actionStocks";
 import {
   Select,
   SelectContent,
@@ -66,6 +63,8 @@ const StockForm = ({
       unit_stock: "",
       description_stock: "",
       pcs_stock: 0,
+      max_stock: 0,
+      min_stock: 0,
       price_now_stock: 0,
       img_stock: undefined,
       creator_id: currentUserId,
@@ -138,6 +137,8 @@ const StockForm = ({
       formAddStock.setValue("unit_stock", data.unit);
       formAddStock.setValue("price_now_stock", data.price);
       formAddStock.setValue("pcs_stock", data.quantity);
+      formAddStock.setValue("max_stock", data.max);
+      formAddStock.setValue("min_stock", data.min);
       formAddStock.setValue("description_stock", data.description);
       formAddStock.setValue("id", data.id);
       setOldImg("");
@@ -220,6 +221,32 @@ const StockForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>ราคาปัจจุบัน</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={formAddStock.control}
+              name="max_stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>จำนวนสูงสุดที่เก็บได้</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={formAddStock.control}
+              name="min_stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>จำนวนต่ำสุดที่เก็บได้</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>

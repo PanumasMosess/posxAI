@@ -18,6 +18,8 @@ export const createStock = async (
       data: {
         productName: data.product_stock,
         quantity: data.pcs_stock,
+        max: data.max_stock,
+        min: data.min_stock,
         price: data.price_now_stock,
         unit: data.unit_stock,
         description: data.description_stock || null,
@@ -144,6 +146,8 @@ export const updateStock = async (
       data: {
         productName: data.product_stock,
         quantity: data.pcs_stock,
+        max: data.max_stock,
+        min: data.min_stock,
         price: data.price_now_stock,
         unit: data.unit_stock,
         description: data.description_stock || null,
