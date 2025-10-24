@@ -23,13 +23,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { MenuSchema } from "@/lib/formValidationSchemas";
-
-interface MenuPOSPageClientProps {
-  initialItems: any[];
-  relatedData: {
-    categories: { id: number; categoryName: string }[];
-  };
-}
+import { MenuPOSPageClientProps } from "@/lib/type";
 
 const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const session = useSession();

@@ -24,6 +24,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-kanit)", ...defaultTheme.fontFamily.sans],
+        dotmatrix: ["var(--font-dotgothic)", "monospace"],
       },
     },
   },
