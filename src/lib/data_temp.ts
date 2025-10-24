@@ -15,10 +15,10 @@ const menuList = [
         title: "เมนู (POS)",
         url: "/menu/pos",
       },
-      {
-        title: "เมนู (Kiosk)",
-        url: "/menu/kiosk",
-      },
+      // {
+      //   title: "เมนู (Kiosk)",
+      //   url: "/menu/kiosk",
+      // },
     ],
   },
   {
