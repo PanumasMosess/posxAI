@@ -34,6 +34,7 @@ model employees {
   categoryStocks categorystock[]
   suppliers      supplier[]
   menu           menu[]
+  table          table[]
 }
 
 model categorystock {
@@ -103,6 +104,8 @@ model menu {
   categoryMenuId Int
   category       categorystock   @relation(fields: [categoryMenuId], references: [id])
   formularstock  formularstock[]
+
+  order order[]
 }
 
 model formularstock {
@@ -116,4 +119,32 @@ model formularstock {
   menu    menu  @relation(fields: [menuId], references: [id])
   stockId Int
   stock   stock @relation(fields: [stockId], references: [id])
+}
+
+model table {
+  id             Int      @id @default(autoincrement())
+  status         String
+  tablleName     String
+  tableBookingBy String
+  cashType       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  closeById Int
+  creator   employees @relation(fields: [closeById], references: [id])
+
+  order order[]
+}
+
+model order {
+  id          Int      @id @default(autoincrement())
+  quantity    Int
+  orderDetail String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  menuId  Int
+  menu    menu  @relation(fields: [menuId], references: [id])
+  tableId Int
+  table   table @relation(fields: [tableId], references: [id])
 }

@@ -20,7 +20,7 @@ const page = async () => {
 
   const relatedData = { categories: categoriesData };
   return (
-    <MenuOrderPage
+    <MenuOrderPage 
       relatedData={relatedData}
       initialItems={itemsData}
     ></MenuOrderPage>

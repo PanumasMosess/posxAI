@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Kanit, DotGothic16 } from "next/font/google";
+import { Geist, Geist_Mono, Kanit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
@@ -30,12 +30,6 @@ export const metadata: Metadata = {
   },
 };
 
-const dotgothic = DotGothic16({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-dotgothic",
-});
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -45,7 +39,7 @@ export default async function RootLayout({
     <SessionProvider>
       <html lang="en" suppressHydrationWarning>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable} ${dotgothic.variable} font-sans antialiased flex`}
+          className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}  font-sans antialiased flex`}
         >
           <ToastContainer
             position="top-right"
