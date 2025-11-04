@@ -103,7 +103,47 @@ export const generationImage = async (userCommand: string) => {
       }
      
       if (imageData) {
-        url = await sendbase64toS3Data(imageData);
+        url = await sendbase64toS3Data(imageData, "stock_img");
+      }
+
+      return {
+        success: true,
+        answer: url?.url,
+      };
+    }
+
+    return {
+      success: false,
+      error: "Failed to process gen with AI.",
+    };
+  } catch (error) {
+    console.error("Gemini image generation error:", error);
+    return { success: false, error: "Failed to process gen with AI." };
+  }
+};
+
+export const generationImageMenu = async (userCommand: string) => {
+  const prompt = `A photorealistic, professional product shot of "${userCommand}", studio lighting, on a clean white background, optimized for web.`;
+ 
+  try {
+    const response = await ai_gemini.models.generateContent({
+      model: "gemini-2.5-flash-image-preview",
+      contents: prompt,
+    });
+
+    const parts = response.candidates?.[0]?.content?.parts;
+
+    if (parts) {
+      let url;
+      let imageData: string | undefined;
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageData = part.inlineData?.data;
+        }
+      }
+     
+      if (imageData) {
+        url = await sendbase64toS3Data(imageData, "menu_img");
       }
 
       return {

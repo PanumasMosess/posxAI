@@ -1,8 +1,6 @@
-import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -12,18 +10,29 @@ import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "@/lib/formValidationSchemas";
 import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { Brain, Loader2, Settings } from "lucide-react";
 
 interface MenuItemCardProps {
   item: MenuSchema;
   relatedData: any;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   handelDetail: (item: MenuSchema) => void;
+  handleGenerateImage: (item: MenuSchema) => void;
+  isLoading: boolean;
 }
 const MenuPOSItemCard = ({
   item,
   relatedData,
   stateSheet,
   handelDetail,
+  handleGenerateImage,
+  isLoading,
 }: MenuItemCardProps) => {
   //กดดู detail
   const handleDetailCat = (itemMenu: MenuSchema) => {
@@ -47,13 +56,37 @@ const MenuPOSItemCard = ({
 
   return (
     <Card
-      className="group overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-150 cursor-pointer 
-                  active:border-[2px] active:border-[#f77112eb] active:ring-[2px] active:ring-[#f77112eb] active:bg-muted"
-      onClick={() => {
-        handleDetailCat(item);
-      }}
+      className={`group overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-150 cursor-pointer 
+                  active:border-[2px] active:border-[#f77112eb] active:ring-[2px] active:ring-[#f77112eb] active:bg-muted relative ${
+                    isLoading ? "opacity-50 pointer-events-none" : ""
+                  }`}
+      // onClick={() => {
+      //   handleDetailCat(item);
+      // }}
     >
-      <CardHeader className="p-6 flex flex-col items-center justify-center gap-4">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10 rounded-xl">
+          <Loader2 className="animate-spin text-white h-8 w-8" />
+        </div>
+      )}
+      <CardHeader className=" flex flex-col items-center justify-center gap-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8 z-20"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleGenerateImage(item)}>
+              <Brain className="mr-2 h-4 w-4" />
+              AI IMAGE GENERATOR
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Avatar className="h-55 w-55 border-2 border-primary">
           <AvatarImage src={item.img || "/default-image-url.png"} />
           <AvatarFallback>JD</AvatarFallback>

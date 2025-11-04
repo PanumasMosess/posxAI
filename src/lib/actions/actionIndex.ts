@@ -65,12 +65,12 @@ export const getPresignedUrl = async (fileType: string, fileSize: number) => {
   }
 };
 
-export const sendbase64toS3Data = async (base64Data: string) => {
+export const sendbase64toS3Data = async (base64Data: string, path: string) => {
   try {
     const buffer = Buffer.from(base64Data, "base64");
 
     const randomBytes = crypto.randomBytes(16);
-    const key = `uploads/stock_img/${randomBytes.toString("hex")}.png`;
+    const key = `uploads/${path}/${randomBytes.toString("hex")}.png`;
 
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET!,

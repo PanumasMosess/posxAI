@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 import { SessionProvider } from "next-auth/react";
 import { ToastContainer } from "react-toastify";
+import ParallaxClientProvider from "@/components/providers/ParallaxClientProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,11 +37,21 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <SessionProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}  font-sans antialiased flex`}
-        >
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}  font-sans antialiased h-full`}
+      >
+        <SessionProvider>
+          <ParallaxClientProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+          </ParallaxClientProvider>
           <ToastContainer
             position="top-right"
             autoClose={5000}
@@ -53,16 +64,8 @@ export default async function RootLayout({
             pauseOnHover
             theme="light"
           />
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
-        </body>
-      </html>
-    </SessionProvider>
+        </SessionProvider>
+      </body>
+    </html>
   );
 }
