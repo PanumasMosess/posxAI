@@ -97,3 +97,27 @@ export const deleteMenu = async (data: any) => {
     return { success: false, error: true };
   }
 };
+
+export const updateImageMenu = async (data: any) => {
+  try {
+    const updatedStock = await prisma.menu.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        img: data.img,
+        createdById: data.createdById,
+        updatedAt: new Date(),
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    // revalidatePath("/stocks");
+    return { success: true, error: false, data: updatedStock };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
+};

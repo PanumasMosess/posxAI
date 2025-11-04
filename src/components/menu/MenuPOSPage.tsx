@@ -24,6 +24,10 @@ import {
 } from "../ui/select";
 import { MenuSchema } from "@/lib/formValidationSchemas";
 import { MenuPOSPageClientProps } from "@/lib/type";
+import { toast } from "react-toastify";
+import { updateImageMenu } from "@/lib/actions/actionMenu";
+import { generationImageMenu } from "@/lib/ai/geminiAI";
+import { deleteFileS3 } from "@/lib/actions/actionIndex";
 
 const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const session = useSession();
@@ -33,6 +37,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const [menuItems, setOrderItems] = useState(initialItems);
 
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
+
   const router = useRouter();
 
   const [openSheet, setOpenSheet] = useState(false);
@@ -60,6 +65,49 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
 
   const handlePrevPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleGenerateImage = async (
+    menuName: string,
+    id: number,
+    createdById: number,
+    img: string | null
+  ) => {
+    setLoadingItemId(id); 
+    try { 
+      if (img) {
+        const bucketName = "tvposx";
+        const urlObject = new URL(img);
+        const pathname = urlObject.pathname;
+        const key = pathname.substring(`/${bucketName}/`.length);
+        await deleteFileS3(key);
+      }
+
+      const result = await generationImageMenu(menuName);
+
+      if (result.success && result.answer) {
+        const data = {
+          id: id,
+          img: result.answer,
+          createdById: createdById,
+        };
+
+        const update_status = await updateImageMenu(data);
+
+        if (update_status.success) {
+          toast.success("สร้างและอัปเดตรูปภาพสำเร็จ!");
+          router.refresh();
+        } else {
+          throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+        }
+      } else {
+        throw new Error("ไม่สามารถสร้างรูปภาพได้: " + result.error);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "เกิดข้อผิดพลาด");
+    } finally {
+      setLoadingItemId(null);
+    }
   };
 
   useEffect(() => {
@@ -180,6 +228,15 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                       relatedData={relatedData}
                       stateSheet={setOpenSheetDetail}
                       handelDetail={setDetailMenu}
+                      handleGenerateImage={(item) =>
+                        handleGenerateImage(
+                          item.menuName,
+                          item.id ?? 0,
+                          parseInt(id_user), 
+                          item.img
+                        )
+                      }
+                      isLoading={isLoading}
                     />
                   );
                 })}
