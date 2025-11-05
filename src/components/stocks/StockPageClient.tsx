@@ -80,7 +80,7 @@ const StockPageClient = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [editingItem, setEditingItem] = useState<any | null>(null); 
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
   const [page, setPage] = useState(1);
   const [currentItems, setCurrentItems] = useState(
     displayItems.slice(0, itemsPerPage)
