@@ -1,3 +1,6 @@
+import { Dispatch, SetStateAction } from "react";
+import { MenuSchema } from "./formValidationSchemas";
+
 export type StocksFormularRunning = {
   id: number;
   menuName: string;
@@ -72,4 +75,21 @@ export interface MenuPOSPageClientProps {
   relatedData: {
     categories: { id: number; categoryName: string }[];
   };
+}
+
+export interface StockPageClientProps {
+  initialItems: any[];
+  relatedData: {
+    categories: { id: number; categoryName: string }[];
+    suppliers: { id: number; supplierName: string }[];
+  };
+}
+
+export interface MenuItemCardProps {
+  item: MenuSchema;
+  relatedData: any;
+  stateSheet: Dispatch<SetStateAction<boolean>>;
+  handelDetail: (item: MenuSchema) => void;
+  handleGenerateImage: (item: MenuSchema) => void;
+  isLoading: boolean;
 }

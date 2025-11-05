@@ -6,7 +6,6 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Button } from "../ui/button";
-import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "@/lib/formValidationSchemas";
 import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -17,15 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Brain, Loader2, Settings } from "lucide-react";
+import { MenuItemCardProps } from "@/lib/type";
 
-interface MenuItemCardProps {
-  item: MenuSchema;
-  relatedData: any;
-  stateSheet: Dispatch<SetStateAction<boolean>>;
-  handelDetail: (item: MenuSchema) => void;
-  handleGenerateImage: (item: MenuSchema) => void;
-  isLoading: boolean;
-}
+
 const MenuPOSItemCard = ({
   item,
   relatedData,
