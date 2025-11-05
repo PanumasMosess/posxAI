@@ -52,7 +52,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
   const [page, setPage] = useState(1);
   const [currentItems, setCurrentItems] = useState(
     displayItems.slice(0, itemsPerPage)
@@ -132,30 +132,29 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
       if (updatedItemData) {
         setDetailMenu(updatedItemData);
       }
-    } // อัปเดต displayItems เมื่อ initialItems เปลี่ยน (สำคัญสำหรับ router.refresh) // และอัปเดต state ภายในของ menuItems ด้วย
+    }
     setOrderItems(initialItems);
     setDisplayItems(initialItems);
-  }, [initialItems]); // --- 4. useEffect สำหรับรีเซ็ตรายการเมื่อมีการ Filter/Search ---
+  }, [initialItems]); 
 
   useEffect(() => {
-    // เมื่อ displayItems (ข้อมูลที่กรองแล้ว) เปลี่ยน
-    // ให้รีเซ็ต page, currentItems, และ hasMore
+
     setPage(1);
     const newItems = displayItems.slice(0, itemsPerPage);
     setCurrentItems(newItems);
     setHasMore(displayItems.length > itemsPerPage);
-  }, [displayItems]); // <-- ทำงานทุกครั้งที่ displayItems เปลี่ยน // --- 5. ฟังก์ชันสำหรับโหลดข้อมูลเพิ่ม ---
+  }, [displayItems]); 
 
   const loadMoreItems = () => {
     const nextPage = page + 1;
     const nextItemsIndex = nextPage * itemsPerPage;
-    const newItems = displayItems.slice(0, nextItemsIndex); // หน่วงเวลาเล็กน้อยเพื่อให้เห็น Loader
+    const newItems = displayItems.slice(0, nextItemsIndex); 
 
     setTimeout(() => {
       setCurrentItems(newItems);
       setPage(nextPage);
       setHasMore(newItems.length < displayItems.length);
-    }, 500); // 0.5 วินาที
+    }, 500);
   };
 
   return (
