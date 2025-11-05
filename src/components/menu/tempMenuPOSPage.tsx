@@ -9,7 +9,6 @@ import {
   ChevronRight,
   PackageSearch,
   Utensils,
-  Loader2,
 } from "lucide-react";
 import MenuFormPOS from "../forms/MenuFormPOS";
 import { useSession } from "next-auth/react";
@@ -30,12 +29,11 @@ import { updateImageMenu } from "@/lib/actions/actionMenu";
 import { generationImageMenu } from "@/lib/ai/geminiAI";
 import { deleteFileS3 } from "@/lib/actions/actionIndex";
 
-import InfiniteScroll from "react-infinite-scroll-component";
-
 const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
 
+  // initialItems
   const [menuItems, setOrderItems] = useState(initialItems);
 
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
@@ -49,15 +47,25 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const [displayItems, setDisplayItems] = useState(initialItems);
   const [detailMenu, setDetailMenu] = useState<MenuSchema | null>(null);
 
+  // State สำหรับจัดการการแสดงผลและการค้นหา
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const itemsPerPage = 10;
-  const [page, setPage] = useState(1);
-  const [currentItems, setCurrentItems] = useState(
-    displayItems.slice(0, itemsPerPage)
-  );
-  const [hasMore, setHasMore] = useState(displayItems.length > itemsPerPage);
+  //ทำ page
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(displayItems.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = displayItems.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
 
   const handleGenerateImage = async (
     menuName: string,
@@ -65,8 +73,8 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
     createdById: number,
     img: string | null
   ) => {
-    setLoadingItemId(id);
-    try {
+    setLoadingItemId(id); 
+    try { 
       if (img) {
         const bucketName = "tvposx";
         const urlObject = new URL(img);
@@ -74,6 +82,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
         const key = pathname.substring(`/${bucketName}/`.length);
         await deleteFileS3(key);
       }
+
       const result = await generationImageMenu(menuName);
 
       if (result.success && result.answer) {
@@ -110,6 +119,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
       );
       setDisplayItems(filtered);
     }
+    setCurrentPage(1);
   }, [filterCategory, initialItems]);
 
   useEffect(() => {
@@ -122,6 +132,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
       );
     });
     setDisplayItems(filteredData);
+    setCurrentPage(1);
   }, [searchTerm, initialItems]);
 
   useEffect(() => {
@@ -132,34 +143,12 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
       if (updatedItemData) {
         setDetailMenu(updatedItemData);
       }
-    } // อัปเดต displayItems เมื่อ initialItems เปลี่ยน (สำคัญสำหรับ router.refresh) // และอัปเดต state ภายในของ menuItems ด้วย
-    setOrderItems(initialItems);
-    setDisplayItems(initialItems);
-  }, [initialItems]); // --- 4. useEffect สำหรับรีเซ็ตรายการเมื่อมีการ Filter/Search ---
-
-  useEffect(() => {
-    // เมื่อ displayItems (ข้อมูลที่กรองแล้ว) เปลี่ยน
-    // ให้รีเซ็ต page, currentItems, และ hasMore
-    setPage(1);
-    const newItems = displayItems.slice(0, itemsPerPage);
-    setCurrentItems(newItems);
-    setHasMore(displayItems.length > itemsPerPage);
-  }, [displayItems]); // <-- ทำงานทุกครั้งที่ displayItems เปลี่ยน // --- 5. ฟังก์ชันสำหรับโหลดข้อมูลเพิ่ม ---
-
-  const loadMoreItems = () => {
-    const nextPage = page + 1;
-    const nextItemsIndex = nextPage * itemsPerPage;
-    const newItems = displayItems.slice(0, nextItemsIndex); // หน่วงเวลาเล็กน้อยเพื่อให้เห็น Loader
-
-    setTimeout(() => {
-      setCurrentItems(newItems);
-      setPage(nextPage);
-      setHasMore(newItems.length < displayItems.length);
-    }, 500); // 0.5 วินาที
-  };
+    }
+  }, [initialItems]);
 
   return (
     <div className="">
+      {/* CONTAINER */}
       <div className="mt-4 flex flex-col gap-4">
         <div className="w-full xl:w-3/3 space-y-6">
           <div className="bg-primary-foreground p-4 rounded-lg flex items-center justify-between flex-wrap gap-4">
@@ -171,7 +160,6 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                 <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="กรองตามหมวดหมู่" />
                 </SelectTrigger>
-
                 <SelectContent>
                   <SelectItem value="All">ทั้งหมด</SelectItem>
                   {relatedData?.categories.map((cat: any) => (
@@ -196,8 +184,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
               <Sheet open={openSheet} onOpenChange={setOpenSheet}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <Utensils />
-                    <span>เพิ่มเมนู</span>
+                    <Utensils /> เพิ่มเมนู
                   </Button>
                 </SheetTrigger>
                 <MenuFormPOS
@@ -208,6 +195,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                   stateForm={openSheet}
                 />
               </Sheet>
+
               <Sheet open={openSheetUpdate} onOpenChange={setOpenSheetUpdate}>
                 <MenuFormPOS
                   type={"update"}
@@ -222,54 +210,62 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
           </div>
         </div>
         <div className="w-full h-full xl:w-3/3 space-y-6">
-          <div className="relative bg-primary-foreground p-4 pb-4 rounded-lg">
-            {displayItems.length === 0 ? (
+          <div className="relative bg-primary-foreground p-4 pb-16 rounded-lg">
+            {currentItems.length === 0 ? (
               <div className="h-[40vh] flex flex-col items-center justify-center text-muted-foreground">
                 <PackageSearch className="h-12 w-12 mb-4" />
-
                 <h3 className="text-xl font-semibold">ไม่พบข้อมูล</h3>
                 <p>ลองเปลี่ยนคำค้นหาหรือตัวกรองหมวดหมู่</p>
               </div>
             ) : (
-              <InfiniteScroll
-                dataLength={currentItems.length}
-                next={loadMoreItems}
-                hasMore={hasMore}
-                loader={
-                  <div className="flex justify-center items-center my-4 col-span-full">
-                    <Loader2 className="animate-spin h-8 w-8 text-primary" />
-                  </div>
-                }
-                endMessage={
-                  <p className="text-center text-muted-foreground my-4 col-span-full">
-                    <b>คุณได้ดูข้อมูลทั้งหมดแล้ว</b>
-                  </p>
-                }
-              >
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {currentItems.map((item: any) => {
-                    const isLoading = loadingItemId === item.id;
-                    return (
-                      <MenuPOSItemCard
-                        key={item.menuName}
-                        item={item}
-                        relatedData={relatedData}
-                        stateSheet={setOpenSheetDetail}
-                        handelDetail={setDetailMenu}
-                        handleGenerateImage={(item) =>
-                          handleGenerateImage(
-                            item.menuName,
-                            item.id ?? 0,
-                            parseInt(id_user),
-                            item.img
-                          )
-                        }
-                        isLoading={isLoading}
-                      />
-                    );
-                  })}
-                </div>
-              </InfiniteScroll>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {currentItems.map((item: any) => {
+                  const isLoading = loadingItemId === item.id;
+                  return (
+                    <MenuPOSItemCard
+                      key={item.menuName}
+                      item={item}
+                      relatedData={relatedData}
+                      stateSheet={setOpenSheetDetail}
+                      handelDetail={setDetailMenu}
+                      handleGenerateImage={(item) =>
+                        handleGenerateImage(
+                          item.menuName,
+                          item.id ?? 0,
+                          parseInt(id_user), 
+                          item.img
+                        )
+                      }
+                      isLoading={isLoading}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="absolute bottom-4 right-4 flex items-center justify-end space-x-2">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
           <Sheet open={openSheetDetail} onOpenChange={setOpenSheetDetail}>
