@@ -83,7 +83,7 @@ export const getSearchQueryFromJson = async (
 };
 
 export const generationImage = async (userCommand: string) => {
-  const prompt = `A photorealistic, professional product shot of "${userCommand}", studio lighting, on a clean white background, optimized for web.`;
+  const prompt = `A photorealistic, professional product shot of "${userCommand}", bright even studio lighting, **on a solid plain white background, no shadows**, optimized for web.`;
  
   try {
     const response = await ai_gemini.models.generateContent({
@@ -123,7 +123,7 @@ export const generationImage = async (userCommand: string) => {
 };
 
 export const generationImageMenu = async (userCommand: string) => {
-  const prompt = `A photorealistic, professional product shot of "${userCommand}", studio lighting, on a clean white background, optimized for web.`;
+  const prompt = `A photorealistic, professional product shot of "${userCommand}", bright even studio lighting, **on a solid plain white background, no shadows**, optimized for web.`;
  
   try {
     const response = await ai_gemini.models.generateContent({
