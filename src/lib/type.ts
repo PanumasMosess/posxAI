@@ -93,3 +93,15 @@ export interface MenuItemCardProps {
   handleGenerateImage: (item: MenuSchema) => void;
   isLoading: boolean;
 }
+
+interface Product {
+  id: string;
+  menuName: string;
+  description: string;
+  price_sale?: number;
+  img: string;
+}
+
+export interface ProductCardProps {
+  product: Product;
+}

@@ -3,134 +3,61 @@
 import { MenuPOSPageClientProps } from "@/lib/type";
 import MenuOrderHeader from "./MenuOrderHeader";
 import { MenuOrderCard } from "./MenuOrderCard";
-
-const products = [
-  {
-    id: "1",
-    name: "Phone",
-    subtext: "(3)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "2",
-    name: "Phone",
-    subtext: "(3)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "3",
-    name: "Headphone",
-    subtext: "(1)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "4",
-    name: "Headphone",
-    subtext: "(1)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "5",
-    name: "Ear",
-    subtext: "(20)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "6",
-    name: "Phone",
-    subtext: "(3)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "7",
-    name: "Phone",
-    subtext: "(3)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "8",
-    name: "Headphone",
-    subtext: "(1)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "9",
-    name: "Headphone",
-    subtext: "(1)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "10",
-    name: "Ear",
-    subtext: "(20)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "11",
-    name: "Phone",
-    subtext: "(3)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "12",
-    name: "Phone",
-    subtext: "(3)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "13",
-    name: "Headphone",
-    subtext: "(1)",
-
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "14",
-    name: "Headphone",
-    subtext: "(1)",
-
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-  {
-    id: "15",
-    name: "Ear",
-    subtext: "(20)",
-    price: 5790,
-    image: "/default-image-url.png",
-  },
-];
-
+import { useState, useEffect } from "react";
+import InfiniteScroll from "react-infinite-scroll-component";
+import { Loader2 } from "lucide-react";
 
 const MenuOrderPage = ({
-  initialItems,
   relatedData,
+  initialItems,
 }: MenuPOSPageClientProps) => {
+  const itemsPerPage = 10;
+  const [page, setPage] = useState(1);
+  const [currentItems, setCurrentItems] = useState(
+    initialItems.slice(0, itemsPerPage)
+  );
+ 
+  const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
+
+  const loadMoreItems = () => {
+    const nextPage = page + 1;
+    const nextItemsIndex = nextPage * itemsPerPage;
+
+    setTimeout(() => {
+      const newItems = initialItems.slice(0, nextItemsIndex);
+      setCurrentItems(newItems);
+      setPage(nextPage);
+      setHasMore(newItems.length < initialItems.length);
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <MenuOrderHeader />
-      <main className="container mx-auto px-2 pt-15 pb-10 relative z-10">
+      <main className="px-4 md:px-8 pt-15 pb-10 relative z-10">
         <h2 className="text-5xl text-center mb-10 tracking-wide">
           สินค้าทั้งหมด
         </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-6 ">
-          {products.map((product, index) => (  
-              <MenuOrderCard product={product} key={product.id}/>
+        <InfiniteScroll
+          dataLength={currentItems.length}
+          next={loadMoreItems}
+          hasMore={hasMore}
+          loader={
+            <div className="flex justify-center items-center my-4 col-span-full mt-1.5">
+              <Loader2 className="animate-spin h-8 w-8" />
+            </div>
+          }
+          endMessage={
+            <p className="text-center text-muted-foreground my-4 col-span-full">
+              <b>คุณได้ดูสินค้าทั้งหมดแล้ว</b>
+            </p>
+          }
+          className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
+        >
+          {currentItems.map((initialItems) => (
+            <MenuOrderCard product={initialItems} key={initialItems.id} />
           ))}
-        </div>
+        </InfiniteScroll>
       </main>
     </div>
   );
