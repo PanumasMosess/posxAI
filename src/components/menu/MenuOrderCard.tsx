@@ -1,51 +1,42 @@
 "use client";
 
+import { ProductCardProps } from "@/lib/type";
 import Image from "next/image";
 import Link from "next/link";
 import { useParallax } from "react-scroll-parallax";
 
-interface Product {
-  id: string;
-  name: string;
-  subtext: string;
-  price?: number;
-  image: string;
-}
-
-interface ProductCardProps {
-  product: Product;
-}
-
 export const MenuOrderCard = ({ product }: ProductCardProps) => {
   const easeInQuad = useParallax<HTMLDivElement>({
-    scale: [1, 2.0, "easeInQuad"],
+    scale: [0.8, 1, "easeInQuad"],
   });
   return (
     <Link href={`/product/${product.id}`} className="group block">
-      <div className="w-full  dark:bg-black rounded-2xl overflow-hidden p-3 transition-all duration-300 hover:shadow-xl ">
+      <div className="w-full h-full dark:bg-black rounded-2xl overflow-hidden p-3 transition-all duration-300 hover:shadow-xl flex flex-col">
         <div
-          className="relative h-40 md:h-80  flex items-center justify-center easeInQuad"
+          className="relative h-60 md:h-95 w-full flex items-center justify-center overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 easeInQuad"
           ref={easeInQuad.ref}
         >
           <Image
-            src={product.image}
-            alt={product.name}
-            width={140}
-            height={140}
-            className="object-contain transition-transform duration-300 group-hover:scale-110 "
+            src={product.img || "/default-image-url.png"}
+            alt={product.menuName}
+            fill
+            className="transition-transform duration-300 group-hover:scale-110 "
           />
         </div>
 
-        <div className="mt-1 text-center">
-          <h3 className="text-lg font-medium text-black dark:text-white">
-            {product.name}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {product.subtext}
-          </p>
-          {product.price && (
+        <div className="mt-1 text-center flex-1 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-black dark:text-white">
+              {product.menuName}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {product.description}
+            </p>
+          </div>
+
+          {product.price_sale && (
             <p className="text-sm font-semibold mt-1">
-              THB {product.price.toLocaleString()}
+              {product.price_sale.toLocaleString()}
             </p>
           )}
         </div>
