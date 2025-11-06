@@ -34,7 +34,7 @@ const MenuOrderPage = ({
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <MenuOrderHeader />
-      <main className="px-4 md:px-8 pt-15 pb-10 relative z-10">
+      <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
         <h2 className="text-5xl text-center mb-10 tracking-wide">
           สินค้าทั้งหมด
         </h2>
