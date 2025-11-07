@@ -87,9 +87,26 @@ const AppSidebar = () => {
                         className="w-48"
                       >
                         {item.subItems!.map((subItem) => (
-                          <DropdownMenuItem key={subItem.title} asChild>
-                            <Link href={subItem.url}>{subItem.title}</Link>
-                          </DropdownMenuItem>
+                          <SidebarMenuButton
+                            key={subItem.title}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            asChild
+                          >
+                            <Link
+                              href={subItem.url}
+                              target={
+                                subItem.url === "/orders" ? "_blank" : undefined
+                              }
+                              rel={
+                                subItem.url === "/orders"
+                                  ? "noopener noreferrer"
+                                  : undefined
+                              }
+                            >
+                              {subItem.title}
+                            </Link>
+                          </SidebarMenuButton>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -116,7 +133,21 @@ const AppSidebar = () => {
                                 className="w-full justify-start"
                                 asChild
                               >
-                                <Link href={subItem.url}>{subItem.title}</Link>
+                                <Link
+                                  href={subItem.url}
+                                  target={
+                                    subItem.url === "/orders"
+                                      ? "_blank"
+                                      : undefined
+                                  }
+                                  rel={
+                                    subItem.url === "/orders"
+                                      ? "noopener noreferrer"
+                                      : undefined
+                                  }
+                                >
+                                  {subItem.title}
+                                </Link>
                               </SidebarMenuButton>
                             ))}
                           </div>
