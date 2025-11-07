@@ -51,7 +51,7 @@ const MenuOrderPage = ({
     const nextItemsIndex = nextPage * itemsPerPage;
 
     setTimeout(() => {
-     const newItems = filteredItems.slice(0, nextItemsIndex);
+      const newItems = filteredItems.slice(0, nextItemsIndex);
       setCurrentItems(newItems);
       setPage(nextPage);
       setHasMore(newItems.length < initialItems.length);
@@ -60,15 +60,16 @@ const MenuOrderPage = ({
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
-      <MenuOrderHeader searchTerm={searchTerm}
+      <MenuOrderHeader
+        searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         filterCategory={filterCategory}
         setFilterCategory={setFilterCategory}
         relatedData={relatedData}
-        />
+      />
       <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
         <h2 className="text-5xl text-center mb-10 tracking-wide">
-          เมนูทั้งหมด
+          {filterCategory === "All" ? "เมนูทั้งหมด" : filterCategory}
         </h2>
         <InfiniteScroll
           dataLength={currentItems.length}
