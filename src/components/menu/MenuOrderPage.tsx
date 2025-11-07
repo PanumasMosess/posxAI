@@ -6,6 +6,7 @@ import { MenuOrderCard } from "./MenuOrderCard";
 import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const MenuOrderPage = ({
   relatedData,
@@ -16,7 +17,7 @@ const MenuOrderPage = ({
   const [currentItems, setCurrentItems] = useState(
     initialItems.slice(0, itemsPerPage)
   );
- 
+
   const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
 
   const loadMoreItems = () => {
@@ -36,7 +37,7 @@ const MenuOrderPage = ({
       <MenuOrderHeader />
       <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
         <h2 className="text-5xl text-center mb-10 tracking-wide">
-          สินค้าทั้งหมด
+          เมนูทั้งหมด
         </h2>
         <InfiniteScroll
           dataLength={currentItems.length}
@@ -54,8 +55,18 @@ const MenuOrderPage = ({
           }
           className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
         >
-          {currentItems.map((initialItems) => (
-            <MenuOrderCard product={initialItems} key={initialItems.id} />
+          {currentItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.4,
+                delay: (index % itemsPerPage) * 0.3,
+              }}
+            >
+              <MenuOrderCard product={item} />
+            </motion.div>
           ))}
         </InfiniteScroll>
       </main>
