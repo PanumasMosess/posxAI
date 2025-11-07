@@ -105,3 +105,11 @@ interface Product {
 export interface ProductCardProps {
   product: Product;
 }
+
+export interface MenuOrderHeaderProps {
+  searchTerm: string;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
+  filterCategory: string;
+  setFilterCategory: Dispatch<SetStateAction<string>>;
+  relatedData: any;
+}

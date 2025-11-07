@@ -1,4 +1,3 @@
-
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
 
@@ -14,13 +13,23 @@ const page = async () => {
       id: "desc",
     },
   });
+
+  const excludedIds = itemsData.map((item) => item.categoryMenuId);
+
   const categoriesData = await prisma.categorystock.findMany({
-    select: { id: true, categoryName: true },
+    where: {
+      id: {
+        in: excludedIds,
+      },
+    },
+    orderBy: {
+      id: "desc",
+    },
   });
 
   const relatedData = { categories: categoriesData };
   return (
-    <MenuOrderPage 
+    <MenuOrderPage
       relatedData={relatedData}
       initialItems={itemsData}
     ></MenuOrderPage>

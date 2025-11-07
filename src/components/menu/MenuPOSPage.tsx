@@ -5,8 +5,6 @@ import MenuPOSItemCard from "./MenuPOSItemCard";
 import { Sheet, SheetTrigger } from "../ui/sheet";
 import { Button } from "../ui/button";
 import {
-  ChevronLeft,
-  ChevronRight,
   PackageSearch,
   Utensils,
   Loader2,
