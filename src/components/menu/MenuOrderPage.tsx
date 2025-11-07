@@ -14,18 +14,44 @@ const MenuOrderPage = ({
 }: MenuPOSPageClientProps) => {
   const itemsPerPage = 10;
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("All");
+  const [filteredItems, setFilteredItems] = useState(initialItems);
   const [currentItems, setCurrentItems] = useState(
     initialItems.slice(0, itemsPerPage)
   );
-
   const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
+
+  useEffect(() => {
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filteredData = initialItems
+      .filter((item: any) => {
+        if (filterCategory === "All") return true;
+        return item.category.categoryName === filterCategory;
+      })
+      .filter((item: any) => {
+        return (
+          item.menuName?.toLowerCase().includes(lowercasedFilter) ||
+          item.description?.toLowerCase().includes(lowercasedFilter)
+        );
+      });
+
+    setFilteredItems(filteredData);
+  }, [searchTerm, filterCategory, initialItems]);
+
+  useEffect(() => {
+    setPage(1);
+    const newItems = filteredItems.slice(0, itemsPerPage);
+    setCurrentItems(newItems);
+    setHasMore(filteredItems.length > itemsPerPage);
+  }, [filteredItems]);
 
   const loadMoreItems = () => {
     const nextPage = page + 1;
     const nextItemsIndex = nextPage * itemsPerPage;
 
     setTimeout(() => {
-      const newItems = initialItems.slice(0, nextItemsIndex);
+     const newItems = filteredItems.slice(0, nextItemsIndex);
       setCurrentItems(newItems);
       setPage(nextPage);
       setHasMore(newItems.length < initialItems.length);
@@ -34,7 +60,12 @@ const MenuOrderPage = ({
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
-      <MenuOrderHeader />
+      <MenuOrderHeader searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filterCategory={filterCategory}
+        setFilterCategory={setFilterCategory}
+        relatedData={relatedData}
+        />
       <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
         <h2 className="text-5xl text-center mb-10 tracking-wide">
           เมนูทั้งหมด
@@ -62,7 +93,7 @@ const MenuOrderPage = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: 0.4,
-                delay: (index % itemsPerPage) * 0.3,
+                delay: (index % itemsPerPage) * 0.1,
               }}
             >
               <MenuOrderCard product={item} />
