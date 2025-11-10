@@ -6,7 +6,8 @@ import { MenuOrderCard } from "./MenuOrderCard";
 import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 
 const MenuOrderPage = ({
   relatedData,
@@ -21,6 +22,8 @@ const MenuOrderPage = ({
     initialItems.slice(0, itemsPerPage)
   );
   const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
+  const [isOpenDetail, setIsOpenDetail] = useState(false);
+  const [itemnDetail, setItemnDetail] = useState();
 
   useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -45,6 +48,14 @@ const MenuOrderPage = ({
     setCurrentItems(newItems);
     setHasMore(filteredItems.length > itemsPerPage);
   }, [filteredItems]);
+
+  const handelOpendetail = async (id_for_detail: any) => {
+    const itemToDetail = initialItems.find(
+      (item: any) => item.id === id_for_detail
+    );
+    setItemnDetail(itemToDetail);
+    setIsOpenDetail(true);
+  };
 
   const loadMoreItems = () => {
     const nextPage = page + 1;
@@ -97,11 +108,23 @@ const MenuOrderPage = ({
                 delay: (index % itemsPerPage) * 0.1,
               }}
             >
-              <MenuOrderCard product={item} />
+              <MenuOrderCard
+                product={item}
+                handelOpendetail={handelOpendetail}
+              />
             </motion.div>
           ))}
         </InfiniteScroll>
       </main>
+      <AnimatePresence>
+        {isOpenDetail && (
+          <MenuOrderDetailDialog
+            stateDialog={setIsOpenDetail}
+            open={isOpenDetail}
+            menuDetail={itemnDetail}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -104,6 +104,7 @@ interface Product {
 
 export interface ProductCardProps {
   product: Product;
+  handelOpendetail: (item: any) => void;
 }
 
 export interface MenuOrderHeaderProps {
@@ -112,4 +113,10 @@ export interface MenuOrderHeaderProps {
   filterCategory: string;
   setFilterCategory: Dispatch<SetStateAction<string>>;
   relatedData: any;
+}
+
+export interface MenuOrderDetailProps {
+  open: boolean;
+  stateDialog: Dispatch<SetStateAction<boolean>>;
+  menuDetail: any;
 }
