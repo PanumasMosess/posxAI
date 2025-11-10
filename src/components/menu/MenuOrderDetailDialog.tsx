@@ -17,16 +17,16 @@ const MenuOrderDetailDialog = ({
     stateDialog(false);
   };
 
- return (
+  return (
     <motion.div
       initial={{ opacity: 0, y: 50, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 50, scale: 0.95 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
       onClick={onClose}
     >
-      <div 
+      <div
         className="relative w-full max-w-sm rounded-xl shadow-2xl bg-background text-foreground overflow-hidden md:max-w-md lg:max-w-lg"
         onClick={(e) => e.stopPropagation()} // ป้องกันคลิกใน card แล้วปิด
       >
@@ -73,22 +73,27 @@ const MenuOrderDetailDialog = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="text-lg font-medium w-8 text-center">{quantity}</span>
+                  <span className="text-lg font-medium w-8 text-center">
+                    {quantity}
+                  </span>
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setQuantity(prev => prev + 1)}
+                    onClick={() => setQuantity((prev) => prev + 1)}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <Button className="w-full h-12 text-lg font-semibold mt-6" onClick={onClose}>
-                เพิ่ม {quantity} รายการ - {(menuDetail?.price_sale || 0) * quantity}.00
+              <Button
+                className="w-full h-12 text-lg font-semibold mt-6"
+                onClick={onClose}
+              >
+                เพิ่ม {quantity} รายการ - {((menuDetail?.price_sale || 0) * quantity).toLocaleString()}
               </Button>
             </div>
           </>
