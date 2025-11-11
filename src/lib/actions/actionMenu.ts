@@ -3,7 +3,6 @@
 import prisma from "../prisma";
 import { MenuSchema } from "../formValidationSchemas";
 
-
 type CurrentState = { success: boolean; error: boolean };
 
 export const createMenu = async (
@@ -29,7 +28,12 @@ export const createMenu = async (
           connect: {
             id: data.categoryMenuId,
           },
-        }
+        },
+        unitPrice: {
+          connect: {
+            id: data.unitPriceId,
+          },
+        },
       },
     });
 
@@ -45,7 +49,7 @@ export const updateMenu = async (
   currentState: CurrentState,
   data: MenuSchema
 ) => {
-   try {
+  try {
     const updatedStock = await prisma.menu.update({
       where: {
         id: data.id,
@@ -61,6 +65,7 @@ export const updateMenu = async (
         updatedAt: new Date(),
         createdById: data.createdById,
         categoryMenuId: data.categoryMenuId,
+        unitPriceId: data.unitPriceId,
       },
     });
 
@@ -71,7 +76,7 @@ export const updateMenu = async (
     return { success: false, error: true, data: "" };
   }
 
- return { success: true, error: false, data: "" };
+  return { success: true, error: false, data: "" };
 };
 
 export const deleteMenu = async (data: any) => {

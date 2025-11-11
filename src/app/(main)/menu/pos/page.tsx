@@ -6,6 +6,7 @@ const page = async () => {
   const itemsData = await prisma.menu.findMany({
     include: {
       category: true,
+      unitPrice: true,
     },
     orderBy: {
       id: "desc",
@@ -15,7 +16,11 @@ const page = async () => {
     select: { id: true, categoryName: true },
   });
 
-  const relatedData = { categories: categoriesData };
+  const unitpriceData = await prisma.unitprice.findMany({
+    select: { id: true, label: true },
+  });
+
+  const relatedData = { categories: categoriesData, unitprices: unitpriceData };
   return (
     <div>
       <MenuPOSPage initialItems={itemsData} relatedData={relatedData} />

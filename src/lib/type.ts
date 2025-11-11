@@ -100,6 +100,7 @@ interface Product {
   description: string;
   price_sale?: number;
   img: string;
+  unitPrice: any;
 }
 
 export interface ProductCardProps {

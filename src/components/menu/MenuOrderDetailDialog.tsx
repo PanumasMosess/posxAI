@@ -93,7 +93,9 @@ const MenuOrderDetailDialog = ({
                 className="w-full h-12 text-lg font-semibold mt-6"
                 onClick={onClose}
               >
-                เพิ่ม {quantity} รายการ - {((menuDetail?.price_sale || 0) * quantity).toLocaleString()}
+                เพิ่ม {quantity} รายการ -{" "}
+                {((menuDetail?.price_sale || 0) * quantity).toLocaleString()}{" "}
+                {menuDetail.unitPrice.label.toLocaleString()}
               </Button>
             </div>
           </>

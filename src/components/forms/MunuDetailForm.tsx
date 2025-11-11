@@ -18,7 +18,6 @@ const MunuDetailForm = ({
   item: any;
   dataForUpdata: any;
 }) => {
-
   ///กดแก้ไข
   const handleDetailCat = (item: any) => {
     stateSheet(true);
@@ -66,13 +65,15 @@ const MunuDetailForm = ({
           <div className="flex items-center justify-between text-base">
             <span className="text-muted-foreground">ราคาปัจจุบัน</span>
             <span className="font-semibold text-foreground">
-              {item?.price_sale.toFixed(2)} / {item?.unit}
+              {item?.price_sale.toFixed(2)} {item?.unitPrice.label}/{" "}
+              {item?.unit}
             </span>
           </div>
           <div className="flex items-center justify-between text-base">
             <span className="text-muted-foreground">ราคาต้นทุน</span>
             <span className="font-semibold text-foreground">
-              {item?.price_cost.toFixed(2)} / {item?.unit}
+              {item?.price_cost.toFixed(2)} {item?.unitPrice.label} /{" "}
+              {item?.unit}
             </span>
           </div>
           <div className="flex items-center justify-between text-base">
@@ -82,7 +83,7 @@ const MunuDetailForm = ({
                 statusStyles[item?.status] || "text-foreground"
               }`}
             >
-              {statusTexts[item?.status] || item?.status}{" "}           
+              {statusTexts[item?.status] || item?.status}{" "}
             </span>
           </div>
         </div>

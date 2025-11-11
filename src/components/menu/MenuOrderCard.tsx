@@ -37,7 +37,7 @@ export const MenuOrderCard = ({ product, handelOpendetail }: ProductCardProps) =
 
           {product.price_sale && (
             <p className="text-sm font-semibold mt-1">
-              {product.price_sale.toLocaleString()}
+              {product.price_sale.toLocaleString()} {product.unitPrice.label.toLocaleString()}
             </p>
           )}
         </div>
