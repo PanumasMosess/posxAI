@@ -84,6 +84,8 @@ model stock {
   category      categorystock   @relation(fields: [categoryId], references: [id])
   supplierId    Int
   supplier      supplier        @relation(fields: [supplierId], references: [id])
+  // unitPriceId   Int             @default(1)
+  // unitPrice     unitPrice       @relation(fields: [unitPriceId], references: [id])
   formularstock formularstock[]
 }
 
@@ -100,12 +102,14 @@ model menu {
   updatedAt   DateTime @updatedAt
 
   createdById    Int
-  creator        employees       @relation(fields: [createdById], references: [id])
+  creator        employees     @relation(fields: [createdById], references: [id])
   categoryMenuId Int
-  category       categorystock   @relation(fields: [categoryMenuId], references: [id])
-  formularstock  formularstock[]
+  category       categorystock @relation(fields: [categoryMenuId], references: [id])
+  // unitPriceId    Int           @default(1)
+  // unitPrice      unitPrice     @relation(fields: [unitPriceId], references: [id])
 
-  order order[]
+  formularstock formularstock[]
+  order         order[]
 }
 
 model formularstock {
@@ -147,4 +151,16 @@ model order {
   menu    menu  @relation(fields: [menuId], references: [id])
   tableId Int
   table   table @relation(fields: [tableId], references: [id])
+}
+
+model unitPrice {
+  id        Int      @id @default(autoincrement())
+  value     String
+  label     String
+  flag      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // menus  menu[]
+  // stocks stock[]
 }
