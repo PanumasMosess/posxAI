@@ -84,8 +84,8 @@ model stock {
   category      categorystock   @relation(fields: [categoryId], references: [id])
   supplierId    Int
   supplier      supplier        @relation(fields: [supplierId], references: [id])
-  // unitPriceId   Int             @default(1)
-  // unitPrice     unitPrice       @relation(fields: [unitPriceId], references: [id])
+  unitPriceId   Int             @default(1)
+  unitPrice     unitprice       @relation(fields: [unitPriceId], references: [id])
   formularstock formularstock[]
 }
 
@@ -105,8 +105,8 @@ model menu {
   creator        employees     @relation(fields: [createdById], references: [id])
   categoryMenuId Int
   category       categorystock @relation(fields: [categoryMenuId], references: [id])
-  // unitPriceId    Int           @default(1)
-  // unitPrice      unitPrice     @relation(fields: [unitPriceId], references: [id])
+  unitPriceId    Int           @default(1)
+  unitPrice      unitprice     @relation(fields: [unitPriceId], references: [id])
 
   formularstock formularstock[]
   order         order[]
@@ -161,6 +161,6 @@ model unitprice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // menus  menu[]
-  // stocks stock[]
+  menus  menu[]
+  stocks stock[]
 }
