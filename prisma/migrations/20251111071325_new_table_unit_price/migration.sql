@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE `unitPrice` (
+CREATE TABLE `unitprice` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `value` VARCHAR(191) NOT NULL,
     `label` VARCHAR(191) NOT NULL,
