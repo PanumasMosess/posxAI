@@ -70,12 +70,14 @@ const MenuFormPOS = ({
       img: undefined,
       createdById: currentUserId,
       categoryMenuId: undefined,
+      unitPriceId: undefined,
     },
   });
 
   const router = useRouter();
 
-  const { categories } = relatedData;
+  const { categories, unitprices } = relatedData;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [OldImg, setOldImg] = useState("");
   const [state, formAction] = useActionState(
@@ -130,6 +132,8 @@ const MenuFormPOS = ({
 
     // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
     if (type === "update" && data) {
+      console.log(data);
+      
       formAddMenu.setValue("menuName", data.menuName);
       formAddMenu.setValue("price_sale", data.price_sale);
       formAddMenu.setValue("price_cost", data.price_cost);
@@ -137,6 +141,7 @@ const MenuFormPOS = ({
       formAddMenu.setValue("description", data.description || "");
       formAddMenu.setValue("status", data.status);
       formAddMenu.setValue("categoryMenuId", data.categoryMenuId);
+      formAddMenu.setValue("unitPriceId", data.unitPriceId);
       formAddMenu.setValue("id", data.id);
       setOldImg("");
       setOldImg(data.img);
@@ -145,8 +150,11 @@ const MenuFormPOS = ({
     if (type === "create" && categories?.length > 0) {
       const firstCategoryId = categories[0].id;
       formAddMenu.setValue("categoryMenuId", firstCategoryId);
+
+      const firstunitpricesId = unitprices[0].id;
+      formAddMenu.setValue("unitPriceId", firstunitpricesId);
     }
-  }, [type, data, stateForm, categories, formAddMenu, setOldImg]);
+  }, [type, data, stateForm, categories, unitprices, formAddMenu, setOldImg]);
 
   return (
     <SheetContent
@@ -218,6 +226,34 @@ const MenuFormPOS = ({
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={formAddMenu.control}
+              name="unitPriceId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>หน่วยราคา</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={String(field.value)}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกหน่วยราคา" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {unitprices.map((unit: { id: number; label: String }) => (
+                        <SelectItem key={unit.id} value={String(unit.id)}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

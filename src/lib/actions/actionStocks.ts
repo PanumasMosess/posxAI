@@ -39,6 +39,11 @@ export const createStock = async (
             id: data.supplier_id,
           },
         },
+        unitPrice: {
+          connect: {
+            id: data.unitPriceId,
+          },
+        },
       },
     });
 
@@ -156,6 +161,7 @@ export const updateStock = async (
         createdById: data.creator_id,
         categoryId: data.category_id,
         supplierId: data.supplier_id,
+        unitPriceId: data.unitPriceId,
       },
     });
 

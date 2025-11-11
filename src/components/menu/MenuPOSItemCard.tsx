@@ -18,7 +18,6 @@ import {
 import { Brain, Loader2, Settings } from "lucide-react";
 import { MenuItemCardProps } from "@/lib/type";
 
-
 const MenuPOSItemCard = ({
   item,
   relatedData,
@@ -92,7 +91,14 @@ const MenuPOSItemCard = ({
         </CardTitle>
         {item.price_sale && (
           <p className="text-sm text-muted-foreground mt-1">
-            {item.price_sale.toFixed(2)} /{" "}
+            {item.price_sale.toFixed(2)}{" "}
+            {
+              relatedData.unitprices.find(
+                (unit: { id: number; label: string }) =>
+                  unit.id === item.unitPriceId
+              )?.label
+            }{" "}
+            /{" "}
             {
               relatedData.categories.find(
                 (category: { id: number; categoryName: string }) =>

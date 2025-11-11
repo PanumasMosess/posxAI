@@ -70,6 +70,7 @@ const StockForm = ({
       creator_id: currentUserId,
       category_id: undefined,
       supplier_id: undefined,
+      unitPriceId: undefined,
     },
   });
 
@@ -113,7 +114,7 @@ const StockForm = ({
     }
   };
 
-  const { suppliers, categories } = relatedData;
+  const { suppliers, categories, unitprices } = relatedData;
 
   useEffect(() => {
     if (state.success) {
@@ -133,6 +134,7 @@ const StockForm = ({
     if (type === "update" && data) {
       formAddStock.setValue("category_id", data.categoryId);
       formAddStock.setValue("supplier_id", data.supplierId);
+      formAddStock.setValue("unitPriceId", data.unitPriceId);
       formAddStock.setValue("product_stock", data.productName);
       formAddStock.setValue("unit_stock", data.unit);
       formAddStock.setValue("price_now_stock", data.price);
@@ -151,6 +153,9 @@ const StockForm = ({
 
       const firstSupplierId = suppliers[0].id;
       formAddStock.setValue("supplier_id", firstSupplierId);
+
+       const unitPriceId = unitprices[0].id;
+      formAddStock.setValue("unitPriceId", unitPriceId);
     }
   }, [type, data, stateForm, categories, suppliers, formAddStock, setOldImg]);
 
@@ -228,6 +233,37 @@ const StockForm = ({
                 </FormItem>
               )}
             />
+
+              <FormField
+              control={formAddStock.control}
+              name="unitPriceId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>หน่วยราคา</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={String(field.value)}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกหน่วยราคา" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {unitprices.map(
+                        (unit: { id: number; label: String }) => (
+                          <SelectItem key={unit.id} value={String(unit.id)}>
+                            {unit.label}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={formAddStock.control}
               name="max_stock"

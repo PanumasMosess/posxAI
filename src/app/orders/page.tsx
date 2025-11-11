@@ -8,6 +8,7 @@ const page = async () => {
     },
     include: {
       category: true,
+      unitPrice: true,
     },
     orderBy: {
       id: "desc",

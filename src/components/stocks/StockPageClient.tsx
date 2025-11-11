@@ -421,7 +421,7 @@ const StockPageClient = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold">ราคาปัจจุบัน:</span>
-                              <Badge>{item.price}</Badge>
+                              <Badge>{item.price}{" "}{item.unitPrice.label}</Badge>
                             </div>
                           </CardHeader>
                         </Card>

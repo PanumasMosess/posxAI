@@ -2,13 +2,13 @@ import StockPageClient from "@/components/stocks/StockPageClient";
 import prisma from "@/lib/prisma";
 
 const Page = async () => {
-  
   const itemsData = await prisma.stock.findMany({
     where: {
       status: "ON_STOCK",
     },
     include: {
       category: true,
+      unitPrice: true,
     },
     orderBy: {
       id: "desc",
@@ -18,11 +18,18 @@ const Page = async () => {
   const categoriesData = await prisma.categorystock.findMany({
     select: { id: true, categoryName: true },
   });
+  const unitpriceData = await prisma.unitprice.findMany({
+    select: { id: true, label: true },
+  });
   const suppliersData = await prisma.supplier.findMany({
     select: { id: true, supplierName: true },
   });
 
-  const relatedData = { categories: categoriesData, suppliers: suppliersData };
+  const relatedData = {
+    categories: categoriesData,
+    suppliers: suppliersData,
+    unitprices: unitpriceData,
+  };
 
   return <StockPageClient initialItems={itemsData} relatedData={relatedData} />;
 };

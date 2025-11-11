@@ -12,6 +12,7 @@ export const stockSchema_ = z.object({
   creator_id: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   category_id: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),
   supplier_id: z.coerce.number().min(1, "ต้องมี ID ซัพพลายเออร์"),
+  unitPriceId: z.coerce.number().min(1, "ต้องมี ID ต้องมีหน่วยราคา"),
 
   img_stock: z.any().optional(),
 });
@@ -65,6 +66,7 @@ export const MenuSchema_ = z.object({
   status: z.string().optional(),
   createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   categoryMenuId: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),
+  unitPriceId: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),
 
   img: z.any().optional(),
 });
@@ -76,6 +78,5 @@ export const formularStockSchema_ = z.object({
   status: z.string().optional(),
   menuId: z.coerce.number().min(1, "ต้องมี ID เมนู"),
   stockId: z.coerce.number().min(1, "ต้องมี ID สินค้าในคลัง"),
-
 });
 export type FormularStockSchema_ = z.infer<typeof formularStockSchema_>;

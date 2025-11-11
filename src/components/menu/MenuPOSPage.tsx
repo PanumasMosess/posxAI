@@ -128,7 +128,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
         (item) => item.id === detailMenu.id
       );
       if (updatedItemData) {
-        setDetailMenu(updatedItemData);
+        setDetailMenu(updatedItemData);     
       }
     }
     setOrderItems(initialItems);
