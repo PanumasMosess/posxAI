@@ -34,7 +34,7 @@ const MenuOrderHeader = ({
 
   return (
     <Dialog open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-      <header className="sticky top-0 z-50 bg-white dark:bg-zinc-950 mt-4  px-2">
+      <header className="sticky top-0 z-50  mt-4  px-2">
         <div
           className="container mx-auto px-4 h-13 flex items-center justify-between
           bg-white dark:bg-zinc-900 
