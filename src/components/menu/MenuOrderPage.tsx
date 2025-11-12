@@ -65,6 +65,7 @@ const MenuOrderPage = ({
 
     setTimeout(() => {
       const newItems = filteredItems.slice(0, nextItemsIndex);
+      setCurrentItems(newItems);
       setPage(nextPage);
       setHasMore(newItems.length < filteredItems.length);
     }, 500);
