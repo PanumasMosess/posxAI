@@ -3,12 +3,13 @@
 import { MenuPOSPageClientProps } from "@/lib/type";
 import MenuOrderHeader from "./MenuOrderHeader";
 import { MenuOrderCard } from "./MenuOrderCard";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import { useSearchParams } from "next/navigation";
+import OrderHandler from "../OrderHandler";
 
 const MenuOrderPage = ({
   relatedData,
@@ -52,13 +53,6 @@ const MenuOrderPage = ({
     setHasMore(filteredItems.length > itemsPerPage);
   }, [filteredItems]);
 
-  useEffect(() => {
-    const table_number = searchParams.get("table");
-    if (table_number !== null) {
-      setTableNumber(parseInt(table_number));
-    }
-  }, [searchParams]);
-
   const handelOpendetail = async (id_for_detail: any) => {
     const itemToDetail = initialItems.find(
       (item: any) => item.id === id_for_detail
@@ -80,64 +74,67 @@ const MenuOrderPage = ({
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
-      <MenuOrderHeader
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        filterCategory={filterCategory}
-        setFilterCategory={setFilterCategory}
-        relatedData={relatedData}
-      />
-      <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
-        <h2 className="text-5xl text-center mb-10 tracking-wide">
-          {filterCategory === "All" ? "เมนูทั้งหมด" : filterCategory}
-        </h2>
-        <InfiniteScroll
-          dataLength={currentItems.length}
-          next={loadMoreItems}
-          hasMore={hasMore}
-          loader={
-            <div className="flex justify-center items-center my-4 col-span-full mt-1.5">
-              <Loader2 className="animate-spin h-8 w-8" />
-            </div>
-          }
-          endMessage={
-            <p className="text-center text-muted-foreground my-4 col-span-full">
-              <b>คุณได้ดูสินค้าทั้งหมดแล้ว</b>
-            </p>
-          }
-          className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
-        >
-          {currentItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: (index % itemsPerPage) * 0.1,
-              }}
-            >
-              <MenuOrderCard
-                product={item}
-                handelOpendetail={handelOpendetail}
-              />
-            </motion.div>
-          ))}
-        </InfiniteScroll>
-      </main>
-      <AnimatePresence>
-        {isOpenDetail && (
-          <MenuOrderDetailDialog
-            stateDialog={setIsOpenDetail}
-            open={isOpenDetail}
-            menuDetail={itemnDetail}
-            tableNumber={tableNumber}
-            dataTable={relatedData.tabledatas}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+    <>
+      <OrderHandler setTableNumber={setTableNumber} />
+      <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+        <MenuOrderHeader
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          filterCategory={filterCategory}
+          setFilterCategory={setFilterCategory}
+          relatedData={relatedData}
+        />
+        <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
+          <h2 className="text-5xl text-center mb-10 tracking-wide">
+            {filterCategory === "All" ? "เมนูทั้งหมด" : filterCategory}
+          </h2>
+          <InfiniteScroll
+            dataLength={currentItems.length}
+            next={loadMoreItems}
+            hasMore={hasMore}
+            loader={
+              <div className="flex justify-center items-center my-4 col-span-full mt-1.5">
+                <Loader2 className="animate-spin h-8 w-8" />
+              </div>
+            }
+            endMessage={
+              <p className="text-center text-muted-foreground my-4 col-span-full">
+                <b>คุณได้ดูสินค้าทั้งหมดแล้ว</b>
+              </p>
+            }
+            className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
+          >
+            {currentItems.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: (index % itemsPerPage) * 0.1,
+                }}
+              >
+                <MenuOrderCard
+                  product={item}
+                  handelOpendetail={handelOpendetail}
+                />
+              </motion.div>
+            ))}
+          </InfiniteScroll>
+        </main>
+        <AnimatePresence>
+          {isOpenDetail && (
+            <MenuOrderDetailDialog
+              stateDialog={setIsOpenDetail}
+              open={isOpenDetail}
+              menuDetail={itemnDetail}
+              tableNumber={tableNumber}
+              dataTable={relatedData.tabledatas}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 };
 

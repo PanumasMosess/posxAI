@@ -127,3 +127,7 @@ export interface MenuOrderDetailProps {
     tableName: string;
   }[];
 }
+
+export interface OrderHandlerProps {
+  setTableNumber: (tableId: number) => void;
+}
