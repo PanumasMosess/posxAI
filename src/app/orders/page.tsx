@@ -1,5 +1,6 @@
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
+import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
 const page = async () => {
@@ -41,7 +42,16 @@ const page = async () => {
   const relatedData = { categories: categoriesData, tabledatas: tableData };
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="flex flex-col items-center">
+            <Loader2 className="animate-spin h-10 w-10 text-primary mb-3" />
+            <p className="text-lg text-muted-foreground">กำลังโหลด...</p>
+          </div>
+        </div>
+      }
+    >
       <MenuOrderPage
         relatedData={relatedData}
         initialItems={itemsData}
