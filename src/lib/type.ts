@@ -74,6 +74,7 @@ export interface MenuPOSPageClientProps {
   initialItems: any[];
   relatedData: {
     categories: { id: number; categoryName: string }[];
+    tabledatas: { id: number; tableName: string }[];
   };
 }
 
@@ -120,4 +121,9 @@ export interface MenuOrderDetailProps {
   open: boolean;
   stateDialog: Dispatch<SetStateAction<boolean>>;
   menuDetail: any;
+  tableNumber: number;
+  dataTable: {
+    id: number;
+    tableName: string;
+  }[];
 }

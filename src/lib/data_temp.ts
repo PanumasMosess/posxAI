@@ -17,7 +17,7 @@ const menuList = [
       },
       {
         title: "เมนู (สั่งอาหาร) *ตัวอย่าง",
-        url: "/orders",
+        url: "/orders?table=0",
       },
     ],
   },

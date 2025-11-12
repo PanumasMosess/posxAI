@@ -4,11 +4,7 @@ import { useEffect, useState } from "react";
 import MenuPOSItemCard from "./MenuPOSItemCard";
 import { Sheet, SheetTrigger } from "../ui/sheet";
 import { Button } from "../ui/button";
-import {
-  PackageSearch,
-  Utensils,
-  Loader2,
-} from "lucide-react";
+import { PackageSearch, Utensils, Loader2 } from "lucide-react";
 import MenuFormPOS from "../forms/MenuFormPOS";
 import { useSession } from "next-auth/react";
 import MunuDetailForm from "../forms/MunuDetailForm";
@@ -128,25 +124,24 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
         (item) => item.id === detailMenu.id
       );
       if (updatedItemData) {
-        setDetailMenu(updatedItemData);     
+        setDetailMenu(updatedItemData);
       }
     }
     setOrderItems(initialItems);
     setDisplayItems(initialItems);
-  }, [initialItems]); 
+  }, [initialItems]);
 
   useEffect(() => {
-
     setPage(1);
     const newItems = displayItems.slice(0, itemsPerPage);
     setCurrentItems(newItems);
     setHasMore(displayItems.length > itemsPerPage);
-  }, [displayItems]); 
+  }, [displayItems]);
 
   const loadMoreItems = () => {
     const nextPage = page + 1;
     const nextItemsIndex = nextPage * itemsPerPage;
-    const newItems = displayItems.slice(0, nextItemsIndex); 
+    const newItems = displayItems.slice(0, nextItemsIndex);
 
     setTimeout(() => {
       setCurrentItems(newItems);

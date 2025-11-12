@@ -3,12 +3,21 @@ import { Button } from "../ui/button";
 import { MenuOrderDetailProps } from "@/lib/type";
 import Image from "next/image";
 import { useState } from "react";
-import { Loader2, Minus, Plus, X } from "lucide-react";
+import { Loader2, Minus, Plus, X, Table } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const MenuOrderDetailDialog = ({
   stateDialog,
   open,
   menuDetail,
+  tableNumber,
+  dataTable,
 }: MenuOrderDetailProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -28,7 +37,7 @@ const MenuOrderDetailDialog = ({
     >
       <div
         className="relative w-full max-w-sm rounded-xl shadow-2xl bg-background text-foreground overflow-hidden md:max-w-md lg:max-w-lg"
-        onClick={(e) => e.stopPropagation()} // ป้องกันคลิกใน card แล้วปิด
+        onClick={(e) => e.stopPropagation()}
       >
         <Button
           variant="ghost"
@@ -60,14 +69,40 @@ const MenuOrderDetailDialog = ({
               <h3 className="text-3xl font-extrabold text-center tracking-tight leading-tight">
                 {menuDetail?.menuName}
               </h3>
-              <p className="text-sm text-muted-foreground text-center line-clamp-2">
+              <p className="text-sm text-muted-foreground text-center ">
                 {menuDetail?.description}
               </p>
+              <span className="text-xl font-bold text-primary text-center line-clamp-2">
+                {menuDetail?.price_sale?.toLocaleString()}{" "}
+                {menuDetail.unitPrice.label.toLocaleString()}
+              </span>
 
-              <div className="flex items-center justify-between pt-4 border-t border-border/60">
-                <span className="text-xl font-bold text-primary">
-                  {menuDetail?.price_sale?.toLocaleString()}
-                </span>
+              <div
+                className={`flex items-center pt-4 border-t border-border/60 ${
+                  tableNumber == 0 ? "justify-between" : "justify-center"
+                }`}
+              >
+                {tableNumber == 0 && (
+                  <Select
+                    // value={tableNumber || 0}
+                    // onValueChange={onTableChange}
+                  >
+                    <SelectTrigger className="w-full p-2 mr-2 ml-2">
+                      <Table className="h-4 w-4 mr-0.1" />
+                      <SelectValue
+                        placeholder="เลือกโต๊ะ"
+                        className="flex-1 text-left"
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dataTable?.map((table) => (
+                        <SelectItem key={table.id} value={String(table.id)}>
+                          {table.tableName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 <div className="flex items-center gap-2">
                   <Button

@@ -1,5 +1,4 @@
 import MenuPOSPage from "@/components/menu/MenuPOSPage";
-import memuTemp from "@/lib/data_temp";
 import prisma from "@/lib/prisma";
 
 const page = async () => {
