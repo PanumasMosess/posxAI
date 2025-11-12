@@ -12,7 +12,7 @@ export const MenuOrderCard = ({ product, handelOpendetail }: ProductCardProps) =
     <div onClick={() => {
        handelOpendetail(product.id);
       }} className="group block">
-      <div className="w-full h-full dark:bg-black rounded-2xl overflow-hidden p-1.5 transition-all duration-300 hover:shadow-xl flex flex-col">
+      <div className="w-full h-full  rounded-2xl overflow-hidden p-1.5 transition-all duration-300 hover:shadow-xl flex flex-col">
         <div
           className="relative h-60 md:h-95 w-full flex items-center justify-center overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 easeInQuad"
           ref={easeInQuad.ref}

@@ -74,7 +74,7 @@ const MenuOrderPage = ({
   return (
     <>
       <OrderHandler setTableNumber={setTableNumber} />
-      <div className="min-h-screen  text-black dark:text-white">
+      <div className="min-h-screen text-black dark:text-white">
         <MenuOrderHeader
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
