@@ -28,7 +28,17 @@ const page = async () => {
     },
   });
 
-  const relatedData = { categories: categoriesData };
+  const tableData = await prisma.table.findMany({
+    where: {
+      status: "WAIT_BOOKING",
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+  const relatedData = { categories: categoriesData, tabledatas: tableData };
+  
   return (
     <MenuOrderPage
       relatedData={relatedData}

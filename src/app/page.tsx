@@ -6,9 +6,7 @@ import { Suspense } from "react";
 const Home = () => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      {/* มองหา callback แล้ว remove   */}
       <SearchHandler />
-      {/* ==== */}
       <div className="w-full lg:grid min-h-screen lg:grid-cols-2 xl:grid-cols-5">
         <div className="relative hidden bg-muted lg:flex items-center justify-center xl:col-span-2">
           <Image

@@ -128,7 +128,7 @@ model formularstock {
 model table {
   id             Int      @id @default(autoincrement())
   status         String
-  tablleName     String
+  tableName     String
   tableBookingBy String
   cashType       String
   createdAt      DateTime @default(now())

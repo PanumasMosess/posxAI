@@ -8,11 +8,13 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
+import { useSearchParams } from "next/navigation";
 
 const MenuOrderPage = ({
   relatedData,
   initialItems,
 }: MenuPOSPageClientProps) => {
+  const searchParams = useSearchParams();
   const itemsPerPage = 10;
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,6 +26,7 @@ const MenuOrderPage = ({
   const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
   const [isOpenDetail, setIsOpenDetail] = useState(false);
   const [itemnDetail, setItemnDetail] = useState();
+  const [tableNumber, setTableNumber] = useState(0);
 
   useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -48,6 +51,13 @@ const MenuOrderPage = ({
     setCurrentItems(newItems);
     setHasMore(filteredItems.length > itemsPerPage);
   }, [filteredItems]);
+
+  useEffect(() => {
+    const table_number = searchParams.get("table");
+    if (table_number !== null) {
+      setTableNumber(parseInt(table_number));
+    }
+  }, [searchParams]);
 
   const handelOpendetail = async (id_for_detail: any) => {
     const itemToDetail = initialItems.find(
@@ -122,6 +132,8 @@ const MenuOrderPage = ({
             stateDialog={setIsOpenDetail}
             open={isOpenDetail}
             menuDetail={itemnDetail}
+            tableNumber={tableNumber}
+            dataTable={relatedData.tabledatas}
           />
         )}
       </AnimatePresence>

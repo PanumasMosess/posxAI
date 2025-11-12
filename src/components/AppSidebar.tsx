@@ -25,7 +25,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import menuList from "@/lib/data_temp";
@@ -96,10 +95,12 @@ const AppSidebar = () => {
                             <Link
                               href={subItem.url}
                               target={
-                                subItem.url === "/orders" ? "_blank" : undefined
+                                subItem.url === "/orders?table=0"
+                                  ? "_blank"
+                                  : undefined
                               }
                               rel={
-                                subItem.url === "/orders"
+                                subItem.url === "/orders?table=0"
                                   ? "noopener noreferrer"
                                   : undefined
                               }
@@ -136,12 +137,12 @@ const AppSidebar = () => {
                                 <Link
                                   href={subItem.url}
                                   target={
-                                    subItem.url === "/orders"
+                                    subItem.url === "/orders?table=0"
                                       ? "_blank"
                                       : undefined
                                   }
                                   rel={
-                                    subItem.url === "/orders"
+                                    subItem.url === "/orders?table=0"
                                       ? "noopener noreferrer"
                                       : undefined
                                   }
