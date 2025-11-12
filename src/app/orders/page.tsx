@@ -1,5 +1,6 @@
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
+import { Suspense } from "react";
 
 const page = async () => {
   const itemsData = await prisma.menu.findMany({
@@ -38,12 +39,14 @@ const page = async () => {
   });
 
   const relatedData = { categories: categoriesData, tabledatas: tableData };
-  
+
   return (
-    <MenuOrderPage
-      relatedData={relatedData}
-      initialItems={itemsData}
-    ></MenuOrderPage>
+    <Suspense fallback={<div>Loading...</div>}>
+      <MenuOrderPage
+        relatedData={relatedData}
+        initialItems={itemsData}
+      ></MenuOrderPage>
+    </Suspense>
   );
 };
 
