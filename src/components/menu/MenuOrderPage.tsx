@@ -3,19 +3,17 @@
 import { MenuPOSPageClientProps } from "@/lib/type";
 import MenuOrderHeader from "./MenuOrderHeader";
 import { MenuOrderCard } from "./MenuOrderCard";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
-import { useSearchParams } from "next/navigation";
 import OrderHandler from "../OrderHandler";
 
 const MenuOrderPage = ({
   relatedData,
   initialItems,
 }: MenuPOSPageClientProps) => {
-  const searchParams = useSearchParams();
   const itemsPerPage = 10;
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,9 +65,8 @@ const MenuOrderPage = ({
 
     setTimeout(() => {
       const newItems = filteredItems.slice(0, nextItemsIndex);
-      setCurrentItems(newItems);
       setPage(nextPage);
-      setHasMore(newItems.length < initialItems.length);
+      setHasMore(newItems.length < filteredItems.length);
     }, 500);
   };
 
