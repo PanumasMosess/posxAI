@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Badge } from "../ui/badge";
 
 const footerLinks = [{ href: "/support", label: "บริการช่วยเหลือ" }];
 const MenuOrderHeader = ({
@@ -29,9 +30,9 @@ const MenuOrderHeader = ({
   filterCategory,
   setFilterCategory,
   relatedData,
+  cartCount,
 }: MenuOrderHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   return (
     <Dialog open={isMenuOpen} onOpenChange={setIsMenuOpen}>
       <header className="sticky top-0 z-50  mt-4  px-2">
@@ -59,9 +60,17 @@ const MenuOrderHeader = ({
             </div>
           </div>
 
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="relative">
             <ShoppingBag className="h-6 w-6" />
             <span className="sr-only">Open Cart</span>
+            {cartCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 rounded-full text-xs"
+              >
+                {cartCount}
+              </Badge>
+            )}
           </Button>
         </div>
       </header>

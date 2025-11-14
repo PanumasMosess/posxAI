@@ -110,6 +110,8 @@ model menu {
 
   formularstock formularstock[]
   order         order[]
+
+  carts cart[]
 }
 
 model formularstock {
@@ -128,7 +130,7 @@ model formularstock {
 model table {
   id             Int      @id @default(autoincrement())
   status         String
-  tableName     String
+  tableName      String
   tableBookingBy String
   cashType       String
   createdAt      DateTime @default(now())
@@ -138,14 +140,17 @@ model table {
   creator   employees @relation(fields: [closeById], references: [id])
 
   order order[]
+  carts cart[]
 }
 
 model order {
-  id          Int      @id @default(autoincrement())
-  quantity    Int
-  orderDetail String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  quantity       Int
+  price_sum      Float
+  price_pre_unit Float
+  orderDetail    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   menuId  Int
   menu    menu  @relation(fields: [menuId], references: [id])
@@ -163,4 +168,19 @@ model unitprice {
 
   menus  menu[]
   stocks stock[]
+}
+
+model cart {
+  id             Int      @id @default(autoincrement())
+  quantity       Int
+  price_sum      Float
+  price_pre_unit Float
+  status         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  menuId  Int
+  menu    menu  @relation(fields: [menuId], references: [id])
+  tableId Int
+  table   table @relation(fields: [tableId], references: [id])
 }
