@@ -121,6 +121,7 @@ const MenuOrderPage = ({
           setFilterCategory={setFilterCategory}
           relatedData={relatedData}
           cartCount={cartCount}
+          menuItems={initialItems}
         />
         <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
           <h2 className="text-5xl text-center mb-10 tracking-wide">
