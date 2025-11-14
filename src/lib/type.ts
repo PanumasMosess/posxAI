@@ -135,6 +135,7 @@ export interface MenuOrderHeaderProps {
     }[];
   };
   cartCount: number;
+  menuItems: { id: number; menuName: string; img: string }[];
 }
 
 export type CartItem = {
