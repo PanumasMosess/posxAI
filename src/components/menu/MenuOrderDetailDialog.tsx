@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
-import { MenuOrderDetailProps } from "@/lib/type";
+import { CartItem, MenuOrderDetailProps } from "@/lib/type";
 import Image from "next/image";
 import { useState } from "react";
 import { Loader2, Minus, Plus, X, Table } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { toast } from "react-toastify";
 
 const MenuOrderDetailDialog = ({
   stateDialog,
@@ -18,12 +19,36 @@ const MenuOrderDetailDialog = ({
   menuDetail,
   tableNumber,
   dataTable,
+  onAddToCart,
 }: MenuOrderDetailProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [tableNumberSelect, setTableNumberSelect] = useState(0);
 
   const onClose = () => {
     stateDialog(false);
+  };
+
+  const onTableChange = (val: any) => {
+    setTableNumberSelect(parseInt(val));
+  };
+
+  const handleAddToCartClick = () => {
+    if (tableNumber == 0 && tableNumberSelect == 0) {
+      toast.error(`กรุณาเลือกโต๊ะ!`);
+    } else {
+      if (!menuDetail) return;
+      const cartItem: CartItem = {
+        menuId: menuDetail.id,
+        tableId: tableNumberSelect,
+        menuName: menuDetail.menuName,
+        priceUnit: menuDetail.price_sale,
+        quantity: quantity,
+        totalPrice: menuDetail.price_sale * quantity,
+      };
+      onAddToCart(cartItem);
+      onClose();
+    }
   };
 
   return (
@@ -84,8 +109,10 @@ const MenuOrderDetailDialog = ({
               >
                 {tableNumber == 0 && (
                   <Select
-                    // value={tableNumber || 0}
-                    // onValueChange={onTableChange}
+                    // value={tableNumber || ""}
+                    onValueChange={(value) =>
+                      onTableChange(value === "ALL" ? null : value)
+                    }
                   >
                     <SelectTrigger className="w-full p-2 mr-2 ml-2">
                       <Table className="h-4 w-4 mr-0.1" />
@@ -126,7 +153,7 @@ const MenuOrderDetailDialog = ({
               </div>
               <Button
                 className="w-full h-12 text-lg font-semibold mt-6"
-                onClick={onClose}
+                onClick={handleAddToCartClick}
               >
                 เพิ่ม {quantity} รายการ -{" "}
                 {((menuDetail?.price_sale || 0) * quantity).toLocaleString()}{" "}

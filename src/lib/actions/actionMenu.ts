@@ -126,3 +126,23 @@ export const updateImageMenu = async (data: any) => {
     return { success: false, error: true, data: "" };
   }
 };
+
+export const createMenuToCart = async (data: any) => {
+  try {
+    await prisma.cart.create({
+      data: {
+        quantity: data.quantity,
+        price_sum: data.totalPrice,
+        price_pre_unit: data.priceUnit,
+        menuId: data.menuId,
+        tableId: data.tableId,
+        status: "ON_CART"
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};

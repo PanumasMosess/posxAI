@@ -75,6 +75,14 @@ export interface MenuPOSPageClientProps {
   relatedData: {
     categories: { id: number; categoryName: string }[];
     tabledatas: { id: number; tableName: string }[];
+    cartdatas: {
+      id: number;
+      menuId: number;
+      tableId: number;
+      quantity: number;
+      price_sum: any;
+      price_pre_unit: any;
+    }[];
   };
 }
 
@@ -114,8 +122,29 @@ export interface MenuOrderHeaderProps {
   setSearchTerm: Dispatch<SetStateAction<string>>;
   filterCategory: string;
   setFilterCategory: Dispatch<SetStateAction<string>>;
-  relatedData: any;
+  relatedData: {
+    categories: { id: number; categoryName: string }[];
+    tabledatas: { id: number; tableName: string }[];
+    cartdatas: {
+      id: number;
+      menuId: number;
+      tableId: number;
+      quantity: number;
+      price_sum: any;
+      price_pre_unit: any;
+    }[];
+  };
+  cartCount: number;
 }
+
+export type CartItem = {
+  menuId: number;
+  tableId: number;
+  menuName: string;
+  priceUnit: number;
+  quantity: number;
+  totalPrice: number;
+};
 
 export interface MenuOrderDetailProps {
   open: boolean;
@@ -126,6 +155,7 @@ export interface MenuOrderDetailProps {
     id: number;
     tableName: string;
   }[];
+  onAddToCart: (cartItem: CartItem) => void;
 }
 
 export interface OrderHandlerProps {

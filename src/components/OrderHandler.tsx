@@ -8,7 +8,7 @@ export default function OrderHandler({ setTableNumber }: OrderHandlerProps) {
  useEffect(() => {
     const tableStr = searchParams.get("table"); 
     if (tableStr) {
-      const tableNum = parseInt(tableStr, 10);
+      const tableNum = parseInt(tableStr);
       if (!isNaN(tableNum)) {
         setTableNumber(tableNum);
       }

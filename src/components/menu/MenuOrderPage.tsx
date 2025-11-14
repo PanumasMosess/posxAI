@@ -1,19 +1,23 @@
 "use client";
 
-import { MenuPOSPageClientProps } from "@/lib/type";
+import { CartItem, MenuPOSPageClientProps } from "@/lib/type";
 import MenuOrderHeader from "./MenuOrderHeader";
 import { MenuOrderCard } from "./MenuOrderCard";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import OrderHandler from "../OrderHandler";
+import { toast } from "react-toastify";
+import { createMenuToCart } from "@/lib/actions/actionMenu";
+import { useRouter } from "next/navigation";
 
 const MenuOrderPage = ({
   relatedData,
   initialItems,
 }: MenuPOSPageClientProps) => {
+  const router = useRouter();
   const itemsPerPage = 10;
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,6 +30,40 @@ const MenuOrderPage = ({
   const [isOpenDetail, setIsOpenDetail] = useState(false);
   const [itemnDetail, setItemnDetail] = useState();
   const [tableNumber, setTableNumber] = useState(0);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartCount, setCartCount] = useState(0);
+
+  const handelOpendetail = async (id_for_detail: any) => {
+    const itemToDetail = initialItems.find(
+      (item: any) => item.id === id_for_detail
+    );
+    setItemnDetail(itemToDetail);
+    setIsOpenDetail(true);
+  };
+
+  const handleAddToCart = async (cartItem: CartItem) => {
+    setCart((prevCart) => [...prevCart, cartItem]);
+    if (tableNumber != 0) {
+      cartItem.tableId = tableNumber;
+    }
+    const callBlack = await createMenuToCart(cartItem);
+
+    if (callBlack.success) {
+      router.refresh();
+    }
+  };
+
+  const loadMoreItems = () => {
+    const nextPage = page + 1;
+    const nextItemsIndex = nextPage * itemsPerPage;
+
+    setTimeout(() => {
+      const newItems = filteredItems.slice(0, nextItemsIndex);
+      setCurrentItems(newItems);
+      setPage(nextPage);
+      setHasMore(newItems.length < filteredItems.length);
+    }, 500);
+  };
 
   useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -51,29 +89,31 @@ const MenuOrderPage = ({
     setHasMore(filteredItems.length > itemsPerPage);
   }, [filteredItems]);
 
-  const handelOpendetail = async (id_for_detail: any) => {
-    const itemToDetail = initialItems.find(
-      (item: any) => item.id === id_for_detail
-    );
-    setItemnDetail(itemToDetail);
-    setIsOpenDetail(true);
-  };
-
-  const loadMoreItems = () => {
-    const nextPage = page + 1;
-    const nextItemsIndex = nextPage * itemsPerPage;
-
-    setTimeout(() => {
-      const newItems = filteredItems.slice(0, nextItemsIndex);
-      setCurrentItems(newItems);
-      setPage(nextPage);
-      setHasMore(newItems.length < filteredItems.length);
-    }, 500);
-  };
+  useEffect(() => {
+    if (tableNumber !== 0 && relatedData.cartdatas) {
+      const itemsForThisTable = relatedData.cartdatas.filter(
+        (item) => item.tableId === tableNumber
+      );
+      setCartCount(itemsForThisTable.length);
+    } else {
+      setCartCount(relatedData.cartdatas.length);
+    }
+  }, [tableNumber, relatedData.cartdatas]);
 
   return (
     <>
-      <OrderHandler setTableNumber={setTableNumber} />
+      <Suspense
+        fallback={
+          <div className="flex justify-center items-center min-h-screen">
+            <div className="flex flex-col items-center">
+              <Loader2 className="animate-spin h-10 w-10 text-primary mb-3" />
+              <p className="text-lg text-muted-foreground">กำลังโหลด...</p>
+            </div>
+          </div>
+        }
+      >
+        <OrderHandler setTableNumber={setTableNumber} />
+      </Suspense>
       <div className="min-h-screen text-black dark:text-white">
         <MenuOrderHeader
           searchTerm={searchTerm}
@@ -81,6 +121,7 @@ const MenuOrderPage = ({
           filterCategory={filterCategory}
           setFilterCategory={setFilterCategory}
           relatedData={relatedData}
+          cartCount={cartCount}
         />
         <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
           <h2 className="text-5xl text-center mb-10 tracking-wide">
@@ -128,6 +169,7 @@ const MenuOrderPage = ({
               menuDetail={itemnDetail}
               tableNumber={tableNumber}
               dataTable={relatedData.tabledatas}
+              onAddToCart={handleAddToCart}
             />
           )}
         </AnimatePresence>
