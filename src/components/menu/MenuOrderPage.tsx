@@ -9,7 +9,6 @@ import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import OrderHandler from "../OrderHandler";
-import { toast } from "react-toastify";
 import { createMenuToCart } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
 
