@@ -26,7 +26,20 @@ const page = async () => {
     },
   });
 
-  const relatedData = { categories: categoriesData, tabledatas: tableData };
+  const cartData = await prisma.cart.findMany({
+    where: {
+      status: "ON_CART",
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+  const relatedData = {
+    categories: categoriesData,
+    tabledatas: tableData,
+    cartdatas: cartData,
+  };
   return (
     <MenuOrderPage
       relatedData={relatedData}

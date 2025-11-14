@@ -80,8 +80,8 @@ export interface MenuPOSPageClientProps {
       menuId: number;
       tableId: number;
       quantity: number;
-      price_sum: any;
-      price_pre_unit: any;
+      price_sum: number;
+      price_pre_unit: number;
     }[];
   };
 }

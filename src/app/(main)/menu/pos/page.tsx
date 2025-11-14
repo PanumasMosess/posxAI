@@ -28,10 +28,22 @@ const page = async () => {
     },
   });
 
+  
+  const cartData = await prisma.cart.findMany({
+    where: {
+      status: "ON_CART",
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+
   const relatedData = {
     categories: categoriesData,
     unitprices: unitpriceData,
     tabledatas: tableData,
+    cartdatas: cartData,
   };
   return (
     <div>
