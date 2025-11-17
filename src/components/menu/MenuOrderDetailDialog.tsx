@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
-import { CartItem, MenuOrderDetailProps } from "@/lib/type";
+import { CartDetailItem, CartItem, MenuOrderDetailProps } from "@/lib/type";
 import Image from "next/image";
 import { useState } from "react";
 import { Loader2, Minus, Plus, X, Table } from "lucide-react";
@@ -39,12 +39,12 @@ const MenuOrderDetailDialog = ({
     } else {
       if (!menuDetail) return;
       const cartItem: CartItem = {
+        id:menuDetail.id,
         menuId: menuDetail.id,
         tableId: tableNumberSelect,
-        menuName: menuDetail.menuName,
-        priceUnit: menuDetail.price_sale,
+        price_pre_unit: menuDetail.price_sale,
         quantity: quantity,
-        totalPrice: menuDetail.price_sale * quantity,
+        price_sum: menuDetail.price_sale * quantity,
       };
       onAddToCart(cartItem);
       onClose();
