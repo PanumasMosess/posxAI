@@ -9,7 +9,11 @@ import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import OrderHandler from "../OrderHandler";
-import { createMenuToCart } from "@/lib/actions/actionMenu";
+import {
+  createMenuToCart,
+  deleteMenuInCart,
+  updateMenuInCart,
+} from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
 
 const MenuOrderPage = ({
@@ -29,7 +33,7 @@ const MenuOrderPage = ({
   const [isOpenDetail, setIsOpenDetail] = useState(false);
   const [itemnDetail, setItemnDetail] = useState();
   const [tableNumber, setTableNumber] = useState(0);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(relatedData.cartdatas);
   const [cartCount, setCartCount] = useState(0);
 
   const handelOpendetail = async (id_for_detail: any) => {
@@ -62,6 +66,50 @@ const MenuOrderPage = ({
       setPage(nextPage);
       setHasMore(newItems.length < filteredItems.length);
     }, 500);
+  };
+
+  const handleUpdateCartQuantity = async (
+    cartId: number,
+    menuId: number,
+    newQuantity: number,
+    priceSum: number
+  ) => {
+    const cartItem = {
+      id: cartId,
+      menuId: menuId,
+      quantity: newQuantity,
+      price_sum: priceSum,
+    };
+
+    const callBlack = await updateMenuInCart(cartItem);
+    if (callBlack.success) {
+      setCart((prevCart) =>
+        prevCart.map((item) =>
+          item.menuId === menuId
+            ? {
+                ...item,
+                quantity: newQuantity,
+                price_sum: priceSum,
+              }
+            : item
+        )
+      );
+    }
+  };
+
+  const handleRemoveFromCart = async (cartId: number, menuId: number) => {
+    const cartItem = {
+      id: cartId,
+      menuId: menuId,
+    };
+    const callBlack = await deleteMenuInCart(cartItem);
+    if (callBlack.success) {
+      setCart((prevCart) => {
+        const newCart = prevCart.filter((item) => item.menuId !== menuId);
+        setCartCount(newCart.length);
+        return newCart;
+      });
+    }
   };
 
   useEffect(() => {
@@ -99,6 +147,12 @@ const MenuOrderPage = ({
     }
   }, [tableNumber, relatedData.cartdatas]);
 
+  useEffect(() => {
+    if (relatedData.cartdatas) {
+      setCart(relatedData.cartdatas);
+    }
+  }, [relatedData.cartdatas]);
+
   return (
     <>
       <Suspense
@@ -115,6 +169,7 @@ const MenuOrderPage = ({
       </Suspense>
       <div className="min-h-screen text-black dark:text-white">
         <MenuOrderHeader
+          carts={cart}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           filterCategory={filterCategory}
@@ -122,6 +177,8 @@ const MenuOrderPage = ({
           relatedData={relatedData}
           cartCount={cartCount}
           menuItems={initialItems}
+          onRemoveItem={handleRemoveFromCart}
+          onUpdateQuantity={handleUpdateCartQuantity}
         />
         <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
           <h2 className="text-5xl text-center mb-10 tracking-wide">
