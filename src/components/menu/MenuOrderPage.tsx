@@ -46,6 +46,9 @@ const MenuOrderPage = ({
 
   const handleAddToCart = async (cartItem: CartItem) => {
     setCart((prevCart) => [...prevCart, cartItem]);
+    
+    console.log(cartItem);
+    
     if (tableNumber != 0) {
       cartItem.tableId = tableNumber;
     }
