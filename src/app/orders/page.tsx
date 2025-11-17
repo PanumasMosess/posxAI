@@ -1,7 +1,7 @@
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
-import { Loader2 } from "lucide-react";
-import { Suspense } from "react";
+
+export const dynamic = 'force-dynamic';
 
 const page = async () => {
   const itemsData = await prisma.menu.findMany({
