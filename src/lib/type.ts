@@ -155,6 +155,15 @@ export type CartItem = {
   price_pre_unit: any;
 };
 
+export type CartDetailItem = {
+  menuId: number;
+  tableId: number;
+  menuName: string;
+  priceUnit: string;
+  quantity: number;
+  totalPrice: number;
+};
+
 export interface MenuOrderDetailProps {
   open: boolean;
   stateDialog: Dispatch<SetStateAction<boolean>>;

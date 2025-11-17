@@ -130,8 +130,8 @@ export const createMenuToCart = async (data: any) => {
     await prisma.cart.create({
       data: {
         quantity: data.quantity,
-        price_sum: data.totalPrice,
-        price_pre_unit: data.priceUnit,
+        price_sum: data.price_sum,
+        price_pre_unit: data.price_pre_unit,
         menuId: data.menuId,
         tableId: data.tableId,
         status: "ON_CART",
