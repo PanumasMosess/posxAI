@@ -15,6 +15,7 @@ import {
   updateMenuInCart,
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
+import { log } from "node:console";
 
 const MenuOrderPage = ({
   relatedData,
@@ -33,7 +34,7 @@ const MenuOrderPage = ({
   const [isOpenDetail, setIsOpenDetail] = useState(false);
   const [itemnDetail, setItemnDetail] = useState();
   const [tableNumber, setTableNumber] = useState(0);
-  const [cart, setCart] = useState<CartItem[]>(relatedData.cartdatas);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [cartCount, setCartCount] = useState(0);
 
   const handelOpendetail = async (id_for_detail: any) => {
@@ -45,15 +46,11 @@ const MenuOrderPage = ({
   };
 
   const handleAddToCart = async (cartItem: CartItem) => {
-    setCart((prevCart) => [...prevCart, cartItem]);
-    
-    console.log(cartItem);
-    
+    // setCart((prevCart) => [...prevCart, cartItem]);
     if (tableNumber != 0) {
       cartItem.tableId = tableNumber;
     }
     const callBlack = await createMenuToCart(cartItem);
-
     if (callBlack.success) {
       router.refresh();
     }
@@ -86,17 +83,18 @@ const MenuOrderPage = ({
 
     const callBlack = await updateMenuInCart(cartItem);
     if (callBlack.success) {
-      setCart((prevCart) =>
-        prevCart.map((item) =>
-          item.menuId === menuId
-            ? {
-                ...item,
-                quantity: newQuantity,
-                price_sum: priceSum,
-              }
-            : item
-        )
-      );
+      // setCart((prevCart) =>
+      //   prevCart.map((item) =>
+      //     item.menuId === menuId
+      //       ? {
+      //           ...item,
+      //           quantity: newQuantity,
+      //           price_sum: priceSum,
+      //         }
+      //       : item
+      //   )
+      // );
+       router.refresh();
     }
   };
 
@@ -107,11 +105,12 @@ const MenuOrderPage = ({
     };
     const callBlack = await deleteMenuInCart(cartItem);
     if (callBlack.success) {
-      setCart((prevCart) => {
-        const newCart = prevCart.filter((item) => item.menuId !== menuId);
-        setCartCount(newCart.length);
-        return newCart;
-      });
+      // setCart((prevCart) => {
+      // const newCart = prevCart.filter((item) => item.menuId !== menuId);
+      // setCartCount(newCart.length);
+      // return newCart;
+      // });
+      router.refresh();
     }
   };
 
@@ -150,11 +149,11 @@ const MenuOrderPage = ({
     }
   }, [tableNumber, relatedData.cartdatas]);
 
-  useEffect(() => {
-    if (relatedData.cartdatas) {
-      setCart(relatedData.cartdatas);
-    }
-  }, [relatedData.cartdatas]);
+  // useEffect(() => {
+  //   if (relatedData.cartdatas) {
+  //     setCart(relatedData.cartdatas);
+  //   }
+  // }, [relatedData.cartdatas]);
 
   return (
     <>
@@ -172,7 +171,7 @@ const MenuOrderPage = ({
       </Suspense>
       <div className="min-h-screen text-black dark:text-white">
         <MenuOrderHeader
-          carts={cart}
+          carts={relatedData.cartdatas}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           filterCategory={filterCategory}
