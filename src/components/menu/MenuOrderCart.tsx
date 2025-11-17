@@ -57,7 +57,7 @@ const MenuOrderCart = ({
         </DialogHeader>
         {cartCount === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-muted-foreground">ตะกร้าว่างเปล่า</p>
+            <p className="text-muted-foreground">ตะกร้าไม่มีสินค้า</p>
           </div>
         ) : (
           <ScrollArea className="max-h-[60vh]">
