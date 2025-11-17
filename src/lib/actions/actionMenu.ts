@@ -75,8 +75,6 @@ export const updateMenu = async (
     console.log(err);
     return { success: false, error: true, data: "" };
   }
-
-  return { success: true, error: false, data: "" };
 };
 
 export const deleteMenu = async (data: any) => {
@@ -136,10 +134,45 @@ export const createMenuToCart = async (data: any) => {
         price_pre_unit: data.priceUnit,
         menuId: data.menuId,
         tableId: data.tableId,
-        status: "ON_CART"
+        status: "ON_CART",
       },
     });
 
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateMenuInCart = async (data: any) => {
+  try {
+    const updatedCart = await prisma.cart.update({
+      where: {
+        id: data.id,
+        menuId: data.menuId,
+      },
+      data: {
+        quantity: data.quantity,
+        price_sum: data.price_sum,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedCart };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
+};
+
+export const deleteMenuInCart = async (data: any) => {
+  try {
+    await prisma.cart.delete({
+      where: {
+        id: data.id,
+      },
+    });
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

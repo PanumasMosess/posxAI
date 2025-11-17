@@ -118,6 +118,7 @@ export interface ProductCardProps {
 }
 
 export interface MenuOrderHeaderProps {
+  carts: CartItem[];
   searchTerm: string;
   setSearchTerm: Dispatch<SetStateAction<string>>;
   filterCategory: string;
@@ -136,15 +137,22 @@ export interface MenuOrderHeaderProps {
   };
   cartCount: number;
   menuItems: { id: number; menuName: string; img: string }[];
+  onUpdateQuantity: (
+    cartId: number,
+    menuId: number,
+    newQuantity: number,
+    priceSum: number
+  ) => void;
+  onRemoveItem: (cartId: number, menuId: number) => void;
 }
 
 export type CartItem = {
+  id: number;
   menuId: number;
   tableId: number;
-  menuName: string;
-  priceUnit: number;
   quantity: number;
-  totalPrice: number;
+  price_sum: any;
+  price_pre_unit: any;
 };
 
 export interface MenuOrderDetailProps {
@@ -161,4 +169,17 @@ export interface MenuOrderDetailProps {
 
 export interface OrderHandlerProps {
   setTableNumber: (tableId: number) => void;
+}
+
+export interface OrderCartProps {
+  cartCount: number;
+  menuItems: { id: number; menuName: string; img: string }[];
+  carts: CartItem[];
+  onUpdateQuantity: (
+    cartId: number,
+    menuId: number,
+    newQuantity: number,
+    priceSum: number
+  ) => void;
+  onRemoveItem: (cartId: number, menuId: number) => void;
 }
