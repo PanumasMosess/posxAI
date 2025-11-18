@@ -15,7 +15,6 @@ import {
   updateMenuInCart,
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
-import { log } from "node:console";
 
 const MenuOrderPage = ({
   relatedData,
@@ -34,7 +33,6 @@ const MenuOrderPage = ({
   const [isOpenDetail, setIsOpenDetail] = useState(false);
   const [itemnDetail, setItemnDetail] = useState();
   const [tableNumber, setTableNumber] = useState(0);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [cartCount, setCartCount] = useState(0);
 
   const handelOpendetail = async (id_for_detail: any) => {
