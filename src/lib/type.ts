@@ -136,7 +136,14 @@ export interface MenuOrderHeaderProps {
     }[];
   };
   cartCount: number;
-  menuItems: { id: number; menuName: string; img: string }[];
+  menuItems: {
+    id: number;
+    menuName: string;
+    img: string;
+    unitPrice: {
+      label: string;
+    };
+  }[];
   onUpdateQuantity: (
     cartId: number,
     menuId: number,
@@ -182,7 +189,14 @@ export interface OrderHandlerProps {
 
 export interface OrderCartProps {
   cartCount: number;
-  menuItems: { id: number; menuName: string; img: string }[];
+  menuItems: {
+    id: number;
+    menuName: string;
+    img: string;
+    unitPrice: {
+      label: string;
+    };
+  }[];
   carts: CartItem[];
   onUpdateQuantity: (
     cartId: number,
