@@ -120,13 +120,22 @@ const MenuOrderPage = ({
       const result = await createOrder(relatedData.cartdatas);
       if (result.success) {
         await updateCartStatus(relatedData.cartdatas);
-        toast.success("สำเร็จ!");
+        toast.success("สำเร็จ!", {
+          position: "bottom-center",
+          className: "responsive-toast",
+        });
         router.refresh();
       } else {
-        toast.error("ผิดพลาด!");
+        toast.error("ผิดพลาด!", {
+          position: "bottom-center",
+          className: "responsive-toast",
+        });
       }
     } catch (error) {
-      toast.error("ติดต่อพนักงาน!");
+      toast.error("ติดต่อพนักงาน!", {
+        position: "bottom-center",
+        className: "responsive-toast",
+      });
     }
   };
 

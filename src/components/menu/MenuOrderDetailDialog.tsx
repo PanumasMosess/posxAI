@@ -35,11 +35,14 @@ const MenuOrderDetailDialog = ({
 
   const handleAddToCartClick = () => {
     if (tableNumber == 0 && tableNumberSelect == 0) {
-      toast.error(`กรุณาเลือกโต๊ะ!`);
+      toast.error(`กรุณาเลือกโต๊ะ!`, {
+        position: "bottom-center",
+        className: "responsive-toast",      
+      });
     } else {
       if (!menuDetail) return;
       const cartItem: CartItem = {
-        id:menuDetail.id,
+        id: menuDetail.id,
         menuId: menuDetail.id,
         tableId: tableNumberSelect,
         price_pre_unit: menuDetail.price_sale,

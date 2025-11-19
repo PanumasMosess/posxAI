@@ -63,6 +63,7 @@ export default async function RootLayout({
             draggable
             pauseOnHover
             theme="light"
+            toastClassName="default-toast-body"
           />
         </SessionProvider>
       </body>
