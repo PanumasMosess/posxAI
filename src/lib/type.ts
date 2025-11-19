@@ -151,6 +151,7 @@ export interface MenuOrderHeaderProps {
     priceSum: number
   ) => void;
   onRemoveItem: (cartId: number, menuId: number) => void;
+  onConfirmOrder: () => void;
 }
 
 export type CartItem = {
@@ -205,4 +206,14 @@ export interface OrderCartProps {
     priceSum: number
   ) => void;
   onRemoveItem: (cartId: number, menuId: number) => void;
+  onConfirmOrder: () => void;
+}
+
+export interface CartItemPayload {
+  id: number;
+  menuId: number;
+  tableId: number;
+  quantity: number;
+  price_sum: number;
+  price_pre_unit: number;
 }

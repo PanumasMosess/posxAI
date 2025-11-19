@@ -34,6 +34,7 @@ const MenuOrderHeader = ({
   menuItems,
   onRemoveItem,
   onUpdateQuantity,
+  onConfirmOrder
 }: MenuOrderHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -69,6 +70,7 @@ const MenuOrderHeader = ({
             menuItems={menuItems}
             onRemoveItem={onRemoveItem}
             onUpdateQuantity={onUpdateQuantity}
+            onConfirmOrder={onConfirmOrder}
           />
         </div>
       </header>
