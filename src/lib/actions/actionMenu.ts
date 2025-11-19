@@ -2,6 +2,7 @@
 
 import prisma from "../prisma";
 import { MenuSchema } from "../formValidationSchemas";
+import { CartItemPayload } from "../type";
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -177,5 +178,56 @@ export const deleteMenuInCart = async (data: any) => {
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
+  }
+};
+
+export const createOrder = async (items: CartItemPayload[]) => {
+  try {
+    const dataToCreate = items.map((item) => ({
+      quantity: item.quantity,
+      price_sum: item.price_sum,
+      price_pre_unit: item.price_pre_unit,
+      menuId: item.menuId,
+      tableId: item.tableId,
+      status: "ON_PROCESS",
+    }));
+
+    await prisma.order.createMany({
+      data: dataToCreate,
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateCartStatus = async (items: CartItemPayload[]) => {
+  try {
+    const cartIds = items.map((item) => item.id);
+    if (cartIds.length === 0) {
+      return { success: true, error: null, message: "No items to update." };
+    }
+
+    const result = await prisma.cart.updateMany({
+      where: {
+        id: {
+          in: cartIds,
+        },
+      },
+      data: {
+        status: "ON_PROCESS",
+      },
+    });
+
+    return {
+      success: true,
+      error: null,
+      count: result.count,
+    };
+  } catch (err) {
+    console.error("PRISMA ERROR updating cart status:", err);
+    return { success: false, error: "Failed to update cart status." };
   }
 };

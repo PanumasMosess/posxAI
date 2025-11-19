@@ -11,10 +11,13 @@ import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import OrderHandler from "../OrderHandler";
 import {
   createMenuToCart,
+  createOrder,
   deleteMenuInCart,
+  updateCartStatus,
   updateMenuInCart,
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 const MenuOrderPage = ({
   relatedData,
@@ -92,7 +95,7 @@ const MenuOrderPage = ({
       //       : item
       //   )
       // );
-       router.refresh();
+      router.refresh();
     }
   };
 
@@ -109,6 +112,21 @@ const MenuOrderPage = ({
       // return newCart;
       // });
       router.refresh();
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    try {
+      const result = await createOrder(relatedData.cartdatas);
+      if (result.success) {
+        await updateCartStatus(relatedData.cartdatas);
+        toast.success("สำเร็จ!");
+        router.refresh();
+      } else {
+        toast.error("ผิดพลาด!");
+      }
+    } catch (error) {
+      toast.error("ติดต่อพนักงาน!");
     }
   };
 
@@ -179,6 +197,7 @@ const MenuOrderPage = ({
           menuItems={initialItems}
           onRemoveItem={handleRemoveFromCart}
           onUpdateQuantity={handleUpdateCartQuantity}
+          onConfirmOrder={handleConfirmOrder}
         />
         <main className="px-1.5 md:px-8 pt-15 pb-10 relative z-10">
           <h2 className="text-5xl text-center mb-10 tracking-wide">

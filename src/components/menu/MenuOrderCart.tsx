@@ -11,8 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar"; 
-import { ScrollArea } from "../ui/scroll-area"; 
+import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { ScrollArea } from "../ui/scroll-area";
 import { useState } from "react";
 import { OrderCartProps } from "@/lib/type";
 import { Badge } from "../ui/badge";
@@ -23,6 +23,7 @@ const MenuOrderCart = ({
   menuItems,
   onUpdateQuantity,
   onRemoveItem,
+  onConfirmOrder,
 }: OrderCartProps) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -34,6 +35,11 @@ const MenuOrderCart = ({
     (sum, item) => sum + (item.price_sum || 0),
     0
   );
+
+  const handleConfirmOrder = () => {
+    onConfirmOrder();
+    setIsCartOpen(false);
+  };
 
   return (
     <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
@@ -77,9 +83,7 @@ const MenuOrderCart = ({
           <ScrollArea className="max-h-[50vh] -mx-6">
             <div className="px-6 py-4 space-y-5">
               {carts.map((cartItem) => {
-                const menuItem = getMenuDetails(cartItem.menuId);    
-                console.log(menuItem);
-                           
+                const menuItem = getMenuDetails(cartItem.menuId);
                 return (
                   <div key={cartItem.id} className="flex items-center gap-4">
                     <Avatar className="h-16 w-16 rounded-md">
@@ -140,7 +144,7 @@ const MenuOrderCart = ({
                       </div>
                     </div>
                     <div className="font-semibold text-lg ml-auto">
-                      {cartItem.price_sum?.toLocaleString()}  
+                      {cartItem.price_sum?.toLocaleString()}
                     </div>
                   </div>
                 );
@@ -153,9 +157,15 @@ const MenuOrderCart = ({
             <div className="w-full space-y-4">
               <div className="flex justify-between text-lg font-semibold">
                 <span>ยอดรวม</span>
-                <span>{totalPrice.toLocaleString()} {menuItems[0]?.unitPrice.label}</span>
+                <span>
+                  {totalPrice.toLocaleString()} {menuItems[0]?.unitPrice.label}
+                </span>
               </div>
-              <Button type="submit" className="w-full h-12 text-lg">
+              <Button
+                type="submit"
+                className="w-full h-12 text-lg"
+                onClick={handleConfirmOrder}
+              >
                 ยืนยันรายการอาหาร
               </Button>
             </div>
