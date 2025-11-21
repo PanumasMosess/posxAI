@@ -189,7 +189,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       price_pre_unit: item.price_pre_unit,
       menuId: item.menuId,
       tableId: item.tableId,
-      status: "ON_PREPARING",
+      status: "NEW",
     }));
 
     await prisma.order.createMany({
@@ -217,7 +217,7 @@ export const updateCartStatus = async (items: CartItemPayload[]) => {
         },
       },
       data: {
-        status: "ON_PREPARING",
+        status: "NEW",
       },
     });
 
