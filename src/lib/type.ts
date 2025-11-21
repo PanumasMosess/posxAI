@@ -117,6 +117,11 @@ export interface ProductCardProps {
   handelOpendetail: (item: any) => void;
 }
 
+export interface ProductPageProps {
+  product: Product[];
+  handelOpendetail: (item: any) => void;
+}
+
 export interface MenuOrderHeaderProps {
   carts: CartItem[];
   searchTerm: string;
@@ -216,4 +221,31 @@ export interface CartItemPayload {
   quantity: number;
   price_sum: number;
   price_pre_unit: number;
+}
+
+export type KitchecOrder = {
+  id: number;
+  quantity: number;
+  price_sum: number;
+  price_pre_unit: number;
+  createdAt: Date;
+  status: string;
+  menu: {
+    menuName: string;
+    img: string | null;
+    unitPrice: {
+      label: string;
+    };
+  };
+  table: {
+    tableName: string;
+  };
+};
+export interface KitchecOrderList {
+  initialItems: KitchecOrder[];
+}
+
+export interface KitchecTicketProps {
+  initialItems: KitchecOrder;
+  onStatusChange: (idOrder: number, status: string) => void;
 }

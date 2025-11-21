@@ -48,6 +48,7 @@
     "react-dom": "19.1.0",
     "react-hook-form": "^7.62.0",
     "react-infinite-scroll-component": "^6.1.0",
+    "react-pageflip": "^2.0.3",
     "react-scroll-parallax": "^3.5.0",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.4",
