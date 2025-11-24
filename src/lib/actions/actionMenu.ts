@@ -203,7 +203,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
   }
 };
 
-export const updateCartStatus = async (items: CartItemPayload[]) => {
+export const updateCartStatusNEW = async (items: CartItemPayload[]) => {
   try {
     const cartIds = items.map((item) => item.id);
     if (cartIds.length === 0) {
@@ -217,7 +217,7 @@ export const updateCartStatus = async (items: CartItemPayload[]) => {
         },
       },
       data: {
-        status: "NEW",
+        status: "CONFIRM_CART",
       },
     });
 
@@ -229,5 +229,23 @@ export const updateCartStatus = async (items: CartItemPayload[]) => {
   } catch (err) {
     console.error("PRISMA ERROR updating cart status:", err);
     return { success: false, error: "Failed to update cart status." };
+  }
+};
+
+export const updateStatusOrder = async (idOrder: number, status: string) => {
+  try {
+    const updatedOrderStatus = await prisma.order.update({
+      where: {
+        id: idOrder,
+      },
+      data: {
+        status: status,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: "" };
+  } catch (err) {
+    return { success: false, error: true, data: err };
   }
 };
