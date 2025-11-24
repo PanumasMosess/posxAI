@@ -2,10 +2,18 @@
 
 import { KitchecOrderList } from "@/lib/type";
 import KitchenTicket from "./KitchenTicket";
+import { useRouter } from "next/navigation";
+import { updateStatusOrder } from "@/lib/actions/actionMenu";
 
 const KitchecPage = ({ initialItems }: KitchecOrderList) => {
-
-  const onStatusChange = (idOrder: number, status: string) => {};
+  const router = useRouter();
+  const onStatusChange = async (idOrder: number, status: string) => {
+    const result = await updateStatusOrder(idOrder, status);
+   
+    if (result.success) {
+      router.refresh();
+    }
+  };
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">

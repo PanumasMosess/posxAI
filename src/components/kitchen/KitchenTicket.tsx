@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Clock, Check, UtensilsCrossed } from "lucide-react";
+import {
+  Clock,
+  Check,
+  UtensilsCrossed,
+  Flame,
+  PackageOpen,
+  X,
+} from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -11,6 +18,17 @@ import {
 import statusColorList from "@/lib/data_temp";
 import { KitchecTicketProps } from "@/lib/type";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -22,9 +40,10 @@ const KitchenTicket = ({
   initialItems: order,
   onStatusChange,
 }: KitchecTicketProps) => {
-  const nextStatus = order.status === "NEW" ? "PREPARING" : "READY";
-  const buttonLabel = order.status === "NEW" ? "เริ่มทำ" : "พร้อมเสิร์ฟ";
-
+  const { nextStatus, label: buttonLabel } = statusColorList.getNextStepConfig(
+    order.status
+  );
+  const statusBadge = statusColorList.getStatusBadgeConfig(order.status);
   return (
     <Card
       key={order.id}
@@ -48,11 +67,58 @@ const KitchenTicket = ({
             {order.table.tableName}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50">
-          <Clock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
-          <span className="text-xs font-bold font-mono text-zinc-600 dark:text-zinc-300">
-            10:00
+        <div className="flex items-center gap-2">
+          <span
+            className={`
+        px-2 py-1 rounded-md text-[10px] font-bold border 
+        ${statusBadge.color}
+      `}
+          >
+            {statusBadge.label}
           </span>
+
+          <AlertDialog>
+            {order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
+              <AlertDialogTrigger asChild>
+                <button
+                  className="
+                p-1.5 rounded-full 
+                text-zinc-400 hover:text-red-500 
+                hover:bg-red-50 dark:hover:bg-red-900/20
+                transition-all duration-200
+                border border-transparent hover:border-red-200 dark:hover:border-red-800
+              "
+                  title="ยกเลิกรายการ"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </AlertDialogTrigger>
+            )}
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  การกระทำนี้จะเปลี่ยนสถานะเป็น "ยกเลิกรายการ"
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onStatusChange(order.id, "CANCELLED")}
+                >
+                  ยืนยันการลบ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50">
+            <Clock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+            <span className="text-xs font-bold font-mono text-zinc-600 dark:text-zinc-300">
+              10:00
+            </span>
+          </div> */}
         </div>
       </CardHeader>
 
@@ -110,41 +176,53 @@ const KitchenTicket = ({
       </CardContent>
 
       <CardFooter className="p-4 pt-2">
-        {order.status !== "READY" ? (
-          <Button
-            // ลบ bg-black หรือ bg-zinc-xxx ออกให้หมด แล้วใช้จาก function แทน
-            className={`
+        {nextStatus ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                className={`
         w-full h-10 rounded-lg text-sm font-semibold
         transition-all duration-200
         active:scale-[0.98]
         ${statusColorList.getButtonActionColor(order.status)}
       `}
-            onClick={() => onStatusChange(order.id, nextStatus)}
-          >
-            <div className="flex items-center justify-center gap-2">
-              {order.status === "NEW" ? (
-                <UtensilsCrossed className="h-4 w-4" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-              {buttonLabel}
-            </div>
-          </Button>
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {order.status === "NEW" && (
+                    <UtensilsCrossed className="h-4 w-4" />
+                  )}
+                  {order.status === "PREPARING" && (
+                    <PackageOpen className="h-4 w-4" />
+                  )}
+                  {order.status === "COOKING" && <Flame className="h-4 w-4" />}
+                  {order.status === "READY" && <Check className="h-4 w-4" />}
+
+                  {buttonLabel}
+                </div>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะเป็น "
+                  {buttonLabel}" อย่างถาวร
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onStatusChange(order.id, nextStatus)}
+                >
+                  ยืนยันการลบ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         ) : (
-          <Button
-            className={`
-        w-full h-10 rounded-lg text-sm font-bold
-        bg-emerald-500 text-white hover:bg-emerald-600
-        shadow-md shadow-emerald-200
-        transition-all duration-200
-        active:scale-[0.98]
-      `}
-            onClick={() => onStatusChange(order.id, "COMPLETED")}
-          >
-            <div className="flex items-center justify-center gap-2">
-              เสร็จสมบูรณ์
-            </div>
-          </Button>
+          <div className="w-full h-10 flex items-center justify-center text-sm text-zinc-400 font-medium bg-zinc-100 rounded-lg dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed">
+            {order.status === "CANCELLED" ? "ยกเลิกแล้ว" : "เสร็จสิ้นกระบวนการ"}
+          </div>
         )}
       </CardFooter>
     </Card>

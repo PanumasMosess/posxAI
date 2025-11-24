@@ -13,7 +13,7 @@ import {
   createMenuToCart,
   createOrder,
   deleteMenuInCart,
-  updateCartStatus,
+  updateCartStatusNEW,
   updateMenuInCart,
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
@@ -118,7 +118,7 @@ const MenuOrderPage = ({
     try {
       const result = await createOrder(relatedData.cartdatas);
       if (result.success) {
-        await updateCartStatus(relatedData.cartdatas);
+        await updateCartStatusNEW(relatedData.cartdatas);
         toast.success("สำเร็จ!", {
           position: "bottom-center",
           className: "responsive-toast",
