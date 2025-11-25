@@ -1,4 +1,4 @@
-import { Computer, Home, Warehouse } from "lucide-react";
+import { Computer, Home, ScrollText, Warehouse } from "lucide-react";
 
 const menuList = [
   {
@@ -38,6 +38,21 @@ const menuList = [
         title: "สูตรและตั้งค่าสินค้าในคลัง",
         url: "/stocks/stock_fomular",
       },
+    ],
+  },
+   {
+    title: "ประวัติ",
+    url: "#",
+    icon: ScrollText,
+    subItems: [
+      {
+        title: "ประวัติออเดอร์",
+        url: "/history/order",
+      },
+      // {
+      //   title: "สูตรและตั้งค่าสินค้าในคลัง",
+      //   url: "/stocks/stock_fomular",
+      // },
     ],
   },
 ];
