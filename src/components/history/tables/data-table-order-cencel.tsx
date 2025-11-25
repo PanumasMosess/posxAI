@@ -20,13 +20,14 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { Ban } from "lucide-react";
 import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
-export function Data_table_categories<TData, TValue>({
+export function Data_table_order_cancel<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
@@ -58,13 +59,30 @@ export function Data_table_categories<TData, TValue>({
 
   return (
     <>
-      <div className="flex items-center py-4 justify-start">
-        <Input
-          placeholder="ค้นหาหมวดหมู่..."
-          value={globalFilter ?? ""}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="w-full sm:w-[200px]"
-        />
+      <div className="flex flex-col sm:flex-row items-center justify-between py-6 gap-4">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50">
+            <Ban className="h-5 w-5 text-red-600 dark:text-red-400" />
+          </div>
+
+          <div className="flex flex-col">
+            <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">
+              รายการที่ถูกยกเลิก
+            </h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              ประวัติออเดอร์ที่ถูกยกเลิกทั้งหมด
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full sm:w-auto">
+          <Input
+            placeholder="ค้นหา..."
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(event.target.value)}
+            className="w-full sm:w-[250px]"
+          />
+        </div>
       </div>
       <div className="rounded-md border">
         <Table>
