@@ -273,4 +273,19 @@ export interface HistoryOrderProps {
   initialItems: HistoryOrder[];
 }
 
+export type SettingTable = {
+  id: number;
+  status: string;
+  tableName: string;
+  creator: {
+    name: string;
+    surname: string;
+  };
+  tableBookingBy: string | null;
+  cashType: string | null;
+  updatedAt: Date;
+};
 
+export interface SettingTableProps {
+  initialItems: SettingTable[];
+}

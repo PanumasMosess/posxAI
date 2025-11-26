@@ -131,8 +131,8 @@ model table {
   id             Int      @id @default(autoincrement())
   status         String
   tableName      String
-  tableBookingBy String
-  cashType       String
+  tableBookingBy String?
+  cashType       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
