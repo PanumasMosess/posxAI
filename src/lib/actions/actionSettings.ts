@@ -1,6 +1,32 @@
 "use server";
 
+import { TableSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
+type CurrentState = { success: boolean; error: boolean };
+
+export const createTable = async (
+  currentState: CurrentState,
+  data: TableSchema
+) => {
+  try {
+    await prisma.table.create({
+      data: {
+        tableName: data.tableName,
+        status: data.status,
+        creator: {
+          connect: {
+            id: data.closeById,
+          },
+        },
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
 
 export const updateStatusTable = async (id: number, status: string) => {
   try {

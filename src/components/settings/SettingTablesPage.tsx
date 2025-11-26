@@ -7,8 +7,11 @@ import {
   updateNameTable,
   updateStatusTable,
 } from "@/lib/actions/actionSettings";
+import { useSession } from "next-auth/react";
 
 const SettingTablesPage = ({ initialItems }: SettingTableProps) => {
+  const session = useSession();
+  const id_user = session.data?.user.id || "1";
   const router = useRouter();
   const handleStatusChange = async (id: number, status: string) => {
     const result = await updateStatusTable(id, status);
@@ -42,7 +45,11 @@ const SettingTablesPage = ({ initialItems }: SettingTableProps) => {
       >
         <div className="overflow-x-auto w-full">
           <div className="min-w-[600px] md:min-w-full p-4">
-            <Data_table_setting_tables columns={columns} data={initialItems} />
+            <Data_table_setting_tables
+              columns={columns}
+              data={initialItems}
+              userId={parseInt(id_user)}
+            />
           </div>
         </div>
       </div>

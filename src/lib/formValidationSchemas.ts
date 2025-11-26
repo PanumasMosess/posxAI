@@ -80,3 +80,13 @@ export const formularStockSchema_ = z.object({
   stockId: z.coerce.number().min(1, "ต้องมี ID สินค้าในคลัง"),
 });
 export type FormularStockSchema_ = z.infer<typeof formularStockSchema_>;
+
+export const TableSchema_ = z.object({
+  id: z.number().optional(),
+  tableName: z.string().min(1, { message: "กรุณากรอกชื่อสินค้า" }).max(50),
+  tableBookingBy: z.string().optional(),
+  cashType: z.string().optional(),
+  status: z.string().min(1, { message: "STATUS" }).max(50),
+  closeById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
+});
+export type TableSchema = z.infer<typeof TableSchema_>;
