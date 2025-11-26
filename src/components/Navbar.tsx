@@ -54,10 +54,10 @@ const Navbar =  () => {
             <DropdownMenuItem>
               <User className="h-[1.2rem] w-[1.2rem] mr-2" /> ผู้ใช้งาน
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            {/* <DropdownMenuItem>
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
-              ตั้งค่า
-            </DropdownMenuItem>
+              ตั้งค่าโปรไฟล์
+            </DropdownMenuItem> */}
             <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
               <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
               ออกจากระบบ

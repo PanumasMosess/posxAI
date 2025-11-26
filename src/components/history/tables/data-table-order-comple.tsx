@@ -52,7 +52,7 @@ export function Data_table_order_comple<TData, TValue>({
     },
     initialState: {
       pagination: {
-        pageSize: 5,
+        pageSize: 10,
       },
     },
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, LogOut, ChevronDown } from "lucide-react";
+import { Settings, LogOut, ChevronDown, User, Printer, Store } from "lucide-react"; // เพิ่ม Icon ที่ต้องการใช้
 import {
   Sidebar,
   SidebarContent,
@@ -30,9 +30,10 @@ import {
 import menuList from "@/lib/data_temp";
 
 const items = menuList.menuList;
+const settingList = menuList.settingsMenu;
 
 const AppSidebar = () => {
-  const { state, toggleSidebar } = useSidebar();
+  const { state } = useSidebar(); 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="py-4">
@@ -164,18 +165,67 @@ const AppSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem key={"Settings"}>
-            <SidebarMenuButton asChild>
-              <Link href="#" className="flex items-center w-full">
-                <Settings className="h-[1.2rem] w-[1.2rem] mr-1" />
-                <span>{"ตั้งค่า"}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {state === "collapsed" ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="w-full justify-center py-3 text-base">
+                  <settingList.icon className="h-[1.2rem] w-[1.2rem]" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="right"
+                align="start"
+                className="w-48"
+              >
+                {settingList.subItems.map((subItem) => (
+                  <SidebarMenuButton
+                    key={subItem.title}
+                    variant="ghost"
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link href={subItem.url}>{subItem.title}</Link>
+                  </SidebarMenuButton>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Collapsible className="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton className="w-full justify-between py-3 text-base">
+                    <div className="flex items-center">
+                      <settingList.icon className="h-[1.2rem] w-[1.2rem] mr-1" />
+                      <span>{settingList.title}</span>
+                    </div>
+                    <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="py-2 pl-6 space-y-1">
+                    {settingList.subItems.map((subItem) => (
+                      <SidebarMenuButton
+                        key={subItem.title}
+                        variant="ghost"
+                        className="w-full justify-start h-8 text-sm" 
+                        asChild
+                      >
+                        <Link href={subItem.url}>{subItem.title}</Link>
+                      </SidebarMenuButton>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+          )}
+
           <SidebarMenuItem key={"logout"}>
-            <SidebarMenuButton onClick={handleSignOut}>
-              <LogOut className="h-[1.2rem] w-[1.2rem] mr-1" />
-              <span>{"ออกจากระบบ"}</span>
+            <SidebarMenuButton 
+                onClick={handleSignOut} 
+                className={state === "collapsed" ? "justify-center" : ""}
+            >
+              <LogOut className="h-[1.2rem] w-[1.2rem]" />
+              {state !== "collapsed" && <span>{"ออกจากระบบ"}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
