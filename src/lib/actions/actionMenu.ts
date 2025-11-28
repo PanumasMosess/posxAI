@@ -249,3 +249,31 @@ export const updateStatusOrder = async (idOrder: number, status: string) => {
     return { success: false, error: true, data: err };
   }
 };
+
+export const updateTableStatus = async (items: CartItemPayload[], status: string) => {
+  try {
+    const tableIds = [...new Set(items.map((item) => item.tableId))];
+  
+    if (tableIds.length === 0) {
+        return { success: true, error: false, data: "No tables to update" };
+    }
+
+    const result = await prisma.table.updateMany({
+      where: {
+        id: {
+          in: tableIds, 
+        },
+      },
+      data: {
+        status: status,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: result };
+
+  } catch (err) {
+    console.error("Update Table Error:", err);
+    return { success: false, error: true, data: err };
+  }
+};

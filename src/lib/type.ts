@@ -238,8 +238,18 @@ export type KitchecOrder = {
     };
   };
   table: {
+    id: number;
     tableName: string;
   };
+  totalQuantity?: number; 
+  orderIds?: number[]; 
+
+  orders?: {
+    id: number;
+    tableName: string;
+    quantity: number;
+    status: string;
+  }[];
 };
 export interface KitchecOrderList {
   initialItems: KitchecOrder[];
@@ -247,7 +257,8 @@ export interface KitchecOrderList {
 
 export interface KitchecTicketProps {
   initialItems: KitchecOrder;
-  onStatusChange: (idOrder: number, status: string) => void;
+  onStatusChange: (id: number | number[], status: string) => void;
+  isGrouped?: boolean;
 }
 
 export type HistoryOrder = {

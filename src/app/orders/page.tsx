@@ -1,7 +1,7 @@
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const page = async () => {
   const itemsData = await prisma.menu.findMany({
@@ -32,7 +32,9 @@ const page = async () => {
 
   const tableData = await prisma.table.findMany({
     where: {
-      status: "WAIT_BOOKING",
+      status: {
+        notIn: ["RESERVED", "DIRTY"],
+      },
     },
     orderBy: {
       id: "desc",
