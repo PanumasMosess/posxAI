@@ -15,6 +15,7 @@ import {
   deleteMenuInCart,
   updateCartStatusNEW,
   updateMenuInCart,
+  updateTableStatus,
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -119,6 +120,7 @@ const MenuOrderPage = ({
       const result = await createOrder(relatedData.cartdatas);
       if (result.success) {
         await updateCartStatusNEW(relatedData.cartdatas);
+        await updateTableStatus(relatedData.cartdatas, "OCCUPIED");
         toast.success("สำเร็จ!", {
           position: "bottom-center",
           className: "responsive-toast",
@@ -227,22 +229,22 @@ const MenuOrderPage = ({
             }
             className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
           >
-          {currentItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: (index % itemsPerPage) * 0.1,
-              }}
-            >
-            <MenuOrderCard
-              product={item}
-              handelOpendetail={handelOpendetail}
-            />
-            </motion.div>
-          ))}
+            {currentItems.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: (index % itemsPerPage) * 0.1,
+                }}
+              >
+                <MenuOrderCard
+                  product={item}
+                  handelOpendetail={handelOpendetail}
+                />
+              </motion.div>
+            ))}
           </InfiniteScroll>
         </main>
         <AnimatePresence>

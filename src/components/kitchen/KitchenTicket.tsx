@@ -7,6 +7,7 @@ import {
   Flame,
   PackageOpen,
   X,
+  Layers,
 } from "lucide-react";
 import {
   Card,
@@ -15,8 +16,8 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import statusColorList from "@/lib/data_temp";
-import { KitchecTicketProps } from "@/lib/type";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,170 +29,126 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
-
+import { KitchecTicketProps } from "@/lib/type";
 
 const KitchenTicket = ({
-  initialItems: order,
+  initialItems: group,
   onStatusChange,
+  isGrouped = false,
 }: KitchecTicketProps) => {
   const { nextStatus, label: buttonLabel } = statusColorList.getNextStepConfig(
-    order.status
+    group.status
   );
-  const statusBadge = statusColorList.getStatusBadgeConfig(order.status);
+  const statusBadge = statusColorList.getStatusBadgeConfig(group.status);
+
   return (
     <Card
-      key={order.id}
       className={`
-   w-full p-0 
-    rounded-xl overflow-hidden
-    border
-    bg-white dark:bg-zinc-900 
-    text-zinc-950 dark:text-zinc-50 
-    transition-all duration-300 ease-in-out
-    hover:shadow-lg hover:-translate-y-1
-    ${statusColorList.statusColor(order.status)}
-  `}
-    >
-      <CardHeader className="flex flex-row justify-between items-start px-4 pt-5 pb-2">
-        <div className="flex flex-col">
-          <span className="text-[10px] uppercase tracking-wider font-bold text-zinc-400 dark:text-zinc-500">
-            Table No.
-          </span>
-          <span className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 leading-none mt-1">
-            {order.table.tableName}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`
-        px-2 py-1 rounded-md text-[10px] font-bold border 
-        ${statusBadge.color}
+        w-full p-0 rounded-xl overflow-hidden border
+        bg-white dark:bg-zinc-900 
+        text-zinc-950 dark:text-zinc-50 
+        transition-all duration-300 hover:shadow-lg
+        ${statusColorList.statusColor(group.status)}
       `}
-          >
-            {statusBadge.label}
-          </span>
-
-          <AlertDialog>
-            {order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
-              <AlertDialogTrigger asChild>
-                <button
-                  className="
-                p-1.5 rounded-full 
-                text-zinc-400 hover:text-red-500 
-                hover:bg-red-50 dark:hover:bg-red-900/20
-                transition-all duration-200
-                border border-transparent hover:border-red-200 dark:hover:border-red-800
-              "
-                  title="ยกเลิกรายการ"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </AlertDialogTrigger>
-            )}
-
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  การกระทำนี้จะเปลี่ยนสถานะเป็น "ยกเลิกรายการ"
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onStatusChange(order.id, "CANCELLED")}
-                >
-                  ยืนยันการลบ
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50">
-            <Clock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
-            <span className="text-xs font-bold font-mono text-zinc-600 dark:text-zinc-300">
-              10:00
+    >
+      <CardHeader className="flex flex-row justify-between items-start px-4 pt-5 pb-2 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex flex-col max-w-[70%]">
+          {(group.orders?.length || 0) > 1 && (
+            <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1 mb-1">
+              <Layers className="h-3 w-3" /> GROUPED ({group.orders?.length})
             </span>
-          </div> */}
+          )}
+          <span className="text-lg font-bold leading-tight line-clamp-2">
+            {group.menu.menuName}
+          </span>
         </div>
+        <Badge variant="outline" className={`${statusBadge.color} border`}>
+          {statusBadge.label}
+        </Badge>
       </CardHeader>
+      <CardContent className="p-0">
+        <div className="p-4 flex items-center gap-4 bg-zinc-50/50 dark:bg-zinc-900/50">
+          <Avatar className="h-16 w-16 rounded-lg border border-border/50">
+            <AvatarImage
+              src={group.menu.img || "/placeholder-menu.png"}
+              className="object-cover"
+            />
+            <AvatarFallback>IMG</AvatarFallback>
+          </Avatar>
 
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 overflow-hidden">
-            <Avatar className="h-16 w-16 rounded-lg shadow-sm border border-border/50 flex-shrink-0">
-              <AvatarImage
-                src={order.menu.img || "/placeholder-menu.png"}
-                alt={order.menu.menuName}
-                className="object-cover"
-              />
-              <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium rounded-lg">
-                {order.menu.menuName?.slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex flex-col justify-center min-h-[64px] space-y-1">
-              <span className="text-lg font-bold text-foreground leading-tight line-clamp-2">
-                {order.menu.menuName}
-              </span>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide">
-                  {order.menu.unitPrice.label}
-                </span>
-                <span>
-                  @ {(order.price_sum / order.quantity).toLocaleString()}
-                </span>
-              </div>
+          <div className="flex-1 text-right">
+            <div className="text-xs text-muted-foreground font-bold uppercase">
+              Total Qty
+            </div>
+            <div className="text-4xl font-extrabold text-primary leading-none">
+              x{group.totalQuantity}
             </div>
           </div>
-
-          <div className="flex flex-col items-center justify-center bg-primary/10 text-primary rounded-lg h-16 w-14 flex-shrink-0 border border-primary/20">
-            <span className="text-xs font-medium uppercase tracking-wider opacity-70">
-              QTY
-            </span>
-            <span className="text-2xl font-extrabold leading-none">
-              {order.quantity}
-            </span>
-          </div>
         </div>
-        <div className="flex items-center justify-between pt-3 border-t border-dashed border-border/60">
-          <span className="text-sm text-muted-foreground font-medium">
-            Total Amount
-          </span>
-          <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold text-foreground">
-              {order.price_sum?.toLocaleString()}
-            </span>
-            <span className="text-xs text-muted-foreground font-medium uppercase">
-              {order.menu.unitPrice.label}
-            </span>
-          </div>
+
+        <div className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800 border-t border-zinc-100 dark:border-zinc-800">
+          {group.orders?.map((subOrder: any, idx: number) => (
+            <div
+              key={subOrder.id}
+              className="flex items-center justify-between px-4 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                  {subOrder.tableName}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded">
+                  x{subOrder.quantity}
+                </span>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      className="text-zinc-400 hover:text-red-500"
+                      title="ยกเลิกเฉพาะรายการนี้"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        การกระทำนี้จะเปลี่ยนสถานะเป็น "ยกเลิกรายการ"
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onStatusChange(subOrder.id, "CANCELLED")}
+                      >
+                        ยืนยันการลบ
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-2">
+      <CardFooter className="p-4 pt-2 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         {nextStatus ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                className={`
-        w-full h-10 rounded-lg text-sm font-semibold
-        transition-all duration-200
-        active:scale-[0.98]
-        ${statusColorList.getButtonActionColor(order.status)}
-      `}
+                className={`w-full h-10 rounded-lg font-bold text-sm shadow-sm ${statusColorList.getButtonActionColor(
+                  group.status
+                )}`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  {order.status === "NEW" && (
+                <div className="flex items-center gap-2">
+                  {group.status === "NEW" ? (
                     <UtensilsCrossed className="h-4 w-4" />
+                  ) : (
+                    <Check className="h-4 w-4" />
                   )}
-                  {order.status === "PREPARING" && (
-                    <PackageOpen className="h-4 w-4" />
-                  )}
-                  {order.status === "COOKING" && <Flame className="h-4 w-4" />}
-                  {order.status === "READY" && <Check className="h-4 w-4" />}
-
-                  {buttonLabel}
+                  {buttonLabel} ทั้งหมด ({group.totalQuantity})
                 </div>
               </Button>
             </AlertDialogTrigger>
@@ -206,7 +163,9 @@ const KitchenTicket = ({
               <AlertDialogFooter>
                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={() => onStatusChange(order.id, nextStatus)}
+                  onClick={() =>
+                    onStatusChange(group.orderIds || [], nextStatus)
+                  }
                 >
                   ยืนยันการลบ
                 </AlertDialogAction>
@@ -214,8 +173,8 @@ const KitchenTicket = ({
             </AlertDialogContent>
           </AlertDialog>
         ) : (
-          <div className="w-full h-10 flex items-center justify-center text-sm text-zinc-400 font-medium bg-zinc-100 rounded-lg dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed">
-            {order.status === "CANCELLED" ? "ยกเลิกแล้ว" : "เสร็จสิ้นกระบวนการ"}
+          <div className="w-full text-center text-xs text-muted-foreground py-2">
+            เสร็จสิ้นกระบวนการ
           </div>
         )}
       </CardFooter>
