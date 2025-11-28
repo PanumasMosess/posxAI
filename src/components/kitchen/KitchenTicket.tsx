@@ -150,7 +150,7 @@ const KitchenTicket = ({
                   )}
                   <span>
                     {buttonLabel}
-                    <span className="hidden sm:inline"> ทั้งหมด</span>
+                    <span className="hidden sm:inline">ทั้งหมด</span>
                   </span>
                   <span className="opacity-90">({group.totalQuantity})</span>
                 </div>

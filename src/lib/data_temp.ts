@@ -84,9 +84,9 @@ const statusColor = (status: string) => {
       // สีส้ม
       return "border-orange-500/50 shadow-orange-500/10 hover:border-orange-500";
 
-    case "READY":
-      // สีเขียว
-      return "border-emerald-500/50 shadow-emerald-500/10 hover:border-emerald-500";
+    // case "READY":
+    //   // สีเขียว
+    //   return "border-emerald-500/50 shadow-emerald-500/10 hover:border-emerald-500";
 
     case "COMPLETED":
       // สีเทา Slate (แก้จาก Zinc ให้ตรงกับปุ่ม)
@@ -113,11 +113,11 @@ const getButtonActionColor = (currentStatus: string) => {
 
     case "COOKING":
       // สีส้ม
-      return "bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300";
-
-    case "READY":
-      // สีเขียว (Solid เพราะเป็นปุ่มสำคัญสุด)
       return "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-200 border-transparent";
+
+    // case "READY":
+    //   // สีเขียว (Solid เพราะเป็นปุ่มสำคัญสุด)
+    //   return "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-200 border-transparent";
 
     case "COMPLETED":
       // สีเทา Slate
@@ -147,16 +147,20 @@ const getNextStepConfig = (currentStatus: string) => {
       };
 
     case "COOKING":
-      return {
-        nextStatus: "READY",
-        label: "ปรุงเสร็จ / พร้อมเสิร์ฟ",
-      };
-
-    case "READY":
-      return {
+       return {
         nextStatus: "COMPLETED",
         label: "เสิร์ฟเรียบร้อย",
       };
+      // return {
+      //   nextStatus: "READY",
+      //   label: "ปรุงเสร็จ / พร้อมเสิร์ฟ",
+      // };
+
+    // case "READY":
+    //   return {
+    //     nextStatus: "COMPLETED",
+    //     label: "เสิร์ฟเรียบร้อย",
+    //   };
 
     case "COMPLETED":
       return { nextStatus: null, label: "เสร็จสิ้น" };
@@ -190,12 +194,12 @@ const getStatusBadgeConfig = (status: string) => {
         color:
           "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
       };
-    case "READY":
-      return {
-        label: "รอเสิร์ฟ",
-        color:
-          "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
-      };
+    // case "READY":
+    //   return {
+    //     label: "รอเสิร์ฟ",
+    //     color:
+    //       "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+    //   };
     case "COMPLETED":
       return {
         label: "เสร็จสิ้น",
