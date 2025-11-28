@@ -5,15 +5,13 @@ import KitchenTicket from "./KitchenTicket";
 import { useRouter } from "next/navigation";
 import { updateStatusOrder } from "@/lib/actions/actionMenu";
 import { UtensilsCrossed } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 const KitchecPage = ({ initialItems }: KitchecOrderList) => {
   const router = useRouter();
-  // 1. ฟังก์ชันเปลี่ยนสถานะ (รองรับทั้งแบบ ID เดียว และ Array ของ ID)
+
   const onStatusChange = async (idOrder: number | number[], status: string) => {
     if (Array.isArray(idOrder)) {
-      // ถ้าส่งมาเป็นกลุ่ม (Array) ให้วนลูปอัปเดตทีละตัว
-      // (หมายเหตุ: ถ้า Server Action รองรับ updateMany จะดีกว่านี้มาก)
       for (const id of idOrder) {
         await updateStatusOrder(id, status);
       }
@@ -23,7 +21,6 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
     router.refresh();
   };
 
-  // 2. กรองเอาเฉพาะออเดอร์ที่ยังไม่จบ
   const activeOrders = initialItems.filter(
     (item) => !["COMPLETED", "CANCELLED"].includes(item.status)
   );
@@ -32,27 +29,20 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
     const groups: { [key: string]: any } = {};
 
     activeOrders.forEach((order: any) => {
-      // สร้าง Key โดยใช้ MenuID + Status
-      // (ต้องแยก Status ด้วย ไม่งั้นของใหม่จะไปปนกับของที่กำลังทำ)
       const key = `${order.menu.id}-${order.status}`;
-
       if (!groups[key]) {
-        // ถ้ายังไม่มีกลุ่มนี้ ให้เริ่มตั้งต้นด้วยข้อมูลของออเดอร์แรกที่เจอ
         groups[key] = {
-          ...order, // เอาข้อมูลพื้นฐานมา (ชื่อเมนู, รูปภาพ)
-          totalQuantity: 0, // ตัวนับจำนวนรวม
-          orders: [], // เก็บรายการย่อยข้างใน (เผื่ออยากดูแยกโต๊ะ)
-          orderIds: [], // เก็บ ID ทั้งหมดไว้สำหรับกดปุ่มทีเดียว
+          ...order,
+          totalQuantity: 0,
+          orders: [],
+          orderIds: [],
         };
       }
 
-      // บวกจำนวนเพิ่ม
       groups[key].totalQuantity += order.quantity;
 
-      // เก็บ ID เข้ากองกลาง
       groups[key].orderIds.push(order.id);
 
-      // เก็บรายละเอียดแยกย่อย (เช่น โต๊ะนี้สั่งกี่จาน)
       groups[key].orders.push({
         id: order.id,
         tableName: order.table.tableName,
@@ -61,9 +51,16 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
       });
     });
 
-    // แปลง Object กลับเป็น Array เพื่อนำไป Map
     return Object.values(groups);
   }, [activeOrders]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
@@ -93,12 +90,12 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
           </div>
         </div>
       ) : (
-       groupedOrders.map((group: any) => (
+        groupedOrders.map((group: any) => (
           <KitchenTicket
             key={`${group.menu.id}-${group.status}`}
-            initialItems={group} 
+            initialItems={group}
             onStatusChange={onStatusChange}
-            isGrouped={true} 
+            isGrouped={true}
           />
         ))
       )}
