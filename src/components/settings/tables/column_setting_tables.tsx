@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // ใช้ Input ของ Shadcn หรือ html ธรรมดาก็ได้
+import { Input } from "@/components/ui/input";
 import { SettingTable } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil } from "lucide-react";
 import status from "@/lib/data_temp";
 import { useState, useEffect, useRef } from "react";
+import { TableQRAction } from "../QRCode/TableQRCode";
 
 const tableStatuses = status.tableStatuses;
 
@@ -41,7 +42,7 @@ const EditableCell = ({
     if (value !== initialValue && onUpdate) {
       onUpdate(row.original.id, value);
     } else {
-      setValue(initialValue); 
+      setValue(initialValue);
     }
   };
 
@@ -50,7 +51,7 @@ const EditableCell = ({
       handleSave();
     } else if (e.key === "Escape") {
       setIsEditing(false);
-      setValue(initialValue); 
+      setValue(initialValue);
     }
   };
 
@@ -60,7 +61,7 @@ const EditableCell = ({
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        onBlur={handleSave} 
+        onBlur={handleSave}
         onKeyDown={onKeyDown}
         className="h-8 text-center font-bold text-lg"
       />
@@ -81,7 +82,7 @@ const EditableCell = ({
 
 const column_setting_tables = (
   onUpdateStatus: (id: number, newStatus: string) => void,
-  onUpdateName: (id: number, newName: string) => void 
+  onUpdateName: (id: number, newName: string) => void
 ): ColumnDef<SettingTable>[] => [
   {
     id: "id",
@@ -145,6 +146,20 @@ const column_setting_tables = (
               </option>
             ))}
           </select>
+        </div>
+      );
+    },
+  },
+  {
+    id: "qrCode",
+    header: () => <div className="text-center">QR Code</div>,
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-center py-2">
+          <TableQRAction
+            tableId={row.original.id}
+            tableName={row.original.tableName}
+          />
         </div>
       );
     },
