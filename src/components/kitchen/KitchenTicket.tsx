@@ -138,17 +138,21 @@ const KitchenTicket = ({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                className={`w-full h-10 rounded-lg font-bold text-sm shadow-sm ${statusColorList.getButtonActionColor(
+                className={`w-full h-10 rounded-lg font-bold shadow-sm ${statusColorList.getButtonActionColor(
                   group.status
                 )}`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                   {group.status === "NEW" ? (
-                    <UtensilsCrossed className="h-4 w-4" />
+                    <UtensilsCrossed className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   ) : (
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   )}
-                  {buttonLabel} ทั้งหมด ({group.totalQuantity})
+                  <span>
+                    {buttonLabel}
+                    <span className="hidden sm:inline"> ทั้งหมด</span>
+                  </span>
+                  <span className="opacity-90">({group.totalQuantity})</span>
                 </div>
               </Button>
             </AlertDialogTrigger>
