@@ -18,6 +18,11 @@ export const createTable = async (
             id: data.closeById,
           },
         },
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
       },
     });
 

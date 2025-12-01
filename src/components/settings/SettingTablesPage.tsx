@@ -12,6 +12,7 @@ import { useSession } from "next-auth/react";
 const SettingTablesPage = ({ initialItems }: SettingTableProps) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
+  const organizationId = session.data?.user.organizationId;
   const router = useRouter();
   const handleStatusChange = async (id: number, status: string) => {
     const result = await updateStatusTable(id, status);
@@ -49,6 +50,7 @@ const SettingTablesPage = ({ initialItems }: SettingTableProps) => {
               columns={columns}
               data={initialItems}
               userId={parseInt(id_user)}
+              organizationId={organizationId ?? 1}
             />
           </div>
         </div>

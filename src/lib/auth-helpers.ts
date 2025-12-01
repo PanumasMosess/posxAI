@@ -10,7 +10,7 @@ export const userSignIn = async ({
   password: string;
 }) => {
   try {
-    const user = await prisma.employees.findUnique({
+    const user = await prisma.employees.findFirst({
       where: {
         username: username,
         status: "ON",

@@ -258,13 +258,13 @@ const StockPageClient = ({
                     <PackagePlus /> เพิ่มรายการเอง
                   </Button>
                 </SheetTrigger>
-                <StockForm
+                {/* <StockForm
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
-                />
+                /> */}
               </Sheet>
               <Sheet open={openSheetBill} onOpenChange={setOpenSheetBill}>
                 <SheetTrigger asChild>
@@ -272,13 +272,13 @@ const StockPageClient = ({
                     <FileBox /> เพิ่มรายการจากใบเสร็จ
                   </Button>
                 </SheetTrigger>
-                <StockFormBill
+                {/* <StockFormBill
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheetBill}
                   stateForm={openSheetBill}
-                />
+                /> */}
               </Sheet>
             </div>
           </div>
@@ -431,14 +431,14 @@ const StockPageClient = ({
           </div>
         </div>
         <Sheet open={openSheetUpdate} onOpenChange={setOpenSheetUpdate}>
-          <StockForm
+          {/* <StockForm
             type={"update"}
             relatedData={relatedData}
             currentUserId={parseInt(id_user)}
             data={editingItem}
             stateSheet={setOpenSheetUpdate}
             stateForm={openSheetUpdate}
-          />
+          /> */}
         </Sheet>
       </div>
     </div>

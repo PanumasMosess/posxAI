@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Check,
   UtensilsCrossed,
-  Flame,
-  PackageOpen,
   X,
   Layers,
 } from "lucide-react";

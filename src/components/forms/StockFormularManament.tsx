@@ -50,9 +50,11 @@ type FormularData = {
 const StockFormularManament = ({
   relatedData,
   currentUserId,
+  organizationId,
 }: {
   relatedData?: any;
   currentUserId: number;
+  organizationId: number;
 }) => {
   const router = useRouter();
   const { stocks, formular } = relatedData;
@@ -113,6 +115,7 @@ const StockFormularManament = ({
       status: "RUN_FORMULAR",
       stockId: item.id,
       menuId: parseInt(selectedMenu || "0"),
+      organizationId: organizationId,
     }));
 
     const payload = {

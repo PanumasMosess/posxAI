@@ -26,6 +26,7 @@ export interface CreateStockPayload {
   creator_id: number;
   category_id: number;
   supplier_id: number;
+  organizationId: number;
 }
 
 export interface FormularPayload {
@@ -34,6 +35,7 @@ export interface FormularPayload {
     status: string;
     stockId: number;
     menuId: number;
+    organizationId: number;
   }[];
 }
 
@@ -82,6 +84,7 @@ export interface MenuPOSPageClientProps {
       quantity: number;
       price_sum: number;
       price_pre_unit: number;
+      organizationId: number | null;
     }[];
   };
 }
@@ -138,6 +141,7 @@ export interface MenuOrderHeaderProps {
       quantity: number;
       price_sum: any;
       price_pre_unit: any;
+      organizationId: number | null;
     }[];
   };
   cartCount: number;
@@ -166,6 +170,7 @@ export type CartItem = {
   quantity: number;
   price_sum: any;
   price_pre_unit: any;
+  organizationId: number | null;
 };
 
 export type CartDetailItem = {
@@ -221,6 +226,7 @@ export interface CartItemPayload {
   quantity: number;
   price_sum: number;
   price_pre_unit: number;
+  organizationId: number | null
 }
 
 export type KitchecOrder = {
@@ -241,8 +247,8 @@ export type KitchecOrder = {
     id: number;
     tableName: string;
   };
-  totalQuantity?: number; 
-  orderIds?: number[]; 
+  totalQuantity?: number;
+  orderIds?: number[];
 
   orders?: {
     id: number;

@@ -29,6 +29,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
+  const organizationId = session.data?.user.organizationId;
 
   const [menuItems, setOrderItems] = useState(initialItems);
 
@@ -196,6 +197,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
+                  organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
                 />
@@ -206,6 +208,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                   relatedData={relatedData}
                   data={itemDetail}
                   currentUserId={parseInt(id_user)}
+                  organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheetUpdate}
                   stateForm={openSheetUpdate}
                 />

@@ -25,6 +25,11 @@ export const createMenu = async (
             id: data.createdById,
           },
         },
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
         category: {
           connect: {
             id: data.categoryMenuId,
@@ -136,6 +141,7 @@ export const createMenuToCart = async (data: any) => {
         menuId: data.menuId,
         tableId: data.tableId,
         status: "ON_CART",
+        organizationId: data.organizationId,
       },
     });
 
@@ -190,6 +196,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       menuId: item.menuId,
       tableId: item.tableId,
       status: "NEW",
+      organizationId: item.organizationId,
     }));
 
     await prisma.order.createMany({
@@ -250,18 +257,21 @@ export const updateStatusOrder = async (idOrder: number, status: string) => {
   }
 };
 
-export const updateTableStatus = async (items: CartItemPayload[], status: string) => {
+export const updateTableStatus = async (
+  items: CartItemPayload[],
+  status: string
+) => {
   try {
     const tableIds = [...new Set(items.map((item) => item.tableId))];
-  
+
     if (tableIds.length === 0) {
-        return { success: true, error: false, data: "No tables to update" };
+      return { success: true, error: false, data: "No tables to update" };
     }
 
     const result = await prisma.table.updateMany({
       where: {
         id: {
-          in: tableIds, 
+          in: tableIds,
         },
       },
       data: {
@@ -271,7 +281,6 @@ export const updateTableStatus = async (items: CartItemPayload[], status: string
     });
 
     return { success: true, error: false, data: result };
-
   } catch (err) {
     console.error("Update Table Error:", err);
     return { success: false, error: true, data: err };

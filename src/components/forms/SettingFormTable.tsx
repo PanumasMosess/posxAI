@@ -32,11 +32,13 @@ import { createTable } from "@/lib/actions/actionSettings";
 const SettingFormTable = ({
   type,
   currentUserId,
+  organizationId,
   stateSheet,
   stateForm,
 }: {
   type: "create" | "update";
   currentUserId: number;
+  organizationId: number;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
 }) => {
@@ -46,6 +48,7 @@ const SettingFormTable = ({
       tableName: "",
       closeById: currentUserId,
       status: "WAIT_BOOKING",
+      organizationId: organizationId
     },
   });
 

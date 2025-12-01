@@ -48,6 +48,7 @@ const MenuOrderDetailDialog = ({
         price_pre_unit: menuDetail.price_sale,
         quantity: quantity,
         price_sum: menuDetail.price_sale * quantity,
+        organizationId: menuDetail.organizationId
       };
       onAddToCart(cartItem);
       onClose();

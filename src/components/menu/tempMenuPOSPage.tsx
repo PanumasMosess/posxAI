@@ -187,24 +187,24 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                     <Utensils /> เพิ่มเมนู
                   </Button>
                 </SheetTrigger>
-                <MenuFormPOS
+                {/* <MenuFormPOS
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
-                />
+                /> */}
               </Sheet>
 
               <Sheet open={openSheetUpdate} onOpenChange={setOpenSheetUpdate}>
-                <MenuFormPOS
+                {/* <MenuFormPOS
                   type={"update"}
                   relatedData={relatedData}
                   data={itemDetail}
                   currentUserId={parseInt(id_user)}
                   stateSheet={setOpenSheetUpdate}
                   stateForm={openSheetUpdate}
-                />
+                /> */}
               </Sheet>
             </div>
           </div>

@@ -38,6 +38,7 @@ const StockFormCategories = ({
   type,
   relatedData,
   currentUserId,
+  organizationId,
   data,
   stateSheet,
   stateForm,
@@ -45,6 +46,7 @@ const StockFormCategories = ({
   type: "create" | "update";
   relatedData?: any;
   currentUserId: number;
+  organizationId: number;
   data?: any;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
@@ -54,6 +56,7 @@ const StockFormCategories = ({
     defaultValues: {
       categoryName: "",
       createdById: currentUserId,
+      organizationId: organizationId,
     },
   });
   const router = useRouter();
@@ -110,7 +113,7 @@ const StockFormCategories = ({
       onInteractOutside={(e) => e.preventDefault()}
     >
       <SheetHeader className="px-6 pt-6 pb-4">
-        <SheetTitle >
+        <SheetTitle>
           {type === "create"
             ? "เพิ่มรายการหมวดหมู่สินค้า"
             : "แก้ไขรายการหมวดหมู่สินค้า"}

@@ -81,6 +81,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 position_id: 2,
                 login_fail: 0,
                 created_by: "Google Sign-In",
+                organizationId: 0,
                 birthday: new Date(),
               },
             });
@@ -109,6 +110,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.position_id = dbUser.position_id;
             token.email = dbUser.email;
             token.image = dbUser.img;
+            token.organizationId = dbUser.organizationId;
           }
         }
         return token;
@@ -122,6 +124,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.position_id = user.position_id;
           token.email = user.email;
           token.image = user.image;
+          token.organizationId = user.organizationId;
         }
         if (trigger === "update" && session) {
           token = { ...token, ...session };
@@ -135,9 +138,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.status = token.status as string;
       session.user.login_fail = token.login_fail as number;
       session.user.birthday = token.birthday as Date;
-      session.user.position_id = token.birthday as number;
+      session.user.position_id = token.position_id as number;
       session.user.image = token.image as string | null;
       session.user.email = token.email as string;
+      session.user.organizationId = token.organizationId as number | 1;
       return session;
     },
   },

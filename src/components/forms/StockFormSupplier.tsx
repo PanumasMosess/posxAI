@@ -27,10 +27,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SupplierSchema, supplierSchema_ } from "@/lib/formValidationSchemas";
 import { Input } from "../ui/input";
-import {
-  crearteSupplier,
-  updateSupplier,
-} from "@/lib/actions/actionStocks";
+import { crearteSupplier, updateSupplier } from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
@@ -38,6 +35,7 @@ const StockFormSupplier = ({
   type,
   relatedData,
   currentUserId,
+  organizationId,
   data,
   stateSheet,
   stateForm,
@@ -45,6 +43,7 @@ const StockFormSupplier = ({
   type: "create" | "update";
   relatedData?: any;
   currentUserId: number;
+  organizationId: number;
   data?: any;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
@@ -54,6 +53,7 @@ const StockFormSupplier = ({
     defaultValues: {
       supplierName: "",
       createdById: currentUserId,
+      organizationId: organizationId,
     },
   });
   const router = useRouter();
@@ -110,7 +110,7 @@ const StockFormSupplier = ({
       onInteractOutside={(e) => e.preventDefault()}
     >
       <SheetHeader className="px-6 pt-6 pb-4">
-        <SheetTitle >
+        <SheetTitle>
           {type === "create"
             ? "เพิ่มรายการหมวดหมู่สินค้า"
             : "แก้ไขรายการหมวดหมู่สินค้า"}
