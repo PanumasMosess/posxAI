@@ -47,6 +47,7 @@ const MenuFormPOS = ({
   type,
   relatedData,
   currentUserId,
+  organizationId,
   data,
   stateSheet,
   stateForm,
@@ -54,6 +55,7 @@ const MenuFormPOS = ({
   type: "create" | "update";
   relatedData?: any;
   currentUserId: number;
+  organizationId: number;
   data?: any;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
@@ -69,6 +71,7 @@ const MenuFormPOS = ({
       status: "READY_TO_SELL",
       img: undefined,
       createdById: currentUserId,
+      organizationId: organizationId,
       categoryMenuId: undefined,
       unitPriceId: undefined,
     },
@@ -133,7 +136,7 @@ const MenuFormPOS = ({
     // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
     if (type === "update" && data) {
       console.log(data);
-      
+
       formAddMenu.setValue("menuName", data.menuName);
       formAddMenu.setValue("price_sale", data.price_sale);
       formAddMenu.setValue("price_cost", data.price_cost);

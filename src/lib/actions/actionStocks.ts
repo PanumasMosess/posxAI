@@ -29,6 +29,11 @@ export const createStock = async (
             id: data.creator_id,
           },
         },
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
         category: {
           connect: {
             id: data.category_id,
@@ -60,7 +65,8 @@ export const createStockByImg = async (
   payload: CreateStockPayload
 ) => {
   try {
-    const { items, creator_id, category_id, supplier_id } = payload;
+    const { items, creator_id, category_id, supplier_id, organizationId } =
+      payload;
 
     const productNames = items.map((item) => `SKU: ${item.productName}`);
 
@@ -100,6 +106,7 @@ export const createStockByImg = async (
           price: item.price,
           unit: item.unit,
           createdById: creator_id,
+          organizationId: organizationId,
           categoryId: category_id,
           supplierId: supplier_id,
         });
@@ -186,6 +193,8 @@ export const updateImageStock = async (data: any) => {
       },
       include: {
         category: true,
+        unitPrice: true,
+        supplier: true,
       },
     });
 
@@ -230,6 +239,11 @@ export const crearteCategories = async (
       data: {
         categoryName: data.categoryName,
         creator: {
+          connect: {
+            id: data.createdById,
+          },
+        },
+        organization: {
           connect: {
             id: data.createdById,
           },
@@ -298,6 +312,11 @@ export const crearteSupplier = async (
             id: data.createdById,
           },
         },
+        organization: {
+          connect: {
+            id: data.createdById,
+          },
+        },
       },
     });
 
@@ -358,12 +377,12 @@ export const crearteFormularStock = async (
       stockId: item.stockId,
       pcs_update: item.pcs_update,
       menuId: item.menuId,
+      organizationId: item.organizationId,
     }));
     await prisma.formularstock.createMany({
       data: dataToCreate,
     });
-
-    // revalidatePath("/list/subjects");
+    
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -373,18 +392,13 @@ export const crearteFormularStock = async (
 
 export const deleteFormularStock = async (data: any) => {
   try {
-    const updatedCategory = await prisma.formularstock.update({
+    const deleteFormularStock = await prisma.formularstock.delete({
       where: {
         id: data.id,
       },
-      data: {
-        status: data.status,
-        updatedAt: new Date(),
-      },
     });
 
-    // revalidatePath("/list/subjects");
-    return { success: true, error: false, data: updatedCategory };
+    return { success: true, error: false };
   } catch (err) {
     console.log(err);
     return { success: false, error: true, data: "" };

@@ -30,11 +30,13 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   userId: number;
+  organizationId: number;
 }
 export function Data_table_setting_tables<TData, TValue>({
   columns,
   data,
   userId,
+  organizationId
 }: DataTableProps<TData, TValue>) {
   const [openSheetInsertTable, setOpenSheetInsertTable] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -108,6 +110,7 @@ export function Data_table_setting_tables<TData, TValue>({
             <SettingFormTable
               type={"create"}
               currentUserId={userId}
+              organizationId={organizationId ?? 1}
               stateSheet={setOpenSheetInsertTable}
               stateForm={openSheetInsertTable}
             />

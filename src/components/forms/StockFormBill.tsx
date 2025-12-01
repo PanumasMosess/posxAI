@@ -20,9 +20,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import {
-  createStockByImg,
-} from "@/lib/actions/actionStocks";
+import { createStockByImg } from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { StockSchemaImg, stockSchemaImg_ } from "@/lib/formValidationSchemas";
 import { getPresignedUrltoAI } from "@/lib/ai/geminiAI";
@@ -33,12 +31,14 @@ const StockFormBill = ({
   type,
   relatedData,
   currentUserId,
+  organizationId,
   stateSheet,
   stateForm,
 }: {
   type: "create" | "update";
   relatedData?: any;
   currentUserId: number;
+  organizationId: number;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
 }) => {
@@ -52,6 +52,7 @@ const StockFormBill = ({
       price_now_stock: 1,
       img_stock: "",
       creator_id: currentUserId,
+      organizationId: organizationId,
       category_id: 5,
       supplier_id: 3,
     },
@@ -95,6 +96,7 @@ const StockFormBill = ({
             items: itemsFromAI,
             creator_id: finalData.creator_id,
             category_id: finalData.category_id,
+            organizationId: finalData.organizationId,
             supplier_id: finalData.supplier_id,
           };
         }

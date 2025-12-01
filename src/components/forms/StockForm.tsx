@@ -45,6 +45,7 @@ const StockForm = ({
   type,
   relatedData,
   currentUserId,
+  organizationId,
   data,
   stateSheet,
   stateForm,
@@ -52,6 +53,7 @@ const StockForm = ({
   type: "create" | "update";
   relatedData?: any;
   currentUserId: number;
+  organizationId: number;
   data?: any;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
@@ -68,6 +70,7 @@ const StockForm = ({
       price_now_stock: 0,
       img_stock: undefined,
       creator_id: currentUserId,
+      organizationId: organizationId,
       category_id: undefined,
       supplier_id: undefined,
       unitPriceId: undefined,
@@ -154,7 +157,7 @@ const StockForm = ({
       const firstSupplierId = suppliers[0].id;
       formAddStock.setValue("supplier_id", firstSupplierId);
 
-       const unitPriceId = unitprices[0].id;
+      const unitPriceId = unitprices[0].id;
       formAddStock.setValue("unitPriceId", unitPriceId);
     }
   }, [type, data, stateForm, categories, suppliers, formAddStock, setOldImg]);
@@ -234,7 +237,7 @@ const StockForm = ({
               )}
             />
 
-              <FormField
+            <FormField
               control={formAddStock.control}
               name="unitPriceId"
               render={({ field }) => (
@@ -250,13 +253,11 @@ const StockForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {unitprices.map(
-                        (unit: { id: number; label: String }) => (
-                          <SelectItem key={unit.id} value={String(unit.id)}>
-                            {unit.label}
-                          </SelectItem>
-                        )
-                      )}
+                      {unitprices.map((unit: { id: number; label: String }) => (
+                        <SelectItem key={unit.id} value={String(unit.id)}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

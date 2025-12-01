@@ -67,25 +67,26 @@ const StockPageClient = ({
 }: StockPageClientProps) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
+  const organizationId = session.data?.user.organizationId;
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
-  const router = useRouter(); 
+  const router = useRouter();
 
   const [openSheet, setOpenSheet] = useState(false);
   const [openSheetBill, setOpenSheetBill] = useState(false);
   const [openSheetUpdate, setOpenSheetUpdate] = useState(false);
-  const [openSearch, setOpenSearch] = useState(false); 
+  const [openSearch, setOpenSearch] = useState(false);
 
   const [displayItems, setDisplayItems] = useState(initialItems);
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [editingItem, setEditingItem] = useState<any | null>(null); 
+  const [editingItem, setEditingItem] = useState<any | null>(null);
 
   const itemsPerPage = 15;
   const [page, setPage] = useState(1);
   const [currentItems, setCurrentItems] = useState(
     displayItems.slice(0, itemsPerPage)
   );
-  const [hasMore, setHasMore] = useState(displayItems.length > itemsPerPage); 
+  const [hasMore, setHasMore] = useState(displayItems.length > itemsPerPage);
 
   const handleGenerateImage = async (
     description: string,
@@ -116,7 +117,7 @@ const StockPageClient = ({
         const update_status = await updateImageStock(data);
 
         if (update_status.success) {
-          toast.success("สร้างและอัปเดตรูปภาพสำเร็จ!"); // อัปเดต State โดยตรง แทนการใช้ router.refresh()
+          toast.success("สร้างและอัปเดตรูปภาพสำเร็จ!");
           setDisplayItems((prevItems) =>
             prevItems.map((item) =>
               item.id === stock_id ? update_status.data : item
@@ -157,7 +158,7 @@ const StockPageClient = ({
 
     if (delete_status.success) {
       toast.success("ยกเลิกสำเร็จ!");
-      router.refresh(); 
+      router.refresh();
     } else {
       throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
     }
@@ -166,7 +167,7 @@ const StockPageClient = ({
   const handleOpenUpdateForm = async (item: any) => {
     setEditingItem(item);
     setOpenSheetUpdate(true);
-  }; 
+  };
 
   useEffect(() => {
     setPage(1);
@@ -196,12 +197,12 @@ const StockPageClient = ({
       );
     });
     setDisplayItems(filteredData);
-  }, [searchTerm, initialItems]); 
+  }, [searchTerm, initialItems]);
 
   const loadMoreItems = () => {
     const nextPage = page + 1;
     const nextItemsIndex = nextPage * itemsPerPage;
-    const newItems = displayItems.slice(0, nextItemsIndex); 
+    const newItems = displayItems.slice(0, nextItemsIndex);
 
     setTimeout(() => {
       setCurrentItems(newItems);
@@ -270,6 +271,7 @@ const StockPageClient = ({
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
+                  organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
                 />
@@ -284,6 +286,7 @@ const StockPageClient = ({
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
+                  organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheetBill}
                   stateForm={openSheetBill}
                 />
@@ -421,7 +424,9 @@ const StockPageClient = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold">ราคาปัจจุบัน:</span>
-                              <Badge>{item.price}{" "}{item.unitPrice.label}</Badge>
+                              <Badge>
+                                {item.price} {item.unitPrice.label}
+                              </Badge>
                             </div>
                           </CardHeader>
                         </Card>
@@ -438,6 +443,7 @@ const StockPageClient = ({
             type={"update"}
             relatedData={relatedData}
             currentUserId={parseInt(id_user)}
+            organizationId={organizationId ?? 1}
             data={editingItem}
             stateSheet={setOpenSheetUpdate}
             stateForm={openSheetUpdate}

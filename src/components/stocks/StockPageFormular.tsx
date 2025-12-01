@@ -35,6 +35,7 @@ const StockPageFormular = ({
 }: StockPageFormularProps) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
+  const organizationId = session.data?.user.organizationId;
 
   //state ปุ่ม เปิดหน้าเพิ่มข้อมูล แก้ไขข้อมูล
   const [openSheetCata, setOpenSheetCata] = useState(false);
@@ -141,6 +142,7 @@ const StockPageFormular = ({
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
+                  organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheetCata}
                   stateForm={openSheetCata}
                 />
@@ -155,6 +157,7 @@ const StockPageFormular = ({
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
+                  organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheetSupply}
                   stateForm={openSheetSupply}
                 />
@@ -190,6 +193,7 @@ const StockPageFormular = ({
                 type={"update"}
                 relatedData={relatedData}
                 currentUserId={parseInt(id_user)}
+                organizationId={organizationId ?? 1}
                 data={editingItemCat}
                 stateSheet={setOpenSheetCataUpdate}
                 stateForm={openSheetCataUpdate}
@@ -242,6 +246,7 @@ const StockPageFormular = ({
                 relatedData={relatedData}
                 data={editingItemSup}
                 currentUserId={parseInt(id_user)}
+                organizationId={organizationId ?? 1}
                 stateSheet={setOpenSheetSupplyUpdate}
                 stateForm={openSheetSupplyUpdate}
               />
@@ -272,6 +277,7 @@ const StockPageFormular = ({
         <StockFormularManament
           relatedData={relatedData}
           currentUserId={parseInt(id_user)}
+          organizationId={organizationId ?? 1}
         />
       </div>
     </div>

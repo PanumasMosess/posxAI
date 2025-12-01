@@ -9,6 +9,7 @@ declare module "next-auth" {
       login_fail: number;
       birthday: Date;
       position_id: number;
+      organizationId: number | null;
     } & DefaultSession["user"];
   }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
     login_fail: number;
     birthday: Date;
     position_id: number;
+    organizationId: number | null;
   }
 }
 
@@ -30,5 +32,6 @@ declare module "next-auth/jwt" {
     status: string;
     login_fail: number;
     birthday: Date;
+    organizationId: number | null;
   }
 }

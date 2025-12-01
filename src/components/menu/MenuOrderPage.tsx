@@ -19,11 +19,14 @@ import {
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { useSession } from "next-auth/react";
 const MenuOrderPage = ({
   relatedData,
   initialItems,
 }: MenuPOSPageClientProps) => {
   const router = useRouter();
+  const session = useSession();
+  const organizationId = session.data?.user.organizationId;
   const itemsPerPage = 10;
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +51,7 @@ const MenuOrderPage = ({
 
   const handleAddToCart = async (cartItem: CartItem) => {
     // setCart((prevCart) => [...prevCart, cartItem]);
+    cartItem.organizationId = organizationId ?? 1;
     if (tableNumber != 0) {
       cartItem.tableId = tableNumber;
     }
