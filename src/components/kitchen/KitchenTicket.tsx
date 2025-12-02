@@ -1,12 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Check,
-  UtensilsCrossed,
-  X,
-  Layers,
-} from "lucide-react";
+import { Check, UtensilsCrossed, X, Layers } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -91,9 +86,14 @@ const KitchenTicket = ({
               className="flex items-center justify-between px-4 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-700 dark:text-zinc-300">
                   {subOrder.tableName}
                 </span>
+                {subOrder.order_running_code && (
+                  <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">
+                    #{subOrder.order_running_code}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded">
