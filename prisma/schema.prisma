@@ -15,7 +15,7 @@ datasource db {
 
 model employees {
   id          Int      @id @default(autoincrement())
-  username    String   
+  username    String
   password    String
   name        String
   surname     String
@@ -41,7 +41,7 @@ model employees {
 
 model categorystock {
   id           Int      @id @default(autoincrement())
-  categoryName String   
+  categoryName String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -58,7 +58,7 @@ model categorystock {
 
 model supplier {
   id           Int      @id @default(autoincrement())
-  supplierName String  
+  supplierName String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -72,7 +72,7 @@ model supplier {
 
 model stock {
   id          Int      @id @default(autoincrement())
-  productName String   
+  productName String
   quantity    Int
   price       Float
   max         Float    @default(0)
@@ -100,7 +100,7 @@ model stock {
 
 model menu {
   id          Int      @id @default(autoincrement())
-  menuName    String   
+  menuName    String
   price_sale  Float
   price_cost  Float
   unit        String
@@ -159,14 +159,15 @@ model table {
 }
 
 model order {
-  id             Int      @id @default(autoincrement())
-  quantity       Int
-  price_sum      Float
-  price_pre_unit Float
-  orderDetail    String?
-  status         String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  quantity           Int
+  price_sum          Float
+  price_pre_unit     Float
+  orderDetail        String?
+  order_running_code String?
+  status             String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   menuId         Int
   menu           menu          @relation(fields: [menuId], references: [id])
@@ -207,6 +208,15 @@ model cart {
   organization   organization? @relation(fields: [organizationId], references: [id])
 }
 
+model orderrunning {
+  id          Int      @id @default(autoincrement())
+  runningCode String
+  createdAt   DateTime @default(now())
+
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+}
+
 model organization {
   id        Int      @id @default(autoincrement())
   name      String
@@ -225,4 +235,5 @@ model organization {
   stocks         stock[]
   suppliers      supplier[]
   formularstocks formularstock[]
+  order_runnings orderrunning[]
 }
