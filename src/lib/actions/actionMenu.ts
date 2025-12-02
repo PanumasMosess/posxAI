@@ -3,6 +3,7 @@
 import prisma from "../prisma";
 import { MenuSchema } from "../formValidationSchemas";
 import { CartItemPayload } from "../type";
+import dayjs from "dayjs";
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -189,6 +190,31 @@ export const deleteMenuInCart = async (data: any) => {
 
 export const createOrder = async (items: CartItemPayload[]) => {
   try {
+    const organizationId = items[0].organizationId;
+    const dateStr = dayjs().format("YYYYMMDD");
+
+    const countToday = await prisma.orderrunning.count({
+      where: {
+        organizationId: organizationId,
+        createdAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          lt: new Date(new Date().setHours(23, 59, 59, 999)),
+        },
+      },
+    });
+
+    const nextSequence = countToday + 1;
+    const runningCode = `Q-${dateStr}-${nextSequence
+      .toString()
+      .padStart(4, "0")}`;
+
+    await prisma.orderrunning.create({
+      data: {
+        runningCode: runningCode,
+        organizationId: organizationId,
+      },
+    });
+
     const dataToCreate = items.map((item) => ({
       quantity: item.quantity,
       price_sum: item.price_sum,
@@ -197,6 +223,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       tableId: item.tableId,
       status: "NEW",
       organizationId: item.organizationId,
+      order_running_code: runningCode,
     }));
 
     await prisma.order.createMany({
