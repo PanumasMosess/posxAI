@@ -48,6 +48,7 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
         tableName: order.table.tableName,
         quantity: order.quantity,
         status: order.status,
+        order_running_code: order.order_running_code,
       });
     });
 

@@ -226,7 +226,7 @@ export interface CartItemPayload {
   quantity: number;
   price_sum: number;
   price_pre_unit: number;
-  organizationId: number | null
+  organizationId: number | null;
 }
 
 export type KitchecOrder = {
@@ -236,6 +236,7 @@ export type KitchecOrder = {
   price_pre_unit: number;
   createdAt: Date;
   status: string;
+  order_running_code: string | null;
   menu: {
     menuName: string;
     img: string | null;
@@ -249,14 +250,15 @@ export type KitchecOrder = {
   };
   totalQuantity?: number;
   orderIds?: number[];
-
   orders?: {
     id: number;
     tableName: string;
     quantity: number;
     status: string;
+    order_running_code: string | null;
   }[];
 };
+
 export interface KitchecOrderList {
   initialItems: KitchecOrder[];
 }
