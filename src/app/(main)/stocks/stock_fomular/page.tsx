@@ -1,10 +1,14 @@
+import { auth } from "@/auth";
 import StockPageFormular from "@/components/stocks/StockPageFormular";
 import prisma from "@/lib/prisma";
 
 const page = async () => {
+  const session = await auth();
+  const organizationId = session?.user.organizationId;
   const itemsData = await prisma.stock.findMany({
     where: {
       status: "ON_STOCK",
+      organizationId: Number(organizationId),
     },
     include: {
       category: true,
@@ -15,15 +19,22 @@ const page = async () => {
   });
 
   const categoriesData = await prisma.categorystock.findMany({
+     where: {
+      organizationId: Number(organizationId),
+    },
     select: { id: true, categoryName: true },
   });
   const suppliersData = await prisma.supplier.findMany({
+     where: {
+      organizationId: Number(organizationId),
+    },
     select: { id: true, supplierName: true },
   });
 
   const excludedMenus = await prisma.formularstock.findMany({
     where: {
       status: "RUN_FORMULAR",
+       organizationId: Number(organizationId),
     },
     select: {
       id: true,
@@ -49,6 +60,7 @@ const page = async () => {
   const itemsMenu = await prisma.menu.findMany({
     where: {
       status: "READY_TO_SELL",
+      organizationId: Number(organizationId),
       id: {
         not: {
           in: excludedMenuIds,

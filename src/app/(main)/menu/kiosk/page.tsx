@@ -1,10 +1,14 @@
+import { auth } from "@/auth";
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
 
 const page = async () => {
+  const session = await auth();
+  const organizationId = session?.user.organizationId;
   const itemsData = await prisma.menu.findMany({
     where: {
       status: "READY_TO_SELL",
+      organizationId: Number(organizationId),
     },
     include: {
       category: true,

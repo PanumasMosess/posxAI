@@ -1,12 +1,16 @@
+import { auth } from "@/auth";
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 const page = async () => {
+  const session = await auth();
+  const organizationId = session?.user.organizationId;
   const itemsData = await prisma.menu.findMany({
     where: {
       status: "READY_TO_SELL",
+      organizationId: organizationId,
     },
     include: {
       category: true,
@@ -24,6 +28,7 @@ const page = async () => {
       id: {
         in: excludedIds,
       },
+      organizationId: organizationId,
     },
     orderBy: {
       id: "desc",
@@ -35,6 +40,7 @@ const page = async () => {
       status: {
         notIn: ["RESERVED", "DIRTY"],
       },
+      organizationId: organizationId,
     },
     orderBy: {
       id: "desc",
@@ -44,6 +50,7 @@ const page = async () => {
   const cartData = await prisma.cart.findMany({
     where: {
       status: "ON_CART",
+       organizationId: organizationId,
     },
     orderBy: {
       id: "desc",
