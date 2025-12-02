@@ -1,10 +1,16 @@
+import { auth } from "@/auth";
 import SettingTables from "@/components/settings/SettingTablesPage";
 import prisma from "@/lib/prisma";
 
 const page = async () => {
+  const session = await auth();
+  const organizationId = session?.user.organizationId;
   const itemsData = await prisma.table.findMany({
+    where: {
+      organizationId: organizationId,
+    },
     include: {
-      creator: true
+      creator: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -13,7 +19,7 @@ const page = async () => {
 
   return (
     <div>
-        <SettingTables initialItems={itemsData}/>
+      <SettingTables initialItems={itemsData} />
     </div>
   );
 };
