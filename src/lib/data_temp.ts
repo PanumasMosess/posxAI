@@ -4,6 +4,7 @@ import {
   ScrollText,
   Settings,
   Table,
+  Wallet,
   Warehouse,
 } from "lucide-react";
 
@@ -29,6 +30,17 @@ const menuList = [
       {
         title: "ครัว",
         url: "/kitchen",
+      },
+    ],
+  },
+   {
+    title: "การชำระเงิน",
+    url: "#",
+    icon: Wallet,
+    subItems: [
+      {
+        title: "ชำระเงิน",
+        url: "/payments",
       },
     ],
   },
