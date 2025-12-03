@@ -169,7 +169,7 @@ const KitchenTicket = ({
                     onStatusChange(group.orderIds || [], nextStatus)
                   }
                 >
-                  ยืนยันการลบ
+                  ยืนยัน
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
