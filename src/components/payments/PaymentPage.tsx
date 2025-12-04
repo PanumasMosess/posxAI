@@ -287,10 +287,14 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-0 z-50 w-full h-full bg-white dark:bg-zinc-900 lg:static lg:w-[420px] lg:h-full lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:shadow-2xl"
+            className="
+    fixed inset-0 z-50 w-full h-full bg-white dark:bg-zinc-900 
+    lg:static lg:w-[420px] lg:h-full lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:shadow-2xl
+    overflow-hidden 
+  "
           >
-            <div className="flex flex-col h-full">
-              <div className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm flex items-center gap-3">
+            <div className="flex flex-col h-full w-full relative">
+              <div className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm flex items-center gap-3 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -311,8 +315,8 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                   </p>
                 </div>
               </div>
-              <ScrollArea className="flex-1">
-                <div className="p-4 md:p-6 space-y-6">
+              <ScrollArea className="flex-1 h-[1px]">
+                <div className="p-4 md:p-6 space-y-6 pb-24">
                   <div className="text-center py-4">
                     <p className="text-sm text-zinc-500 font-medium mb-1">
                       ยอดสุทธิ
@@ -442,7 +446,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                 </div>
               </ScrollArea>
 
-              <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe">
+              <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe shrink-0 z-10">
                 <Button
                   className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
                   onClick={handlePayment}
