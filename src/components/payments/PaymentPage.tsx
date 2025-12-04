@@ -28,7 +28,7 @@ import PaymentOption from "./PaymentOption";
 const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
-    "QR"
+    "CASH"
   );
   const [cashReceived, setCashReceived] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
