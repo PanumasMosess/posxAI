@@ -22,7 +22,7 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
   };
 
   const activeOrders = initialItems.filter(
-    (item) => !["COMPLETED", "CANCELLED"].includes(item.status)
+    (item) => !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(item.status)
   );
 
   const groupedOrders = useMemo(() => {
