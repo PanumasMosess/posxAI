@@ -24,8 +24,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KitchecOrderList } from "@/lib/type";
 import PaymentOption from "./PaymentOption";
+import { toast } from "react-toastify";
+import { useSession } from "next-auth/react";
+import {
+  createPaymentOrder,
+  updateStatusOrder,
+  updateStatusTable,
+} from "@/lib/actions/actionPayment";
+import { useRouter } from "next/navigation";
 
 const PaymentPage = ({ initialItems }: KitchecOrderList) => {
+  const session = useSession();
+  const id_user = session.data?.user.id || "1";
+  const router = useRouter();
+  const organizationId = session.data?.user.organizationId;
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
     "CASH"
@@ -48,6 +60,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
           id: key,
           runningCode: item.order_running_code || "-",
           table: item.table.tableName,
+          tableId: item.table.id,
           guests: 0,
           time: new Date(item.createdAt).toLocaleTimeString("th-TH", {
             hour: "2-digit",
@@ -89,6 +102,41 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const totalAmount = selectedOrder ? selectedOrder.total : 0;
   const change = parseFloat(cashReceived || "0") - totalAmount;
   const isCashSufficient = change >= 0;
+
+  const handlePayment = async () => {
+    if (!selectedOrder) return;
+
+    if (paymentMethod === "CASH" && !isCashSufficient) {
+      toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
+      return;
+    }
+
+    const paymentPayload = {
+      orderId: selectedOrder.id,
+      table: selectedOrder.table,
+      tableId: selectedOrder.tableId,
+      paymentMethod: paymentMethod,
+      totalAmount: totalAmount,
+      createdById: parseInt(id_user),
+      organizationId: organizationId,
+      cashReceived:
+        paymentMethod === "CASH" ? parseFloat(cashReceived) : totalAmount,
+      change: paymentMethod === "CASH" ? change : 0,
+    };
+
+    const create_status = await createPaymentOrder(paymentPayload);
+
+    if (create_status.success) {
+      await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
+      await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+      toast.success("ชำระเงินเรียบร้อย!");
+      setSelectedOrder(null);
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+    // console.log("ข้อมูลการชำระเงินที่ได้:", paymentPayload);
+  };
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden relative">
@@ -358,7 +406,11 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
               </ScrollArea>
 
               <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe">
-                <Button className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10">
+                <Button
+                  className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
+                  onClick={handlePayment}
+                  disabled={paymentMethod === "CASH" && !isCashSufficient}
+                >
                   ยืนยันการชำระเงิน
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
