@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Banknote,
@@ -8,7 +8,6 @@ import {
   QrCode,
   Receipt,
   Clock,
-  Users,
   ChevronRight,
   Utensils,
   Search,
@@ -31,13 +30,17 @@ import {
   updateStatusOrder,
   updateStatusTable,
 } from "@/lib/actions/actionPayment";
+import { toPng } from "html-to-image";
 import { useRouter } from "next/navigation";
+import { ReceiptPage } from "./ReceiptPage";
 
 const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
   const router = useRouter();
   const organizationId = session.data?.user.organizationId;
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
     "CASH"
@@ -103,6 +106,38 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const change = parseFloat(cashReceived || "0") - totalAmount;
   const isCashSufficient = change >= 0;
 
+  const generateAndDownloadReceipt = async () => {
+    if (!receiptRef.current) return;
+
+    try {
+      setIsGeneratingReceipt(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const dataUrl = await toPng(receiptRef.current, {
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+        pixelRatio: 2,
+        fontEmbedCSS: "",
+      });
+
+      // const blob = await (await fetch(dataUrl)).blob();
+      // const file = new File([blob], `Receipt-${selectedOrder?.id}.png`, {
+      //   type: "image/png",
+      // });
+
+      const link = document.createElement("a");
+      link.download = `Receipt-${selectedOrder?.id || "bill"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Error generating receipt:", error);
+      toast.error("สร้างรูปใบเสร็จไม่สำเร็จ");
+    } finally {
+      setIsGeneratingReceipt(false);
+    }
+  };
+
   const handlePayment = async () => {
     if (!selectedOrder) return;
 
@@ -129,6 +164,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
     if (create_status.success) {
       await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
       await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+      await generateAndDownloadReceipt();
       toast.success("ชำระเงินเรียบร้อย!");
       setSelectedOrder(null);
       router.refresh();
@@ -427,6 +463,46 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
           <p>เลือกรายการทางซ้ายเพื่อชำระเงิน</p>
         </div>
       )}
+
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: isGeneratingReceipt ? 9999 : -100,
+          opacity: isGeneratingReceipt ? 1 : 0,
+          pointerEvents: "none",
+          backgroundColor: "#fff",
+          width: "100%",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <div
+          ref={receiptRef}
+          className="bg-white text-black p-8 w-[350px] min-h-[400px] font-mono text-sm leading-relaxed shadow-none mx-auto"
+        >
+          {selectedOrder && (
+            <ReceiptPage
+              ref={receiptRef}
+              orderId={selectedOrder.id}
+              table={selectedOrder.table}
+              date={new Date().toLocaleString("th-TH")}
+              items={selectedOrder.items}
+              total={totalAmount}
+              cashReceived={
+                paymentMethod === "CASH"
+                  ? parseFloat(cashReceived || "0")
+                  : undefined
+              }
+              change={paymentMethod === "CASH" ? change : undefined}
+              paymentMethod={paymentMethod}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
