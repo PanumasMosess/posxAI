@@ -42,11 +42,11 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
     "CASH"
   );
-  const [cashReceived, setCashReceived] = useState("");
+  const [cashReceived, setCashReceived] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    setCashReceived("");
+    setCashReceived("0");
   }, [selectedOrder]);
 
   const groupedOrders = useMemo(() => {
@@ -339,6 +339,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                               className="text-right text-xl h-12 pr-12 font-bold bg-white dark:bg-zinc-950"
                               value={cashReceived}
                               onChange={(e) => setCashReceived(e.target.value)}
+                              onFocus={(e) => e.target.select()}
                               autoFocus
                             />
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">
