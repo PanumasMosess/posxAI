@@ -308,3 +308,13 @@ export type SettingTable = {
 export interface SettingTableProps {
   initialItems: SettingTable[];
 }
+export interface ReceiptProps {
+  orderId: string;
+  table: string;
+  date: string;
+  items: any[];
+  total: number;
+  cashReceived?: number;
+  change?: number;
+  paymentMethod: string;
+}
