@@ -48,7 +48,6 @@ export const createPaymentOrder = async (data: any) => {
         cashReceived: data.cashReceived,
         change: data.change,
         totalAmount: data.totalAmount,
-        orderIdRunning: data.orderId,
         paymentMethod: data.paymentMethod,
         updatedAt: new Date(),
         createdAt: new Date(),
@@ -65,6 +64,11 @@ export const createPaymentOrder = async (data: any) => {
         table: {
           connect: {
             id: data.tableId,
+          },
+        },
+        runningRef: {
+          connect: {
+            runningCode: data.orderId,
           },
         },
       },

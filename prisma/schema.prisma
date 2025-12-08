@@ -177,8 +177,7 @@ model order {
   organizationId     Int?
   organization       organization? @relation(fields: [organizationId], references: [id])
   order_running_code String?
-  orderIdRunning     String?
-  runningRef         orderrunning? @relation(fields: [orderIdRunning], references: [runningCode])
+  runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
 }
 
 model unitprice {
@@ -233,14 +232,14 @@ model paymentorder {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
 
-  createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
-  organizationId Int?
-  organization   organization? @relation(fields: [organizationId], references: [id])
-  tableId        Int?
-  table          table?        @relation(fields: [tableId], references: [id])
-  orderIdRunning String        @unique
-  runningRef     orderrunning? @relation(fields: [orderIdRunning], references: [runningCode])
+  createdById        Int
+  creator            employees     @relation(fields: [createdById], references: [id])
+  organizationId     Int?
+  organization       organization? @relation(fields: [organizationId], references: [id])
+  tableId            Int?
+  table              table?        @relation(fields: [tableId], references: [id])
+  order_running_code String        @unique
+  runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
 }
 
 model organization {
