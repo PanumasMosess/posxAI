@@ -33,6 +33,17 @@ import {
 import { toPng } from "html-to-image";
 import { useRouter } from "next/navigation";
 import { ReceiptPage } from "./ReceiptPage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 
 const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const session = useSession();
@@ -447,14 +458,32 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
               </ScrollArea>
 
               <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe shrink-0 z-10">
-                <Button
-                  className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
-                  onClick={handlePayment}
-                  disabled={paymentMethod === "CASH" && !isCashSufficient}
-                >
-                  ยืนยันการชำระเงิน
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
+                      disabled={paymentMethod === "CASH" && !isCashSufficient}
+                    >
+                      ยืนยันการชำระเงิน
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะเป็น
+                        "ชำระเงินแล้ว" อย่างถาวร
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                      <AlertDialogAction onClick={handlePayment}>
+                        ยืนยัน
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </motion.div>
