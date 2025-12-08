@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import HistoryPaymentPage from "@/components/history/HistoryPaymentPage";
 import prisma from "@/lib/prisma";
 
 const page = async () => {
@@ -14,19 +15,23 @@ const page = async () => {
         include: {
           order: {
             include: {
-              menu: true,
+              menu: {
+                include: {
+                  unitPrice: true,
+                },
+              },
             },
           },
         },
       },
+      creator: true,
     },
     orderBy: {
       updatedAt: "desc",
     },
   });
-  console.log(itemsData);
 
-  return <div>page</div>;
+  return <HistoryPaymentPage initialItems={itemsData} />;
 };
 
 export default page;

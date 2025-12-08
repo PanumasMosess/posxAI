@@ -318,3 +318,42 @@ export interface ReceiptProps {
   change?: number;
   paymentMethod: string;
 }
+
+export type HistoryPayment = {
+  id: number;
+  cashReceived: number;
+  change: number;
+  totalAmount: number;
+  paymentMethod: string;
+  createdAt: Date;
+  creator: {
+    username: string;
+  };
+  runningRef: {
+    runningCode: string;
+    order: {
+      id: number;
+      quantity: number;
+      price_sum: number;
+      price_pre_unit: number;
+      status: string;
+      menu: {
+        id: number;
+        menuName: string;
+        img: string | null;
+        price_sale: number;
+        unit: string;
+        unitPrice: {
+          label: string;
+        };
+      };
+    }[];
+  } | null;
+  table: {
+    tableName: string;
+  } | null;
+};
+
+export interface HistoryPaymentProps {
+  initialItems: HistoryPayment[];
+}
