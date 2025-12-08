@@ -33,7 +33,7 @@ const menuList = [
       },
     ],
   },
-   {
+  {
     title: "การชำระเงิน",
     url: "#",
     icon: Wallet,
@@ -68,10 +68,10 @@ const menuList = [
         title: "ประวัติออเดอร์",
         url: "/history/order",
       },
-      // {
-      //   title: "สูตรและตั้งค่าสินค้าในคลัง",
-      //   url: "/stocks/stock_fomular",
-      // },
+      {
+        title: "ประวัติชำระเงิน",
+        url: "/history/payment",
+      },
     ],
   },
 ];
@@ -159,14 +159,14 @@ const getNextStepConfig = (currentStatus: string) => {
       };
 
     case "COOKING":
-       return {
+      return {
         nextStatus: "COMPLETED",
         label: "เสิร์ฟเรียบร้อย",
       };
-      // return {
-      //   nextStatus: "READY",
-      //   label: "ปรุงเสร็จ / พร้อมเสิร์ฟ",
-      // };
+    // return {
+    //   nextStatus: "READY",
+    //   label: "ปรุงเสร็จ / พร้อมเสิร์ฟ",
+    // };
 
     // case "READY":
     //   return {

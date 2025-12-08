@@ -161,22 +161,24 @@ model table {
 }
 
 model order {
-  id                 Int      @id @default(autoincrement())
-  quantity           Int
-  price_sum          Float
-  price_pre_unit     Float
-  orderDetail        String?
-  order_running_code String?
-  status             String
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  quantity       Int
+  price_sum      Float
+  price_pre_unit Float
+  orderDetail    String?
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  menuId         Int
-  menu           menu          @relation(fields: [menuId], references: [id])
-  tableId        Int
-  table          table         @relation(fields: [tableId], references: [id])
-  organizationId Int?
-  organization   organization? @relation(fields: [organizationId], references: [id])
+  menuId             Int
+  menu               menu          @relation(fields: [menuId], references: [id])
+  tableId            Int
+  table              table         @relation(fields: [tableId], references: [id])
+  organizationId     Int?
+  organization       organization? @relation(fields: [organizationId], references: [id])
+  order_running_code String?
+  orderIdRunning     String?
+  runningRef         orderrunning? @relation(fields: [orderIdRunning], references: [runningCode])
 }
 
 model unitprice {
@@ -212,22 +214,24 @@ model cart {
 
 model orderrunning {
   id          Int      @id @default(autoincrement())
-  runningCode String
+  runningCode String   @unique
   createdAt   DateTime @default(now())
 
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
+
+  order        order[]
+  paymentorder paymentorder?
 }
 
 model paymentorder {
-  id             Int      @id @default(autoincrement())
-  cashReceived   Float
-  change         Float
-  totalAmount    Float
-  orderIdRunning String
-  paymentMethod  String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  cashReceived  Float
+  change        Float
+  totalAmount   Float
+  paymentMethod String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
 
   createdById    Int
   creator        employees     @relation(fields: [createdById], references: [id])
@@ -235,6 +239,8 @@ model paymentorder {
   organization   organization? @relation(fields: [organizationId], references: [id])
   tableId        Int?
   table          table?        @relation(fields: [tableId], references: [id])
+  orderIdRunning String        @unique
+  runningRef     orderrunning? @relation(fields: [orderIdRunning], references: [runningCode])
 }
 
 model organization {
