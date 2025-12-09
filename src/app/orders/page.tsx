@@ -1,18 +1,13 @@
 import { auth } from "@/auth";
 import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
+import { PropsUrl } from "@/lib/type";
 
 export const dynamic = "force-dynamic";
 
-type PropsUrl = {
-  searchParams: {
-    table?: string;
-    organizationId?: string;
-  };
-};
-
-const page = async ({ searchParams }: PropsUrl) => {
+const page = async (props: PropsUrl) => {
   const session = await auth();
+  const searchParams = await props.searchParams;
   const urlOrgId = searchParams.organizationId;
   const sessionOrgId = session?.user.organizationId;
   const organizationId = urlOrgId ? parseInt(urlOrgId) : sessionOrgId;

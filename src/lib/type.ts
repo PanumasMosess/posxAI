@@ -358,3 +358,10 @@ export type HistoryPayment = {
 export interface HistoryPaymentProps {
   initialItems: HistoryPayment[];
 }
+
+export type PropsUrl = {
+  searchParams: Promise<{
+    table?: string;
+    organizationId?: string;
+  }>;
+};
