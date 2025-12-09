@@ -82,7 +82,8 @@ const EditableCell = ({
 
 const column_setting_tables = (
   onUpdateStatus: (id: number, newStatus: string) => void,
-  onUpdateName: (id: number, newName: string) => void
+  onUpdateName: (id: number, newName: string) => void,
+  organizationId: number
 ): ColumnDef<SettingTable>[] => [
   {
     id: "id",
@@ -159,6 +160,7 @@ const column_setting_tables = (
           <TableQRAction
             tableId={row.original.id}
             tableName={row.original.tableName}
+            organizationId={organizationId}
           />
         </div>
       );

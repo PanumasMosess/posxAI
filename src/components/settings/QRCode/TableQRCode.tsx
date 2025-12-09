@@ -18,9 +18,10 @@ import { Label } from "@/components/ui/label";
 interface TableQRActionProps {
   tableId: number;
   tableName: string;
+  organizationId: number;
 }
 
-export const TableQRAction = ({ tableId, tableName }: TableQRActionProps) => {
+export const TableQRAction = ({ tableId, tableName, organizationId }: TableQRActionProps) => {
   const [mounted, setMounted] = useState(false);
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
@@ -38,7 +39,7 @@ export const TableQRAction = ({ tableId, tableName }: TableQRActionProps) => {
     );
   }
 
-  const qrUrl = `${origin}/orders?table=${tableId}`;
+  const qrUrl = `${origin}/orders?table=${tableId}&organizationId=${organizationId}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(qrUrl);

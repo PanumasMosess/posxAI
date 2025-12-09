@@ -30,7 +30,11 @@ const SettingTablesPage = ({ initialItems }: SettingTableProps) => {
     }
   };
 
-  const columns = column_setting_tables(handleStatusChange, onUpdateName);
+  const columns = column_setting_tables(
+    handleStatusChange,
+    onUpdateName,
+    organizationId ?? 1
+  );
   return (
     <div className="w-full space-y-4">
       <div

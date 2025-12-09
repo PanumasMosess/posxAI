@@ -4,9 +4,23 @@ import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const page = async () => {
+type PropsUrl = {
+  searchParams: {
+    table?: string;
+    organizationId?: string;
+  };
+};
+
+const page = async ({ searchParams }: PropsUrl) => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const urlOrgId = searchParams.organizationId;
+  const sessionOrgId = session?.user.organizationId;
+  const organizationId = urlOrgId ? parseInt(urlOrgId) : sessionOrgId;
+
+  if (!organizationId) {
+    return <div>Organization ID not found</div>;
+  }
+
   const itemsData = await prisma.menu.findMany({
     where: {
       status: "READY_TO_SELL",
@@ -50,7 +64,7 @@ const page = async () => {
   const cartData = await prisma.cart.findMany({
     where: {
       status: "ON_CART",
-       organizationId: organizationId,
+      organizationId: organizationId,
     },
     orderBy: {
       id: "desc",
