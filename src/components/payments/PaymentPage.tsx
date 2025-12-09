@@ -525,6 +525,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
               date={new Date().toLocaleString("th-TH")}
               items={selectedOrder.items}
               total={totalAmount}
+              currency={selectedOrder.currency}
               cashReceived={
                 paymentMethod === "CASH"
                   ? parseFloat(cashReceived || "0")
