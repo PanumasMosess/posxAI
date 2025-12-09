@@ -314,6 +314,7 @@ export interface ReceiptProps {
   date: string;
   items: any[];
   total: number;
+  currency: string;
   cashReceived?: number;
   change?: number;
   paymentMethod: string;
