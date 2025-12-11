@@ -33,11 +33,8 @@ const items = menuList.menuList;
 const settingList = menuList.settingsMenu;
 
 const AppSidebar = () => {
-  // ดึงค่า isMobile มาด้วย เพื่อเช็คว่าเป็นมือถือหรือไม่
   const { state, isMobile } = useSidebar();
 
-  // Logic: เราจะถือว่า "หุบ" (Collapsed) ก็ต่อเมื่อ state เป็น collapsed และ *ไม่ใช่* มือถือ
-  // เพราะบนมือถือเราอยากให้โชว์เต็มตลอดเวลาเปิด (Drawer mode)
   const isCollapsed = state === "collapsed" && !isMobile;
 
   return (
@@ -47,7 +44,6 @@ const AppSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="hover:bg-transparent active:bg-transparent">
               <Link href="/home" className="flex justify-center items-center h-full w-full">
-                {/* โลโก้: ถ้าหุบโชว์รูปเล็ก ถ้าเต็มโชว์รูปใหญ่ */}
                 {isCollapsed ? (
                   <div className="flex items-center justify-center w-full">
                      <Image
@@ -80,18 +76,16 @@ const AppSidebar = () => {
               {items.map((item) => {
                 const hasSubItems = item.subItems && item.subItems.length > 0;
 
-                // กรณีที่ 1: ไม่มีเมนูย่อย (เช่น หน้าหลัก)
                 if (!hasSubItems) {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        tooltip={isCollapsed ? item.title : undefined} // โชว์ tooltip เฉพาะตอนหุบ
-                        className={isCollapsed ? "justify-center" : ""} // จัดกึ่งกลางถ้าหุบ
+                        tooltip={isCollapsed ? item.title : undefined} 
+                        className={isCollapsed ? "justify-center" : ""} 
                       >
                         <Link href={item.url} className="py-3 text-base">
                           <item.icon className="h-5 w-5" />
-                          {/* ซ่อนข้อความถ้าหุบอยู่ */}
                           {!isCollapsed && <span className="ml-3">{item.title}</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -99,7 +93,6 @@ const AppSidebar = () => {
                   );
                 }
 
-                // กรณีที่ 2: มีเมนูย่อย และ หุบอยู่ (ใช้ Dropdown)
                 if (isCollapsed) {
                   return (
                     <SidebarMenuItem key={item.title}>
@@ -133,7 +126,6 @@ const AppSidebar = () => {
                   );
                 }
 
-                // กรณีที่ 3: มีเมนูย่อย และ แสดงเต็ม (ใช้ Collapsible)
                 return (
                   <Collapsible key={item.title} asChild className="group/collapsible">
                     <SidebarMenuItem>
