@@ -5,7 +5,7 @@ import MenuOrderHeader from "./MenuOrderHeader";
 import { MenuOrderCard } from "./MenuOrderCard";
 import { useState, useEffect, Suspense } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { Loader2 } from "lucide-react";
+import { Loader2, SearchX } from "lucide-react"; // เพิ่ม SearchX ตรงนี้
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import OrderHandler from "../OrderHandler";
@@ -20,6 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useSession } from "next-auth/react";
+
 const MenuOrderPage = ({
   relatedData,
   initialItems,
@@ -50,7 +51,6 @@ const MenuOrderPage = ({
   };
 
   const handleAddToCart = async (cartItem: CartItem) => {
-    // setCart((prevCart) => [...prevCart, cartItem]);
     cartItem.organizationId = organizationId ?? 1;
     if (tableNumber != 0) {
       cartItem.tableId = tableNumber;
@@ -88,17 +88,6 @@ const MenuOrderPage = ({
 
     const callBlack = await updateMenuInCart(cartItem);
     if (callBlack.success) {
-      // setCart((prevCart) =>
-      //   prevCart.map((item) =>
-      //     item.menuId === menuId
-      //       ? {
-      //           ...item,
-      //           quantity: newQuantity,
-      //           price_sum: priceSum,
-      //         }
-      //       : item
-      //   )
-      // );
       router.refresh();
     }
   };
@@ -110,11 +99,6 @@ const MenuOrderPage = ({
     };
     const callBlack = await deleteMenuInCart(cartItem);
     if (callBlack.success) {
-      // setCart((prevCart) => {
-      // const newCart = prevCart.filter((item) => item.menuId !== menuId);
-      // setCartCount(newCart.length);
-      // return newCart;
-      // });
       router.refresh();
     }
   };
@@ -179,12 +163,6 @@ const MenuOrderPage = ({
     }
   }, [tableNumber, relatedData.cartdatas]);
 
-  // useEffect(() => {
-  //   if (relatedData.cartdatas) {
-  //     setCart(relatedData.cartdatas);
-  //   }
-  // }, [relatedData.cartdatas]);
-
   return (
     <>
       <Suspense
@@ -217,39 +195,61 @@ const MenuOrderPage = ({
           <h2 className="text-5xl text-center mb-10 tracking-wide">
             {filterCategory === "All" ? "เมนูทั้งหมด" : filterCategory}
           </h2>
-          <InfiniteScroll
-            dataLength={currentItems.length}
-            next={loadMoreItems}
-            hasMore={hasMore}
-            loader={
-              <div className="flex justify-center items-center my-4 col-span-full mt-1.5">
-                <Loader2 className="animate-spin h-8 w-8" />
+
+          {/* เริ่มส่วนเช็คเงื่อนไข Empty State */}
+          {currentItems.length > 0 ? (
+            <InfiniteScroll
+              dataLength={currentItems.length}
+              next={loadMoreItems}
+              hasMore={hasMore}
+              loader={
+                <div className="flex justify-center items-center my-4 col-span-full mt-1.5">
+                  <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                </div>
+              }
+              endMessage={
+                <p className="text-center text-muted-foreground my-4 col-span-full">
+                  <b>คุณได้ดูสินค้าทั้งหมดแล้ว</b>
+                </p>
+              }
+              className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
+            >
+              {currentItems.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: (index % itemsPerPage) * 0.1,
+                  }}
+                >
+                  <MenuOrderCard
+                    product={item}
+                    handelOpendetail={handelOpendetail}
+                  />
+                </motion.div>
+              ))}
+            </InfiniteScroll>
+          ) : (
+            /* ส่วนแสดงผลเมื่อไม่มีข้อมูล (Minimal Style) */
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center py-24 text-muted-foreground"
+            >
+              <div className="bg-gray-100 dark:bg-zinc-800 p-6 rounded-full mb-6">
+                <SearchX className="w-12 h-12 opacity-50" />
               </div>
-            }
-            endMessage={
-              <p className="text-center text-muted-foreground my-4 col-span-full">
-                <b>คุณได้ดูสินค้าทั้งหมดแล้ว</b>
+              <h3 className="text-xl font-medium mb-2">ไม่พบรายการสินค้า</h3>
+              <p className="text-sm opacity-80">
+                ลองตรวจสอบคำค้นหา หรือเลือกหมวดหมู่อื่นดูนะครับ
               </p>
-            }
-            className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6"
-          >
-            {currentItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.4,
-                  delay: (index % itemsPerPage) * 0.1,
-                }}
-              >
-                <MenuOrderCard
-                  product={item}
-                  handelOpendetail={handelOpendetail}
-                />
-              </motion.div>
-            ))}
-          </InfiniteScroll>
+            </motion.div>
+          )}
+          {/* จบส่วนเช็คเงื่อนไข */}
+
         </main>
         <AnimatePresence>
           {isOpenDetail && (

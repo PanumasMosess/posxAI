@@ -42,12 +42,18 @@ const AppSidebar = () => {
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="hover:bg-transparent active:bg-transparent">
-              <Link href="/home" className="flex justify-center items-center h-full w-full">
+            <SidebarMenuButton
+              asChild
+              className="hover:bg-transparent active:bg-transparent"
+            >
+              <Link
+                href="/home"
+                className="flex justify-center items-center h-full w-full"
+              >
                 {isCollapsed ? (
                   <div className="flex items-center justify-center w-full">
-                     <Image
-                      src="/icon.png" 
+                    <Image
+                      src="/icon.png"
                       alt="logo-icon"
                       width={40}
                       height={40}
@@ -56,7 +62,7 @@ const AppSidebar = () => {
                   </div>
                 ) : (
                   <Image
-                    src="/POSX_2.png" 
+                    src="/POSX_2.png"
                     alt="logo-full"
                     width={160}
                     height={80}
@@ -79,14 +85,16 @@ const AppSidebar = () => {
                 if (!hasSubItems) {
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
-                        tooltip={isCollapsed ? item.title : undefined} 
-                        className={isCollapsed ? "justify-center" : ""} 
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={isCollapsed ? item.title : undefined}
+                        className={isCollapsed ? "justify-center" : ""}
                       >
                         <Link href={item.url} className="py-3 text-base">
                           <item.icon className="h-5 w-5" />
-                          {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                          {!isCollapsed && (
+                            <span className="ml-3">{item.title}</span>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -99,8 +107,8 @@ const AppSidebar = () => {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <SidebarMenuButton className="justify-center py-3 text-base">
-                             <item.icon className="h-5 w-5" />
-                             <span className="sr-only">{item.title}</span>
+                            <item.icon className="h-5 w-5" />
+                            <span className="sr-only">{item.title}</span>
                           </SidebarMenuButton>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
@@ -115,7 +123,10 @@ const AppSidebar = () => {
                               className="w-full justify-start"
                               asChild
                             >
-                              <Link href={subItem.url}>
+                              <Link
+                                href={subItem.url}
+                                target={subItem.target || "_self"}
+                              >
                                 {subItem.title}
                               </Link>
                             </SidebarMenuButton>
@@ -127,31 +138,38 @@ const AppSidebar = () => {
                 }
 
                 return (
-                  <Collapsible key={item.title} asChild className="group/collapsible">
+                  <Collapsible
+                    key={item.title}
+                    asChild
+                    className="group/collapsible"
+                  >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton className="w-full justify-between py-3 text-base">
                           <div className="flex items-center">
-                             <item.icon className="mr-3 h-5 w-5" />
+                            <item.icon className="mr-3 h-5 w-5" />
                             <span>{item.title}</span>
                           </div>
                           <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="flex flex-col gap-1 pl-9 py-1"> 
-                            {/* pl-9 เพื่อย่อหน้าเมนูย่อยให้สวยงาม */}
-                            {item.subItems!.map((subItem) => (
-                              <SidebarMenuButton
-                                key={subItem.title}
-                                asChild
-                                className="text-sm h-9"
+                        <div className="flex flex-col gap-1 pl-9 py-1">
+                          {/* pl-9 เพื่อย่อหน้าเมนูย่อยให้สวยงาม */}
+                          {item.subItems!.map((subItem) => (
+                            <SidebarMenuButton
+                              key={subItem.title}
+                              asChild
+                              className="text-sm h-9"
+                            >
+                              <Link
+                                href={subItem.url}
+                                target={subItem.target || "_self"}
                               >
-                                <Link href={subItem.url}>
-                                  {subItem.title}
-                                </Link>
-                              </SidebarMenuButton>
-                            ))}
+                                {subItem.title}
+                              </Link>
+                            </SidebarMenuButton>
+                          ))}
                         </div>
                       </CollapsibleContent>
                     </SidebarMenuItem>
@@ -168,25 +186,29 @@ const AppSidebar = () => {
           {/* Settings Menu */}
           {isCollapsed ? (
             <SidebarMenuItem>
-                <DropdownMenu>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton className="justify-center py-3">
-                        <settingList.icon className="h-[1.2rem] w-[1.2rem]" />
-                    </SidebarMenuButton>
+                  <SidebarMenuButton className="justify-center py-3">
+                    <settingList.icon className="h-[1.2rem] w-[1.2rem]" />
+                  </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" className="w-48">
-                    {settingList.subItems.map((subItem) => (
+                <DropdownMenuContent
+                  side="right"
+                  align="start"
+                  className="w-48"
+                >
+                  {settingList.subItems.map((subItem) => (
                     <SidebarMenuButton
-                        key={subItem.title}
-                        variant="ghost"
-                        className="w-full justify-start"
-                        asChild
+                      key={subItem.title}
+                      variant="ghost"
+                      className="w-full justify-start"
+                      asChild
                     >
-                        <Link href={subItem.url}>{subItem.title}</Link>
+                      <Link href={subItem.url}>{subItem.title}</Link>
                     </SidebarMenuButton>
-                    ))}
+                  ))}
                 </DropdownMenuContent>
-                </DropdownMenu>
+              </DropdownMenu>
             </SidebarMenuItem>
           ) : (
             <Collapsible className="group/collapsible">
@@ -201,15 +223,15 @@ const AppSidebar = () => {
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                   <div className="flex flex-col gap-1 pl-9 py-1">
+                  <div className="flex flex-col gap-1 pl-9 py-1">
                     {settingList.subItems.map((subItem) => (
-                        <SidebarMenuButton
+                      <SidebarMenuButton
                         key={subItem.title}
                         asChild
                         className="text-sm h-9"
-                        >
+                      >
                         <Link href={subItem.url}>{subItem.title}</Link>
-                        </SidebarMenuButton>
+                      </SidebarMenuButton>
                     ))}
                   </div>
                 </CollapsibleContent>

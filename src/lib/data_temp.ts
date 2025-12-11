@@ -26,6 +26,7 @@ const menuList = [
       {
         title: "เมนู (สั่งอาหาร) *ตัวอย่าง",
         url: "/orders?table=0",
+        target: "_blank",
       },
       {
         title: "ครัว",
