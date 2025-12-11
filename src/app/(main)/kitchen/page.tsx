@@ -18,7 +18,7 @@ const page = async () => {
       table: true,
     },
     orderBy: {
-      id: "asc",
+      id: "desc",
     },
   });
 
