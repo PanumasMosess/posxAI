@@ -5,7 +5,7 @@ import MenuOrderHeader from "./MenuOrderHeader";
 import { MenuOrderCard } from "./MenuOrderCard";
 import { useState, useEffect, Suspense } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { Loader2, SearchX } from "lucide-react"; // เพิ่ม SearchX ตรงนี้
+import { Loader2, SearchX } from "lucide-react"; 
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
 import OrderHandler from "../OrderHandler";
@@ -196,7 +196,6 @@ const MenuOrderPage = ({
             {filterCategory === "All" ? "เมนูทั้งหมด" : filterCategory}
           </h2>
 
-          {/* เริ่มส่วนเช็คเงื่อนไข Empty State */}
           {currentItems.length > 0 ? (
             <InfiniteScroll
               dataLength={currentItems.length}
@@ -232,7 +231,6 @@ const MenuOrderPage = ({
               ))}
             </InfiniteScroll>
           ) : (
-            /* ส่วนแสดงผลเมื่อไม่มีข้อมูล (Minimal Style) */
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -248,7 +246,6 @@ const MenuOrderPage = ({
               </p>
             </motion.div>
           )}
-          {/* จบส่วนเช็คเงื่อนไข */}
 
         </main>
         <AnimatePresence>
