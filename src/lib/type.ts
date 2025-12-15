@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "./formValidationSchemas";
+import { type } from "os";
 
 export type StocksFormularRunning = {
   id: number;
@@ -365,3 +366,40 @@ export type PropsUrl = {
     organizationId?: string;
   }>;
 };
+
+export interface PrintTicketData {
+  menuName: string;
+  totalQuantity: number | undefined;
+  orders: any[];
+  printerName: string;
+}
+
+export type Printer = {
+  id: number;
+  printerName: string | null;
+  urlCertificate: string | null;
+  urlSignature: string | null;
+  stationUse: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  creator: {
+    name: string;
+    surname: string;
+  };
+};
+
+export type Station = {
+  id: number;
+  stationName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  creator: {
+    name: string;
+    surname: string;
+  };
+};
+
+export interface PrinterProps {
+  initialItems: Printer[];
+  reationData: Station[];
+}

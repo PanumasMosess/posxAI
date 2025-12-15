@@ -36,8 +36,11 @@ model employees {
   menu           menu[]
   table          table[]
   paymentorders  paymentorder[]
+  printers       printer[]
+
   organizationId Int?
-  organization   organization?   @relation(fields: [organizationId], references: [id])
+  organization   organization? @relation(fields: [organizationId], references: [id])
+  stations       station[]
 }
 
 model categorystock {
@@ -261,4 +264,33 @@ model organization {
   formularstocks formularstock[]
   order_runnings orderrunning[]
   paymentorders  paymentorder[]
+  printers       printer[]
+  stations       station[]
+}
+
+model printer {
+  id             Int      @id @default(autoincrement())
+  printerName    String?
+  urlCertificate String?
+  urlSignature   String?
+  stationUse     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+  createdById    Int
+  creator        employees     @relation(fields: [createdById], references: [id])
+}
+
+model station {
+  id          Int      @id @default(autoincrement())
+  stationName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+  createdById    Int
+  creator        employees     @relation(fields: [createdById], references: [id])
 }

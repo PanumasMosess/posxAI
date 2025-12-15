@@ -1,6 +1,7 @@
 import {
   Computer,
   Home,
+  Printer,
   ScrollText,
   Settings,
   Table,
@@ -80,7 +81,10 @@ const menuList = [
 const settingsMenu = {
   title: "ตั้งค่า",
   icon: Settings,
-  subItems: [{ title: "จัดการโต๊ะ", url: "/settings/tables", icon: Table }],
+  subItems: [
+    { title: "จัดการโต๊ะ", url: "/settings/tables", icon: Table },
+    { title: "จัดการเครื่องปริ้น", url: "/settings/printers", icon: Printer },
+  ],
 };
 
 const statusColor = (status: string) => {
