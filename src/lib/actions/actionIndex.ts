@@ -4,9 +4,11 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
+import { KEYUTIL, KJUR, stob64, hextorstr } from "jsrsasign";
 
 const s3Client = new S3Client({
   endpoint: process.env.ENDPOINT!,
@@ -113,7 +115,10 @@ export const menu_handleImageUpload = async (file: File): Promise<string> => {
   return result.url.split("?")[0];
 };
 
-export const menu_getPresignedUrl = async (fileType: string, fileSize: number) => {
+export const menu_getPresignedUrl = async (
+  fileType: string,
+  fileSize: number
+) => {
   try {
     if (fileSize > 10 * 1024 * 1024) {
       return { success: false, error: "File size must be less than 10MB" };
@@ -184,3 +189,85 @@ export const deleteFileS3 = async (key: string) => {
     return { success: false, error: error };
   }
 };
+
+export async function uploadCertToS3(formData: FormData) {
+  try {
+    const certFile = formData.get("cert") as File | null;
+    const keyFile = formData.get("key") as File | null;
+    const organizationId = formData.get("organizationId");
+
+    if (!certFile && !keyFile) {
+      return { success: false, message: "ไม่พบไฟล์ที่เลือก" };
+    }
+
+    const uploadFile = async (file: File, keyName: string) => {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET!,
+          Key: `uploads/certs/${keyName}`,
+          Body: buffer,
+          ContentType: "text/plain",
+        })
+      );
+    };
+
+    if (certFile)
+      await uploadFile(certFile, `digital-certificate_${organizationId}.txt`);
+    if (keyFile) await uploadFile(keyFile, `private-key_${organizationId}.txt`);
+
+    return { success: true, message: "อัปโหลดไฟล์ไปยัง S3 สำเร็จ" };
+  } catch (error) {
+    console.error("S3 Upload Error:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการอัปโหลด" };
+  }
+}
+
+export async function getCertContentFromS3(fileName: string) {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET!,
+      Key: `uploads/certs/${fileName}`,
+    });
+
+    const response = await s3Client.send(command);
+
+    const str = await response.Body?.transformToString();
+
+    if (!str) throw new Error("File empty");
+
+    return { success: true, data: str };
+  } catch (error) {
+    console.error(`S3 Read Error (${fileName}):`, error);
+    return { success: false, data: null };
+  }
+}
+
+export async function signDataWithS3Key(
+  toSign: string,
+  organizationId: string
+) {
+  try {
+    const keyRes = await getCertContentFromS3(
+      `private-key_${organizationId}.txt`
+    );
+
+    if (!keyRes.success || !keyRes.data) {
+      throw new Error("หา Private Key บน S3 ไม่เจอ");
+    }
+
+    const privateKeyContent = keyRes.data;
+    var pk = KEYUTIL.getKey(privateKeyContent);
+    var sig = new KJUR.crypto.Signature({ alg: "SHA1withRSA" });
+    sig.init(pk);
+    sig.updateString(toSign);
+    var hex = sig.sign();
+
+    return { success: true, data: stob64(hextorstr(hex)) };
+  } catch (error) {
+    console.error("Server Signing Error:", error);
+    return { success: false, message: "Server Signing Failed" };
+  }
+}

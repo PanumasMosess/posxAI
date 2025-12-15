@@ -96,3 +96,12 @@ export const TableSchema_ = z.object({
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
 });
 export type TableSchema = z.infer<typeof TableSchema_>;
+
+export const PrinterSchema_ = z.object({
+  id: z.number().optional(),
+  printerName: z.string().min(1, { message: "กรุณากรอกชื่อสินค้า" }).max(50),
+  stationUse: z.string().optional(),
+  createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
+  organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
+});
+export type PrinterSchema = z.infer<typeof PrinterSchema_>;

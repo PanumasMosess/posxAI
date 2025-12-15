@@ -1,7 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, UtensilsCrossed, X, Layers } from "lucide-react";
+import {
+  Check,
+  UtensilsCrossed,
+  X,
+  Layers,
+  Printer,
+  Loader2,
+} from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -23,6 +31,9 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import { KitchecTicketProps } from "@/lib/type";
+import { toast } from "react-toastify";
+import { printToKitchen } from "@/lib/printers/qz-service-kitchen";
+import { useSession } from "next-auth/react";
 
 const KitchenTicket = ({
   initialItems: group,
@@ -32,7 +43,38 @@ const KitchenTicket = ({
   const { nextStatus, label: buttonLabel } = statusColorList.getNextStepConfig(
     group.status
   );
+  const session = useSession();
+  const organizationId = session.data?.user.organizationId ?? 0;
   const statusBadge = statusColorList.getStatusBadgeConfig(group.status);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  // 2. แก้ไข handlePrint ให้ใช้ QZ Tray
+  const handlePrint = async () => {
+    setIsPrinting(true);
+    try {
+      // เรียกใช้ QZ Service
+      const result = await printToKitchen(
+        {
+          menuName: group.menu.menuName,
+          totalQuantity: group.totalQuantity,
+          orders: group.orders || [],
+          printerName: "POS-80",
+        },
+        organizationId
+      );
+
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error("QZ Tray Error: " + result.message);
+      }
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+  // ----------------------------------------------------
 
   return (
     <Card
@@ -45,7 +87,7 @@ const KitchenTicket = ({
       `}
     >
       <CardHeader className="flex flex-row justify-between items-start px-4 pt-5 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex flex-col max-w-[70%]">
+        <div className="flex flex-col max-w-[60%]">
           {(group.orders?.length || 0) > 1 && (
             <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1 mb-1">
               <Layers className="h-3 w-3" /> GROUPED ({group.orders?.length})
@@ -55,10 +97,29 @@ const KitchenTicket = ({
             {group.menu.menuName}
           </span>
         </div>
-        <Badge variant="outline" className={`${statusBadge.color} border`}>
-          {statusBadge.label}
-        </Badge>
+
+        {/* ปุ่ม Print */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            onClick={handlePrint}
+            disabled={isPrinting}
+            title="พิมพ์ใบออเดอร์"
+          >
+            {isPrinting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Printer className="h-4 w-4" />
+            )}
+          </Button>
+          <Badge variant="outline" className={`${statusBadge.color} border`}>
+            {statusBadge.label}
+          </Badge>
+        </div>
       </CardHeader>
+
       <CardContent className="p-0">
         <div className="p-4 flex items-center gap-4 bg-zinc-50/50 dark:bg-zinc-900/50">
           <Avatar className="h-16 w-16 rounded-lg border border-border/50">
