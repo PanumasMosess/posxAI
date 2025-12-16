@@ -28,6 +28,14 @@ import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { createPrinter } from "@/lib/actions/actionSettings";
+import { Station } from "@/lib/type";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const SettingFormPrinter = ({
   type,
@@ -35,12 +43,14 @@ const SettingFormPrinter = ({
   organizationId,
   stateSheet,
   stateForm,
+  reationData,
 }: {
   type: "create" | "update";
   currentUserId: number;
   organizationId: number;
   stateSheet: Dispatch<SetStateAction<boolean>>;
   stateForm: boolean;
+  reationData: Station[];
 }) => {
   const formAddPrinter = useForm<PrinterSchema>({
     resolver: zodResolver(PrinterSchema_),
@@ -66,7 +76,7 @@ const SettingFormPrinter = ({
       setIsSubmitting(true);
       const finalData = { ...dataForm };
       startTransition(async () => {
-          formAction(finalData);
+        formAction(finalData);
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "เกิดข้อผิดพลาด");
@@ -89,7 +99,9 @@ const SettingFormPrinter = ({
       onInteractOutside={(e) => e.preventDefault()}
     >
       <SheetHeader className="px-6 pt-6 pb-4">
-        <SheetTitle>{type === "create" ? "เพิ่มปริ้นเตอร์" : "แก้ไขปริ้นเตอร์"}</SheetTitle>
+        <SheetTitle>
+          {type === "create" ? "เพิ่มปริ้นเตอร์" : "แก้ไขปริ้นเตอร์"}
+        </SheetTitle>
       </SheetHeader>
       <div className="flex-1 overflow-y-auto">
         <Form {...formAddPrinter}>
@@ -117,10 +129,33 @@ const SettingFormPrinter = ({
               name="stationUse"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>สถาที่ใช้ปริ้น</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
+                  <FormLabel>สถานที่ใช้ปริ้น</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกจุดใช้งาน" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {reationData && reationData.length > 0 ? (
+                        reationData.map((station) => (
+                          <SelectItem
+                            key={station.id}
+                            value={station.stationName || ""}
+                          >
+                            {station.stationName || "ไม่มีชื่อระบุ"}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-sm text-center text-muted-foreground">
+                          ไม่พบข้อมูล Station
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

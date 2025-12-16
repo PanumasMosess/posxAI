@@ -4,7 +4,10 @@ import { Data_table_setting_printers } from "../tables/data-table-setting-printe
 import column_setting_printers from "../tables/column_setting_printer";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { updateNamePrinter, updateStationUse } from "@/lib/actions/actionSettings";
+import {
+  updateNamePrinter,
+  updateStationUse,
+} from "@/lib/actions/actionSettings";
 
 const SettingPrinterPage = ({ initialItems, reationData }: PrinterProps) => {
   const session = useSession();
@@ -52,6 +55,7 @@ const SettingPrinterPage = ({ initialItems, reationData }: PrinterProps) => {
               data={initialItems}
               userId={parseInt(id_user)}
               organizationId={organizationId ?? 1}
+              reationdata={reationData}
             />
           </div>
         </div>
