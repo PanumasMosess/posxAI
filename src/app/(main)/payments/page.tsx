@@ -22,7 +22,21 @@ const page = async () => {
       id: "asc",
     },
   });
-  return <PaymentPage initialItems={itemsData} />;
+
+  const printerData = await prisma.printer.findFirst({
+      where: {
+        organizationId: organizationId,
+        stationUse: "แคชเชียร์",
+      },
+      include: {
+        creator: true,
+      },
+      orderBy: {
+        createdAt: "desc", 
+      },
+    });
+
+  return <PaymentPage initialItems={itemsData} reationdata={printerData}/>;
 };
 
 export default page;
