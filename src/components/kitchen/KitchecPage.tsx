@@ -7,8 +7,9 @@ import { updateStatusOrder } from "@/lib/actions/actionMenu";
 import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
-const KitchecPage = ({ initialItems }: KitchecOrderList) => {
+const KitchecPage = ({ initialItems, reationdata }: KitchecOrderList) => {
   const router = useRouter();
+
 
   const onStatusChange = async (idOrder: number | number[], status: string) => {
     if (Array.isArray(idOrder)) {
@@ -97,6 +98,7 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
             initialItems={group}
             onStatusChange={onStatusChange}
             isGrouped={true}
+            printerName= {reationdata?.printerName}
           />
         ))
       )}

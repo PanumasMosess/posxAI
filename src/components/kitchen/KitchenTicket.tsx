@@ -39,6 +39,7 @@ const KitchenTicket = ({
   initialItems: group,
   onStatusChange,
   isGrouped = false,
+  printerName
 }: KitchecTicketProps) => {
   const { nextStatus, label: buttonLabel } = statusColorList.getNextStepConfig(
     group.status
@@ -48,17 +49,15 @@ const KitchenTicket = ({
   const statusBadge = statusColorList.getStatusBadgeConfig(group.status);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // 2. แก้ไข handlePrint ให้ใช้ QZ Tray
   const handlePrint = async () => {
     setIsPrinting(true);
     try {
-      // เรียกใช้ QZ Service
       const result = await printToKitchen(
         {
           menuName: group.menu.menuName,
           totalQuantity: group.totalQuantity,
           orders: group.orders || [],
-          printerName: "POS-80",
+          printerName: printerName ?? "POS-80",
         },
         organizationId
       );
@@ -97,8 +96,6 @@ const KitchenTicket = ({
             {group.menu.menuName}
           </span>
         </div>
-
-        {/* ปุ่ม Print */}
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
