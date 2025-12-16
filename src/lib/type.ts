@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "./formValidationSchemas";
-import { type } from "os";
 
 export type StocksFormularRunning = {
   id: number;
@@ -262,12 +261,14 @@ export type KitchecOrder = {
 
 export interface KitchecOrderList {
   initialItems: KitchecOrder[];
+  reationdata: Printer | null;
 }
 
 export interface KitchecTicketProps {
   initialItems: KitchecOrder;
   onStatusChange: (id: number | number[], status: string) => void;
   isGrouped?: boolean;
+  printerName?: string | null;
 }
 
 export type HistoryOrder = {
