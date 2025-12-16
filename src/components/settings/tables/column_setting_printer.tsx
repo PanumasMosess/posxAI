@@ -19,7 +19,7 @@ const EditableCell = ({
   onUpdate?: (id: number, newValue: string) => void;
 }) => {
   const initialValue = getValue();
-  const [value, setValue] = useState(initialValue || ""); // Handle null
+  const [value, setValue] = useState(initialValue || ""); 
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 

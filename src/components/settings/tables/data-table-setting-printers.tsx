@@ -52,12 +52,14 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   userId: number;
   organizationId: number;
+  reationdata: any[];
 }
 export function Data_table_setting_printers<TData, TValue>({
   columns,
   data,
   userId,
   organizationId,
+  reationdata
 }: DataTableProps<TData, TValue>) {
   const [openSheetInsertPrinter, setOpenSheetInsertPrinter] = useState(false);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
@@ -245,6 +247,7 @@ export function Data_table_setting_printers<TData, TValue>({
               organizationId={organizationId ?? 1}
               stateSheet={setOpenSheetInsertPrinter}
               stateForm={openSheetInsertPrinter}
+              reationData={reationdata}
             />
           </Sheet>
         </div>
