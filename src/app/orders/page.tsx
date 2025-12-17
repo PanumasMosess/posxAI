@@ -89,10 +89,33 @@ const page = async (props: PropsUrl) => {
     },
   });
 
+  const orerData = await prisma.order.findMany({
+    where: {
+      status: {
+        notIn: ["CANCELLED", "PAY_COMPLETED"],
+      },
+      organizationId: organizationId,
+    },
+    include: {
+      menu: {
+        include: {
+          unitPrice: true,
+        },
+      },
+      table: true,
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+  // console.dir(JSON.stringify(orerData));
+  
   const relatedData = {
     categories: categoriesData,
     tabledatas: tableData,
     cartdatas: cartData,
+    orders: orerData,
   };
 
   return (
