@@ -36,6 +36,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MenuOrderHistorySheet } from "./MenuOrderHistorySheet";
 
 const MenuOrderPage = ({
   relatedData,
@@ -60,6 +61,7 @@ const MenuOrderPage = ({
   const [tableNumber, setTableNumber] = useState(0);
   const [cartCount, setCartCount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Extract Categories
   const categories = useMemo(() => {
@@ -221,16 +223,15 @@ const MenuOrderPage = ({
       <div className="relative">
         <div className="h-40 w-full bg-primary relative overflow-hidden">
           <Image
-            src="/POSX_2.png" 
+            src="/banner_posx_menu.jpeg"
             alt="Banner Background"
-            fill 
-            className="object-cover" 
-            priority 
+            fill
+            className="object-cover"
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40 opacity-90 z-10" />
 
-          <div className="absolute top-4 right-4 text-primary-foreground text-xs opacity-70 z-20">
-          </div>
+          <div className="absolute top-4 right-4 text-primary-foreground text-xs opacity-70 z-20"></div>
         </div>
 
         <div className="relative -mt-16 mx-4 mb-4 z-10">
@@ -373,7 +374,10 @@ const MenuOrderPage = ({
           <span className="text-[10px] font-medium">ตะกร้า</span>
         </button>
 
-        <button className="flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary w-1/3">
+        <button
+          className="flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary w-1/3"
+          onClick={() => setIsHistoryOpen(true)}
+        >
           <ClipboardList size={24} />
           <span className="text-[10px] font-medium">รายการ</span>
         </button>
@@ -517,6 +521,11 @@ const MenuOrderPage = ({
           </div>
         </SheetContent>
       </Sheet>
+
+      <MenuOrderHistorySheet
+        isOpen={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+      />
 
       <AnimatePresence>
         {isOpenDetail && (
