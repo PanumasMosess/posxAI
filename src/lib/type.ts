@@ -86,6 +86,47 @@ export interface MenuPOSPageClientProps {
       price_pre_unit: number;
       organizationId: number | null;
     }[];
+    orders?: {
+      id: number;
+      quantity: number;
+      price_sum: number;
+      price_pre_unit: number;
+      orderDetail: any | null;
+      status: string;
+      createdAt: Date | string;
+      updatedAt: Date | string;
+      menuId: number;
+      tableId: number;
+      organizationId: number | null;
+      order_running_code: string | null;
+      menu: {
+        id: number;
+        menuName: string;
+        price_sale: number;
+        price_cost: number;
+        unit: string;
+        img: string | null;
+        description: string | null;
+        status: string;
+        createdAt: Date | string;
+        updatedAt: Date | string;
+        createdById: number;
+        categoryMenuId: number;
+        unitPriceId: number;
+        organizationId: number | null;
+      };
+      table: {
+        id: number;
+        status: string;
+        tableName: string;
+        tableBookingBy: string | null;
+        cashType: string | null;
+        createdAt: Date | string;
+        updatedAt: Date | string;
+        closeById: number | null;
+        organizationId: number | null;
+      };
+    }[];
   };
 }
 
@@ -403,4 +444,89 @@ export type Station = {
 export interface PrinterProps {
   initialItems: Printer[];
   reationData: Station[];
+}
+
+export interface OrderHistoryList {
+  id: number;
+  quantity: number;
+  price_sum: number;
+  price_pre_unit: number;
+  status: string;
+  createdAt: Date | string;
+  tableId: number;
+  order_running_code: string | null;
+  menu: {
+    id: number;
+    menuName: string;
+    img: string | null;
+    unitPrice?: {
+      label: string;
+    };
+  };
+  table: {
+    tableName: string;
+  };
+}
+
+export interface MenuOrderHistorySheetProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  relatedData: {
+    categories: { id: number; categoryName: string }[];
+    tabledatas: { id: number; tableName: string }[];
+    cartdatas: {
+      id: number;
+      menuId: number;
+      tableId: number;
+      quantity: number;
+      price_sum: number;
+      price_pre_unit: number;
+      organizationId: number | null;
+    }[];
+    orders?: {
+      id: number;
+      quantity: number;
+      price_sum: number;
+      price_pre_unit: number;
+      orderDetail: any | null;
+      status: string;
+      createdAt: Date | string;
+      updatedAt: Date | string;
+      menuId: number;
+      tableId: number;
+      organizationId: number | null;
+      order_running_code: string | null;
+      menu: {
+        id: number;
+        menuName: string;
+        price_sale: number;
+        price_cost: number;
+        unit: string;
+        img: string | null;
+        description: string | null;
+        status: string;
+        createdAt: Date | string;
+        updatedAt: Date | string;
+        createdById: number;
+        categoryMenuId: number;
+        unitPriceId: number;
+        organizationId: number | null;
+        unitPrice?: {
+          label: string;
+        };
+      };
+      table: {
+        id: number;
+        status: string;
+        tableName: string;
+        tableBookingBy: string | null;
+        cashType: string | null;
+        createdAt: Date | string;
+        updatedAt: Date | string;
+        closeById: number | null;
+        organizationId: number | null;
+      };
+    }[];
+  };
+  tableNumber: number;
 }

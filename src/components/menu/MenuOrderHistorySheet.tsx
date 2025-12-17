@@ -1,50 +1,85 @@
+import { useMemo } from "react";
 import {
   Sheet,
   SheetContent,
   SheetClose,
-  SheetTitle, // 1. Import SheetTitle เพิ่มเข้ามา
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown} from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import Image from "next/image";
-
-// Mock Data ... (เหมือนเดิม)
-const MOCK_ORDER_HISTORY = [
-  {
-    round: 1,
-    time: "เมื่อสักครู่",
-    items: [
-      {
-        id: 101,
-        name: "เนื้อ Brisket ออสเตรเลีย (ถาดใหญ่)",
-        price: 0,
-        qty: 1,
-        status: "ออเดอร์เข้าระบบแล้ว",
-        image: null,
-      },
-      // ... items อื่นๆ
-      {
-        id: 105,
-        name: "สันคอหมูสไลด์ (ถาดกลาง)",
-        price: 0,
-        qty: 1,
-        status: "ออเดอร์เข้าระบบแล้ว",
-        image: null,
-      },
-    ],
-  },
-];
-
-interface MenuOrderHistorySheetProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import { MenuOrderHistorySheetProps, OrderHistoryList } from "@/lib/type";
 
 export const MenuOrderHistorySheet = ({
   isOpen,
   onOpenChange,
+  relatedData,
+  tableNumber,
 }: MenuOrderHistorySheetProps) => {
+  const { historyData, grandTotal, currency } = useMemo(() => {
+    const rawOrders: OrderHistoryList[] = relatedData?.orders || [];
+
+    const filteredOrders = rawOrders.filter((order) => {
+      if (tableNumber === 0) return true;
+      return order.tableId === tableNumber;
+    });
+
+    const groups: Record<string, { time: Date | string; items: any[] }> = {};
+    let total = 0;
+
+    filteredOrders.forEach((order) => {
+      total += order.quantity * order.price_pre_unit;
+
+      const groupKey = new Date(order.createdAt).toISOString();
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          time: order.createdAt,
+          items: [],
+        };
+      }
+
+      groups[groupKey].items.push({
+        id: order.id,
+        name: order.menu.menuName,
+        price: order.price_pre_unit,
+        lable: order.menu.unitPrice?.label,
+        qty: order.quantity,
+        status: order.status,
+        image: order.menu.img,
+      });
+    });
+
+    const sortedGroups = Object.values(groups).sort(
+      (a: any, b: any) =>
+        new Date(b.time).getTime() - new Date(a.time).getTime()
+    );
+
+    const formattedData = sortedGroups.map((group, index) => {
+      const dateObj = new Date(group.time);
+      return {
+        round: sortedGroups.length - index,
+        time: dateObj.toLocaleTimeString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        items: group.items,
+      };
+    });
+
+    const foundCurrency =
+      filteredOrders.length > 0
+        ? filteredOrders[0].menu?.unitPrice?.label
+        : "Bath";
+
+    return {
+      historyData: formattedData,
+      grandTotal: total,
+      currency: foundCurrency,
+    };
+  }, [relatedData, tableNumber]);
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
@@ -53,7 +88,9 @@ export const MenuOrderHistorySheet = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <SheetTitle className="text-lg font-bold">รายการที่สั่ง</SheetTitle>
+          <SheetTitle className="text-lg font-bold">
+            รายการที่สั่ง {tableNumber !== 0 && `(โต๊ะ ${tableNumber})`}
+          </SheetTitle>
 
           <div className="flex items-center gap-2 pr-8">
             <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -65,68 +102,72 @@ export const MenuOrderHistorySheet = ({
         {/* Content List */}
         <ScrollArea className="flex-1 bg-muted/20">
           <div className="p-4 flex flex-col gap-6">
-            {MOCK_ORDER_HISTORY.map((group) => (
-              <div key={group.round}>
-                {/* Round Header */}
-                <div className="flex items-center gap-3 mb-3 px-1">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold text-muted-foreground">
-                    {group.round}
-                  </span>
-                  <span className="font-semibold text-sm">
-                    รอบที่ {group.round}
-                  </span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {group.time}
-                  </span>
-                </div>
-
-                {/* Items in Round */}
-                <div className="flex flex-col gap-2">
-                  {group.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-card rounded-lg border border-border p-3 flex gap-3 shadow-sm"
-                    >
-                      {/* Item Image */}
-                      <div className="w-12 h-16 bg-muted rounded flex-shrink-0 relative overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center text-[10px] text-muted-foreground">
-                          IMG
-                        </div>
-                        {item.image && (
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-
-                      {/* Item Details */}
-                      <div className="flex-1 flex flex-col justify-between">
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-sm font-medium text-foreground line-clamp-2 w-[80%]">
-                            {item.name}
-                          </h4>
-                          <span className="text-sm font-bold text-foreground">
-                            {item.price} บาท
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-end mt-2">
-                          <span className="text-xs text-orange-500 font-medium bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded">
-                            {item.status}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {item.qty} x {item.price} บาท
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {historyData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                <span>ไม่มีรายการออเดอร์</span>
               </div>
-            ))}
+            ) : (
+              historyData.map((group, gIndex) => (
+                <div key={gIndex}>
+                  <div className="flex items-center gap-3 mb-3 px-1">
+                    <span className="font-semibold text-sm text-foreground">
+                      รอบเวลา {group.time} น.
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {group.items.length} รายการ
+                    </span>
+                  </div>
+
+                  {/* Items in Round */}
+                  <div className="flex flex-col gap-2">
+                    {group.items.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="bg-card rounded-lg border border-border p-3 flex gap-3 shadow-sm"
+                      >
+                        {/* Item Image */}
+                        <div className="w-12 h-16 bg-muted rounded flex-shrink-0 relative overflow-hidden">
+                          {item.image ? (
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-[10px] text-muted-foreground">
+                              IMG
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Item Details */}
+                        <div className="flex-1 flex flex-col justify-between">
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-sm font-medium text-foreground line-clamp-2 w-[80%]">
+                              {item.name}
+                            </h4>
+                            <span className="text-sm font-bold text-foreground">
+                              {item.price.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-end mt-2">
+                            <span className="text-xs text-orange-500 font-medium bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded">
+                              {item.status}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {item.qty} x {item.price.toLocaleString()}{" "}
+                              {item.lable}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </ScrollArea>
 
@@ -136,7 +177,9 @@ export const MenuOrderHistorySheet = ({
             <span className="text-muted-foreground">
               ยอดรวม (ราคานี้ยังไม่รวมภาษีมูลค่าเพิ่ม)
             </span>
-            <span className="font-bold text-lg">0 บาท</span>
+            <span className="font-bold text-lg">
+              {grandTotal.toLocaleString()} {currency}
+            </span>
           </div>
           <SheetClose asChild>
             <Button

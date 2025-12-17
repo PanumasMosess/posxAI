@@ -525,6 +525,8 @@ const MenuOrderPage = ({
       <MenuOrderHistorySheet
         isOpen={isHistoryOpen}
         onOpenChange={setIsHistoryOpen}
+        relatedData={relatedData}
+        tableNumber={tableNumber}
       />
 
       <AnimatePresence>
