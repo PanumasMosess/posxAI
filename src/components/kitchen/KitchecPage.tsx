@@ -7,7 +7,7 @@ import { updateStatusOrder } from "@/lib/actions/actionMenu";
 import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
-const KitchecPage = ({ initialItems, reationdata }: KitchecOrderList) => {
+const KitchecPage = ({ initialItems }: KitchecOrderList) => {
   const router = useRouter();
 
 
@@ -98,7 +98,7 @@ const KitchecPage = ({ initialItems, reationdata }: KitchecOrderList) => {
             initialItems={group}
             onStatusChange={onStatusChange}
             isGrouped={true}
-            printerName= {reationdata?.printerName}
+           
           />
         ))
       )}
