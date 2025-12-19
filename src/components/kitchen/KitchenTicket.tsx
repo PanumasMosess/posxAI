@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Check,
@@ -9,6 +9,8 @@ import {
   Layers,
   Printer,
   Loader2,
+  Settings, // เพิ่ม Icon Settings
+  RefreshCcw, // เพิ่ม Icon Refresh
 } from "lucide-react";
 import {
   Card,
@@ -30,16 +32,38 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+// เพิ่ม Dialog สำหรับเลือก Printer
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // ต้องมี component Select ของ shadcn (ถ้าไม่มีใช้ html select แทนได้)
+import { Label } from "@/components/ui/label";
+
 import { KitchecTicketProps } from "@/lib/type";
 import { toast } from "react-toastify";
 import { printToKitchen } from "@/lib/printers/qz-service-kitchen";
 import { useSession } from "next-auth/react";
+import qz from "qz-tray"; // Import qz-tray
+import {
+  getCertContentFromS3,
+  signDataWithS3Key,
+} from "@/lib/actions/actionIndex";
 
 const KitchenTicket = ({
   initialItems: group,
   onStatusChange,
   isGrouped = false,
-  printerName
+  printerName: defaultPrinterName, // รับ prop มาเผื่อเป็นค่า default
 }: KitchecTicketProps) => {
   const { nextStatus, label: buttonLabel } = statusColorList.getNextStepConfig(
     group.status
@@ -47,9 +71,106 @@ const KitchenTicket = ({
   const session = useSession();
   const organizationId = session.data?.user.organizationId ?? 0;
   const statusBadge = statusColorList.getStatusBadgeConfig(group.status);
+
   const [isPrinting, setIsPrinting] = useState(false);
 
+  const [printerList, setPrinterList] = useState<string[]>([]);
+  const [selectedPrinter, setSelectedPrinter] = useState<string>("");
+  const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const savedPrinter = localStorage.getItem("kitchen_preferred_printer");
+    if (savedPrinter) {
+      setSelectedPrinter(savedPrinter);
+    } else if (defaultPrinterName) {
+      setSelectedPrinter(defaultPrinterName);
+    }
+  }, [defaultPrinterName]);
+
+  const initQZSecurity = () => {
+    qz.security.setCertificatePromise((resolve: any, reject: any) => {
+      getCertContentFromS3(`digital-certificate_${organizationId}.txt`)
+        .then((res) => {
+          if (res.success && res.data) resolve(res.data);
+          else reject("Load Cert Failed");
+        })
+        .catch(reject);
+    });
+
+    qz.security.setSignaturePromise((toSign: string) => {
+      return function (resolve: any, reject: any) {
+        signDataWithS3Key(toSign, organizationId.toString())
+          .then((res) => {
+            if (res.success && res.data) resolve(res.data);
+            else reject("Sign Failed");
+          })
+          .catch(reject);
+      };
+    });
+  };
+
+  const fetchPrinters = async () => {
+    if (isLoadingPrinters) return;
+    setIsLoadingPrinters(true);
+
+    try {
+      initQZSecurity();
+
+      if (!qz.websocket.isActive()) {
+        try {
+          await qz.websocket.connect();
+        } catch (e) {
+          try {
+            await qz.websocket.disconnect();
+          } catch (err) {}
+          await qz.websocket.connect();
+        }
+      }
+
+      const printers = await qz.printers.find();
+      setPrinterList(printers);
+
+      if (!selectedPrinter && printers.length > 0) {
+        try {
+          const def = await qz.printers.getDefault();
+          handlePrinterChange(def);
+        } catch (e) {
+          handlePrinterChange(printers[0]);
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.message && err.message.includes("sendData is not a function")) {
+        try {
+          if (qz.websocket.isActive()) await qz.websocket.disconnect();
+          await qz.websocket.connect();
+          const printers = await qz.printers.find();
+          setPrinterList(printers);
+        } catch (retryErr) {
+          console.error("Retry failed", retryErr);
+        }
+      } else {
+        toast.error("ไม่สามารถดึงรายชื่อเครื่องพิมพ์ได้");
+      }
+    } finally {
+      setIsLoadingPrinters(false);
+    }
+  };
+
+  const handlePrinterChange = (value: string) => {
+    setSelectedPrinter(value);
+    localStorage.setItem("kitchen_preferred_printer", value);
+  };
+
   const handlePrint = async () => {
+    if (!selectedPrinter) {
+      toast.warn("กรุณาเลือกเครื่องพิมพ์ก่อน");
+      setIsSettingsOpen(true);
+      fetchPrinters();
+      return;
+    }
+
     setIsPrinting(true);
     try {
       const result = await printToKitchen(
@@ -57,7 +178,7 @@ const KitchenTicket = ({
           menuName: group.menu.menuName,
           totalQuantity: group.totalQuantity,
           orders: group.orders || [],
-          printerName: printerName ?? "POS-80",
+          printerName: selectedPrinter,
         },
         organizationId
       );
@@ -96,14 +217,74 @@ const KitchenTicket = ({
             {group.menu.menuName}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-1">
+          <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-zinc-300 hover:text-zinc-500"
+                onClick={fetchPrinters}
+                title="ตั้งค่าเครื่องพิมพ์"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>ตั้งค่าการพิมพ์</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="printer">เลือกเครื่องพิมพ์</Label>
+                  <div className="flex gap-2">
+                    {/* ใช้ Select ของ Shadcn หรือ HTML Select ก็ได้ */}
+                    <Select
+                      value={selectedPrinter}
+                      onValueChange={handlePrinterChange}
+                      disabled={isLoadingPrinters}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกเครื่องพิมพ์..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {printerList.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={fetchPrinters}
+                      disabled={isLoadingPrinters}
+                    >
+                      <RefreshCcw
+                        className={`h-4 w-4 ${
+                          isLoadingPrinters ? "animate-spin" : ""
+                        }`}
+                      />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    * การตั้งค่านี้จะถูกบันทึกไว้ในเครื่องนี้
+                  </p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             onClick={handlePrint}
             disabled={isPrinting}
-            title="พิมพ์ใบออเดอร์"
+            title={`พิมพ์ใบออเดอร์ (${selectedPrinter || "ยังไม่เลือก"})`}
           >
             {isPrinting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -111,7 +292,11 @@ const KitchenTicket = ({
               <Printer className="h-4 w-4" />
             )}
           </Button>
-          <Badge variant="outline" className={`${statusBadge.color} border`}>
+
+          <Badge
+            variant="outline"
+            className={`${statusBadge.color} border ml-1`}
+          >
             {statusBadge.label}
           </Badge>
         </div>

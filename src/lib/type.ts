@@ -302,7 +302,6 @@ export type KitchecOrder = {
 
 export interface KitchecOrderList {
   initialItems: KitchecOrder[];
-  reationdata: Printer | null;
 }
 
 export interface KitchecTicketProps {

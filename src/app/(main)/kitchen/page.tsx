@@ -22,23 +22,10 @@ const page = async () => {
     },
   });
 
-  const printerData = await prisma.printer.findFirst({
-    where: {
-      organizationId: organizationId,
-      stationUse: "ครัว",
-    },
-    include: {
-      creator: true,
-    },
-    orderBy: {
-      createdAt: "desc", 
-    },
-  });
-
 
   return (
     <div>
-      <KitchecPage initialItems={itemsData} reationdata={printerData} />
+      <KitchecPage initialItems={itemsData}  />
     </div>
   );
 };
