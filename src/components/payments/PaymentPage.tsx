@@ -12,9 +12,9 @@ import {
   Utensils,
   Search,
   XCircle,
-  Settings, // เพิ่ม Icon
-  RefreshCcw, // เพิ่ม Icon
-  Printer, // เพิ่ม Icon
+  Settings, 
+  RefreshCcw, 
+  Printer, 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -45,7 +45,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
-// เพิ่ม Dialog สำหรับเลือก Printer
 import {
   Dialog,
   DialogContent,
@@ -62,7 +61,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-// Import QZ Tray และฟังก์ชันพิมพ์
 import qz from "qz-tray";
 import { ReceiptPage } from "./ReceiptPage";
 import { printReceiptQZ } from "@/lib/printers/qz-service-receipt";
@@ -77,22 +75,19 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const router = useRouter();
   const organizationId = session.data?.user.organizationId ?? 0;
 
-  // State เดิม
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
     "CASH"
   );
   const [cashReceived, setCashReceived] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false); // เปลี่ยนชื่อจาก isGeneratingReceipt ให้สื่อความหมายรวมๆ
+  const [isProcessing, setIsProcessing] = useState(false); 
 
-  // --- Printer Selection Logic (เพิ่มใหม่) ---
   const [printerList, setPrinterList] = useState<string[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // โหลดค่า Printer ที่เคยเลือกไว้จาก LocalStorage
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
     if (savedPrinter) {
@@ -127,7 +122,6 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   };
 
   const groupedOrders = useMemo(() => {
-    // ... logic เดิม ...
     const groups: { [key: string]: any } = {};
 
     initialItems.forEach((item: any) => {
@@ -337,7 +331,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                 </button>
               )}
             </div>
-            {/* ปุ่มตั้งค่าเครื่องพิมพ์ (Global) */}
+    
             <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -400,7 +394,6 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
         </div>
 
         <ScrollArea className="flex-1 -mr-4 pr-4">
-          {/* ... (ส่วนแสดงรายการ Order เหมือนเดิม) ... */}
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-zinc-400">
               <Search className="h-12 w-12 mb-4 opacity-20" />
@@ -429,7 +422,6 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                         }
                       `}
                     >
-                      {/* ... (Card Content เหมือนเดิม) ... */}
                       <CardHeader className="p-4 flex flex-row justify-between items-start space-y-0 pb-2">
                         <div className="flex flex-col">
                           <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
@@ -511,7 +503,6 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                   </p>
                 </div>
 
-                {/* ปุ่ม Print Receipt แบบ Manual */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -523,7 +514,6 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
               </div>
               <ScrollArea className="flex-1 h-[1px]">
                 <div className="p-4 md:p-6 space-y-6 pb-24">
-                  {/* ... (Payment UI ส่วนที่เหลือ เหมือนเดิม) ... */}
                   <div className="text-center py-4">
                     <p className="text-sm text-zinc-500 font-medium mb-1">
                       ยอดสุทธิ
@@ -692,8 +682,6 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
           <p>เลือกรายการทางซ้ายเพื่อชำระเงิน</p>
         </div>
       )}
-
-      {/* ⚠️ ลบ div ที่ใช้ html-to-image ออกได้เลย เพราะเราไม่ได้ใช้แล้ว */}
     </div>
   );
 };
