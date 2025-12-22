@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import QRCode from "react-qr-code";
 import {
   QrCode as QrIcon,
@@ -49,6 +49,8 @@ export const TableQRAction = ({
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
 
+  const isConnecting = useRef(false);
+
   useEffect(() => {
     setMounted(true);
     setOrigin(window.location.origin);
@@ -77,8 +79,9 @@ export const TableQRAction = ({
   };
 
   const fetchPrinters = async () => {
-    if (isLoadingPrinters) return;
+    if (isLoadingPrinters || isConnecting.current) return;
     setIsLoadingPrinters(true);
+    isConnecting.current = true;
     try {
       initQZSecurity();
 
@@ -108,11 +111,13 @@ export const TableQRAction = ({
       }
       setPrinters(foundPrinters);
 
-      try {
-        const defaultPrinter = await qz.printers.getDefault();
-        setSelectedPrinter(defaultPrinter);
-      } catch (e) {
-        if (foundPrinters.length > 0) setSelectedPrinter(foundPrinters[0]);
+      if (!selectedPrinter) {
+        try {
+          const defaultPrinter = await qz.printers.getDefault();
+          setSelectedPrinter(defaultPrinter);
+        } catch (e) {
+          if (foundPrinters.length > 0) setSelectedPrinter(foundPrinters[0]);
+        }
       }
     } catch (err) {
       console.error("Error fetching printers:", err);
@@ -123,8 +128,11 @@ export const TableQRAction = ({
   };
 
   useEffect(() => {
-    if (mounted) {
-      fetchPrinters();
+    if (mounted && organizationId) {
+      const timer = setTimeout(() => {
+        fetchPrinters();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [mounted, organizationId]);
 
