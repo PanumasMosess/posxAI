@@ -12,6 +12,9 @@ import {
   Utensils,
   Search,
   XCircle,
+  Settings, // เพิ่ม Icon
+  RefreshCcw, // เพิ่ม Icon
+  Printer, // เพิ่ม Icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -21,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { KitchecOrderList } from "@/lib/type";
+import { KitchecOrderList, ReceiptProps } from "@/lib/type";
 import PaymentOption from "./PaymentOption";
 import { toast } from "react-toastify";
 import { useSession } from "next-auth/react";
@@ -30,9 +33,7 @@ import {
   updateStatusOrder,
   updateStatusTable,
 } from "@/lib/actions/actionPayment";
-import { toPng } from "html-to-image";
 import { useRouter } from "next/navigation";
-import { ReceiptPage } from "./ReceiptPage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,26 +45,89 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+// เพิ่ม Dialog สำหรับเลือก Printer
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
+// Import QZ Tray และฟังก์ชันพิมพ์
+import qz from "qz-tray";
+import { ReceiptPage } from "./ReceiptPage";
+import { printReceiptQZ } from "@/lib/printers/qz-service-receipt";
+import {
+  getCertContentFromS3,
+  signDataWithS3Key,
+} from "@/lib/actions/actionIndex";
 
 const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const session = useSession();
   const id_user = session.data?.user.id || "1";
   const router = useRouter();
-  const organizationId = session.data?.user.organizationId;
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+  const organizationId = session.data?.user.organizationId ?? 0;
+
+  // State เดิม
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
     "CASH"
   );
   const [cashReceived, setCashReceived] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false); // เปลี่ยนชื่อจาก isGeneratingReceipt ให้สื่อความหมายรวมๆ
+
+  // --- Printer Selection Logic (เพิ่มใหม่) ---
+  const [printerList, setPrinterList] = useState<string[]>([]);
+  const [selectedPrinter, setSelectedPrinter] = useState<string>("");
+  const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // โหลดค่า Printer ที่เคยเลือกไว้จาก LocalStorage
+  useEffect(() => {
+    const savedPrinter = localStorage.getItem("receipt_preferred_printer");
+    if (savedPrinter) {
+      setSelectedPrinter(savedPrinter);
+    }
+  }, []);
 
   useEffect(() => {
     setCashReceived("0");
   }, [selectedOrder]);
 
+  const initQZSecurity = () => {
+    qz.security.setCertificatePromise((resolve: any, reject: any) => {
+      getCertContentFromS3(`digital-certificate_${organizationId}.txt`)
+        .then((res) => {
+          if (res.success && res.data) resolve(res.data);
+          else reject("Load Cert Failed");
+        })
+        .catch(reject);
+    });
+
+    qz.security.setSignaturePromise((toSign: string) => {
+      return function (resolve: any, reject: any) {
+        signDataWithS3Key(toSign, organizationId.toString())
+          .then((res) => {
+            if (res.success && res.data) resolve(res.data);
+            else reject("Sign Failed");
+          })
+          .catch(reject);
+      };
+    });
+  };
+
   const groupedOrders = useMemo(() => {
+    // ... logic เดิม ...
     const groups: { [key: string]: any } = {};
 
     initialItems.forEach((item: any) => {
@@ -117,35 +181,86 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   const change = parseFloat(cashReceived || "0") - totalAmount;
   const isCashSufficient = change >= 0;
 
-  const generateAndDownloadReceipt = async () => {
-    if (!receiptRef.current) return;
-
+  const fetchPrinters = async () => {
+    setIsLoadingPrinters(true);
     try {
-      setIsGeneratingReceipt(true);
+      initQZSecurity();
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!qz.websocket.isActive()) {
+        try {
+          await qz.websocket.connect();
+        } catch (e) {
+          try {
+            await qz.websocket.disconnect();
+          } catch (err) {}
+          await qz.websocket.connect();
+        }
+      }
 
-      const dataUrl = await toPng(receiptRef.current, {
-        cacheBust: true,
-        backgroundColor: "#ffffff",
-        pixelRatio: 2,
-        fontEmbedCSS: "",
-      });
+      const printers = await qz.printers.find();
+      setPrinterList(printers);
 
-      // const blob = await (await fetch(dataUrl)).blob();
-      // const file = new File([blob], `Receipt-${selectedOrder?.id}.png`, {
-      //   type: "image/png",
-      // });
-
-      const link = document.createElement("a");
-      link.download = `Receipt-${selectedOrder?.id || "bill"}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error("Error generating receipt:", error);
-      toast.error("สร้างรูปใบเสร็จไม่สำเร็จ");
+      if (!selectedPrinter && printers.length > 0) {
+        try {
+          const def = await qz.printers.getDefault();
+          handlePrinterChange(def);
+        } catch {
+          handlePrinterChange(printers[0]);
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("ไม่สามารถดึงรายชื่อเครื่องพิมพ์ได้");
     } finally {
-      setIsGeneratingReceipt(false);
+      setIsLoadingPrinters(false);
+    }
+  };
+
+  const handlePrinterChange = (value: string) => {
+    setSelectedPrinter(value);
+    localStorage.setItem("receipt_preferred_printer", value);
+  };
+
+  const handlePrintReceipt = async (orderData: any = selectedOrder) => {
+    if (!selectedPrinter) {
+      toast.warn("กรุณาเลือกเครื่องพิมพ์ก่อนพิมพ์ใบเสร็จ");
+      setIsSettingsOpen(true);
+      fetchPrinters();
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      initQZSecurity();
+      const receiptData: ReceiptProps = {
+        orderId: orderData.runningCode,
+        table: orderData.table,
+        date: new Date().toLocaleString("th-TH"),
+        items: orderData.items,
+        total: orderData.total,
+        currency: orderData.currency,
+        paymentMethod: paymentMethod,
+        cashReceived:
+          paymentMethod === "CASH" ? parseFloat(cashReceived) : undefined,
+        change: paymentMethod === "CASH" ? change : undefined,
+      };
+
+      const result = await printReceiptQZ(
+        receiptData,
+        selectedPrinter,
+        organizationId
+      );
+
+      if (result.success) {
+        toast.success("พิมพ์ใบเสร็จเรียบร้อย");
+      } else {
+        toast.error("พิมพ์ไม่สำเร็จ: " + result.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("เกิดข้อผิดพลาดในการพิมพ์");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -156,6 +271,8 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
       toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
       return;
     }
+
+    const currentOrder = { ...selectedOrder };
 
     const paymentPayload = {
       orderId: selectedOrder.id,
@@ -170,19 +287,24 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
       change: paymentMethod === "CASH" ? change : 0,
     };
 
+    setIsProcessing(true);
     const create_status = await createPaymentOrder(paymentPayload);
 
     if (create_status.success) {
       await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
       await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
-      await generateAndDownloadReceipt();
+
       toast.success("ชำระเงินเรียบร้อย!");
+
+      //  สั่งพิมพ์ใบเสร็จอัตโนมัติหลังชำระเงินสำเร็จ (Optional)
+      // await handlePrintReceipt(currentOrder);
+
       setSelectedOrder(null);
       router.refresh();
     } else {
-      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+      toast.error("ไม่สามารถบันทึกข้อมูลได้");
     }
-    // console.log("ข้อมูลการชำระเงินที่ได้:", paymentPayload);
+    setIsProcessing(false);
   };
 
   return (
@@ -197,26 +319,88 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
               เลือกรายการเพื่อดำเนินการชำระเงิน
             </p>
           </div>
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <Input
-              placeholder="ค้นหาโต๊ะ หรือ รหัสบิล..."
-              className="pl-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            )}
+          <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-stretch md:items-center">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Input
+                placeholder="ค้นหาโต๊ะ หรือ รหัสบิล..."
+                className="pl-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                >
+                  <XCircle className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {/* ปุ่มตั้งค่าเครื่องพิมพ์ (Global) */}
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={fetchPrinters}
+                >
+                  <Settings className="h-4 w-4" />
+                  ตั้งค่าเครื่องพิมพ์ ({selectedPrinter || "ยังไม่เลือก"})
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>ตั้งค่าเครื่องพิมพ์ใบเสร็จ</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="printer">เลือกเครื่องพิมพ์</Label>
+                    <div className="flex gap-2 items-center">
+                      <Select
+                        value={selectedPrinter}
+                        onValueChange={handlePrinterChange}
+                        disabled={isLoadingPrinters}
+                      >
+                        <SelectTrigger className="w-full bg-background text-foreground">
+                          <SelectValue placeholder="เลือกเครื่องพิมพ์..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {printerList.map((p) => (
+                            <SelectItem key={p} value={p}>
+                              {p}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0 border-input bg-background"
+                        onClick={fetchPrinters}
+                        disabled={isLoadingPrinters}
+                      >
+                        <RefreshCcw
+                          className={`h-4 w-4 ${
+                            isLoadingPrinters ? "animate-spin" : ""
+                          }`}
+                        />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      * ใช้สำหรับพิมพ์ใบเสร็จรับเงิน (80mm)
+                    </p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
         <ScrollArea className="flex-1 -mr-4 pr-4">
+          {/* ... (ส่วนแสดงรายการ Order เหมือนเดิม) ... */}
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-zinc-400">
               <Search className="h-12 w-12 mb-4 opacity-20" />
@@ -237,14 +421,15 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                     <Card
                       onClick={() => setSelectedOrder(order)}
                       className={`
-    cursor-pointer border transition-all duration-200 h-full flex flex-col justify-between
-    ${
-      isSelected
-        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-900/20 dark:border-blue-400 dark:ring-blue-400 shadow-md"
-        : "border-zinc-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-zinc-800"
-    }
-  `}
+                        cursor-pointer border transition-all duration-200 h-full flex flex-col justify-between
+                        ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-900/20 dark:border-blue-400 dark:ring-blue-400 shadow-md"
+                            : "border-zinc-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-zinc-800"
+                        }
+                      `}
                     >
+                      {/* ... (Card Content เหมือนเดิม) ... */}
                       <CardHeader className="p-4 flex flex-row justify-between items-start space-y-0 pb-2">
                         <div className="flex flex-col">
                           <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
@@ -325,9 +510,20 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                     {selectedOrder.runningCode}
                   </p>
                 </div>
+
+                {/* ปุ่ม Print Receipt แบบ Manual */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="พิมพ์ใบเสร็จ"
+                  onClick={() => handlePrintReceipt(selectedOrder)}
+                >
+                  <Printer className="h-5 w-5 text-zinc-500 hover:text-zinc-800" />
+                </Button>
               </div>
               <ScrollArea className="flex-1 h-[1px]">
                 <div className="p-4 md:p-6 space-y-6 pb-24">
+                  {/* ... (Payment UI ส่วนที่เหลือ เหมือนเดิม) ... */}
                   <div className="text-center py-4">
                     <p className="text-sm text-zinc-500 font-medium mb-1">
                       ยอดสุทธิ
@@ -497,46 +693,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
         </div>
       )}
 
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          zIndex: isGeneratingReceipt ? 9999 : -100,
-          opacity: isGeneratingReceipt ? 1 : 0,
-          pointerEvents: "none",
-          backgroundColor: "#fff",
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <div
-          ref={receiptRef}
-          className="bg-white text-black p-8 w-[350px] min-h-[400px] font-mono text-sm leading-relaxed shadow-none mx-auto"
-        >
-          {selectedOrder && (
-            <ReceiptPage
-              ref={receiptRef}
-              orderId={selectedOrder.id}
-              table={selectedOrder.table}
-              date={new Date().toLocaleString("th-TH")}
-              items={selectedOrder.items}
-              total={totalAmount}
-              currency={selectedOrder.currency}
-              cashReceived={
-                paymentMethod === "CASH"
-                  ? parseFloat(cashReceived || "0")
-                  : undefined
-              }
-              change={paymentMethod === "CASH" ? change : undefined}
-              paymentMethod={paymentMethod}
-            />
-          )}
-        </div>
-      </div>
+      {/* ⚠️ ลบ div ที่ใช้ html-to-image ออกได้เลย เพราะเราไม่ได้ใช้แล้ว */}
     </div>
   );
 };
