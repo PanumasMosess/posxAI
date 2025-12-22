@@ -245,7 +245,7 @@ export const crearteCategories = async (
         },
         organization: {
           connect: {
-            id: data.createdById,
+            id: data.organizationId,
           },
         },
       },
@@ -314,7 +314,7 @@ export const crearteSupplier = async (
         },
         organization: {
           connect: {
-            id: data.createdById,
+            id: data.organizationId,
           },
         },
       },

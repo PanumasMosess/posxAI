@@ -142,7 +142,7 @@ const StockPageFormular = ({
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
-                  organizationId={organizationId ?? 1}
+                  organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetCata}
                   stateForm={openSheetCata}
                 />
@@ -157,7 +157,7 @@ const StockPageFormular = ({
                   type={"create"}
                   relatedData={relatedData}
                   currentUserId={parseInt(id_user)}
-                  organizationId={organizationId ?? 1}
+                  organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetSupply}
                   stateForm={openSheetSupply}
                 />
