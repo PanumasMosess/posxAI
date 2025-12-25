@@ -42,6 +42,7 @@ import {
 } from "@/lib/actions/actionIndex";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { Checkbox } from "../ui/checkbox";
 
 const MenuFormPOS = ({
   type,
@@ -72,8 +73,8 @@ const MenuFormPOS = ({
       img: undefined,
       createdById: currentUserId,
       organizationId: organizationId,
-      categoryMenuId: undefined,
-      unitPriceId: undefined,
+      categoryMenuId: 0,
+      unitPriceId: 0,
     },
   });
 
@@ -135,8 +136,6 @@ const MenuFormPOS = ({
 
     // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
     if (type === "update" && data) {
-      console.log(data);
-
       formAddMenu.setValue("menuName", data.menuName);
       formAddMenu.setValue("price_sale", data.price_sale);
       formAddMenu.setValue("price_cost", data.price_cost);
@@ -146,6 +145,9 @@ const MenuFormPOS = ({
       formAddMenu.setValue("categoryMenuId", data.categoryMenuId);
       formAddMenu.setValue("unitPriceId", data.unitPriceId);
       formAddMenu.setValue("id", data.id);
+      const existingGroupIds =
+        data.modifiers?.map((item: any) => item.modifierGroupId) || [];
+      formAddMenu.setValue("modifierGroupIds", existingGroupIds);
       setOldImg("");
       setOldImg(data.img);
     }
@@ -325,7 +327,7 @@ const MenuFormPOS = ({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>หมวดหมู่</FormLabel>
+                    <FormLabel>สถานะสินค้า</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={String(field.value)}
@@ -355,6 +357,47 @@ const MenuFormPOS = ({
                 )}
               />
             )}
+            <div className="space-y-4 border rounded-md p-4">
+              <FormLabel className="text-base">ตัวเลือกเพิ่มเติม</FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                {relatedData.modifierGroups?.map((group: any) => (
+                  <FormField
+                    key={group.id}
+                    control={formAddMenu.control}
+                    name="modifierGroupIds"
+                    render={({ field }) => {
+                      return (
+                        <FormItem
+                          key={group.id}
+                          className="flex flex-row items-start space-x-3 space-y-0"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(group.id)}
+                              onCheckedChange={(checked) => {
+                                const currentValues = field.value || [];
+                                if (checked) {
+                                  field.onChange([...currentValues, group.id]);
+                                } else {
+                                  field.onChange(
+                                    currentValues.filter(
+                                      (value) => value !== group.id
+                                    )
+                                  );
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">
+                            {group.name}
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
             <FormFieldImageUpload
               control={formAddMenu.control}
               name="img"

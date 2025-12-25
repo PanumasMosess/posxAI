@@ -1,7 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { Layers, Truck } from "lucide-react";
+import { Layers, ListPlus, Truck } from "lucide-react";
 import { Button } from "../ui/button";
 import { Sheet, SheetTrigger } from "../ui/sheet";
 import { useEffect, useState } from "react";
@@ -28,18 +27,34 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import StockFormularManament from "../forms/StockFormularManament";
 import { StockPageFormularProps } from "@/lib/type";
+import ModifierGroupForm from "../forms/ModifierGroupForm";
+import ModifierItemForm from "../forms/ModifierItemForm";
+import {
+  ModifierGroup,
+  ModifierGroupColumns,
+} from "./tables/column_modifiergroup";
+import { Data_table_modifiergroup } from "./tables/data-table-modifiergroup";
+import {
+  deleteModifierGroup,
+  deleteModifierItem,
+} from "@/lib/actions/actionSettings";
+import { Data_table_modifieritemgroup } from "./tables/data-table-modifieritem";
+import {
+  ModifierItem,
+  ModifierItemColumns,
+} from "./tables/column_modifieritem";
 
 const StockPageFormular = ({
   initialItems,
   relatedData,
+  id_user,
+  organizationId,
 }: StockPageFormularProps) => {
-  const session = useSession();
-  const id_user = session.data?.user.id || "1";
-  const organizationId = session.data?.user.organizationId;
-
   //state ปุ่ม เปิดหน้าเพิ่มข้อมูล แก้ไขข้อมูล
   const [openSheetCata, setOpenSheetCata] = useState(false);
   const [openSheetSupply, setOpenSheetSupply] = useState(false);
+  const [openGroupSheet, setOpenGroupSheet] = useState(false);
+  const [openItemSheet, setOpenItemSheet] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [openSheetCataUpdate, setOpenSheetCataUpdate] = useState(false);
   const [openSheetSupplyUpdate, setOpenSheetSupplyUpdate] = useState(false);
@@ -47,6 +62,12 @@ const StockPageFormular = ({
   const [deleteItemCat, setDeleteItemCat] = useState<Categories | null>(null);
   const [editingItemSup, setEditingItemSup] = useState<Supplier | null>(null);
   const [deleteItemSup, setDeleteItemSup] = useState<Supplier | null>(null);
+  const [openSheetGroupUpdate, setOpenSheetGroupUpdate] = useState(false);
+  const [editingItemGroup, setEditingItemGroup] = useState<any | null>(null);
+  const [deleteItemGroup, setDeleteItemGroup] = useState<any | null>(null);
+  const [openSheetItemUpdate, setOpenSheetItemUpdate] = useState(false);
+  const [editingItemItem, setEditingItemItem] = useState<any | null>(null);
+  const [deleteItemItem, setDeleteItemItem] = useState<any | null>(null);
 
   const router = useRouter();
 
@@ -90,11 +111,57 @@ const StockPageFormular = ({
     }
   };
 
+  const handleEditModifierGroup = (modifierGroup: ModifierGroup) => {
+    setEditingItemGroup(modifierGroup);
+    setOpenSheetGroupUpdate(true);
+  };
+  const handleDeleteModifierGroup = (data: any) => {
+    setDeleteItemGroup(data);
+  };
+
+  const handelDeleteModifierGroupConfirm = async (data: any) => {
+    const delete_status = await deleteModifierGroup(data);
+
+    if (delete_status.success) {
+      toast.success("ยกเลิกสำเร็จ!");
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+  };
+
+  const handleEditItemModifierGroup = (modifierItemGroup: ModifierItem) => {
+    setEditingItemItem(modifierItemGroup);
+    setOpenSheetItemUpdate(true);
+  };
+  const handleDeleteItemModifierGroup = (data: any) => {
+    setDeleteItemItem(data);
+  };
+
+  const handelDeleteItemModifierGroupConfirm = async (data: any) => {
+    const delete_status = await deleteModifierItem(data);
+
+    if (delete_status.success) {
+      toast.success("ยกเลิกสำเร็จ!");
+      router.refresh();
+    } else {
+      throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
+    }
+  };
+
   const columns_categories = CategoriesColumns({
     handleEditCat,
     handleDeleteCat,
   });
   const columns_supplier = SupplierColumns({ handleEditSup, handleDeleteSup });
+  const columns_modifiergroup = ModifierGroupColumns({
+    handleEdit: handleEditModifierGroup,
+    handleDelete: handleDeleteModifierGroup,
+  });
+  const columns_modifieritemgroup = ModifierItemColumns({
+    handleEdit: handleEditItemModifierGroup,
+    handleDelete: handleDeleteItemModifierGroup,
+  });
 
   useEffect(() => {
     if (filterCategory === "All") {
@@ -106,7 +173,7 @@ const StockPageFormular = ({
       //   setDisplayItems(filtered);
     }
     // setCurrentPage(1);
-  }, [filterCategory, initialItems]);
+  }, [filterCategory, initialItems, organizationId]);
 
   return (
     <div className="">
@@ -141,7 +208,7 @@ const StockPageFormular = ({
                 <StockFormCategories
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={parseInt(id_user)}
+                  currentUserId={id_user}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetCata}
                   stateForm={openSheetCata}
@@ -156,7 +223,7 @@ const StockPageFormular = ({
                 <StockFormSupplier
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={parseInt(id_user)}
+                  currentUserId={id_user}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetSupply}
                   stateForm={openSheetSupply}
@@ -192,8 +259,8 @@ const StockPageFormular = ({
               <StockFormCategories
                 type={"update"}
                 relatedData={relatedData}
-                currentUserId={parseInt(id_user)}
-                organizationId={organizationId ?? 1}
+                currentUserId={id_user}
+                organizationId={organizationId ?? 0}
                 data={editingItemCat}
                 stateSheet={setOpenSheetCataUpdate}
                 stateForm={openSheetCataUpdate}
@@ -245,8 +312,8 @@ const StockPageFormular = ({
                 type={"update"}
                 relatedData={relatedData}
                 data={editingItemSup}
-                currentUserId={parseInt(id_user)}
-                organizationId={organizationId ?? 1}
+                currentUserId={id_user}
+                organizationId={organizationId ?? 0}
                 stateSheet={setOpenSheetSupplyUpdate}
                 stateForm={openSheetSupplyUpdate}
               />
@@ -273,10 +340,174 @@ const StockPageFormular = ({
           </AlertDialog>
         </div>
       </div>
+      <div className="mt-4 flex flex-col gap-4">
+        <div className="w-full xl:w-3/3 space-y-6">
+          <div className="bg-primary-foreground p-4 rounded-lg flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* <Select
+                value={filterCategory}
+                onValueChange={(value) => setFilterCategory(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="กรองตามหมวดหมู่" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">ทั้งหมด</SelectItem>
+                  {relatedData?.categories.map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.categoryName}>
+                      {cat.categoryName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select> */}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Sheet open={openGroupSheet} onOpenChange={setOpenGroupSheet}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Layers className="h-4 w-4" />
+                    เพิ่มกลุ่มตัวเลือก
+                  </Button>
+                </SheetTrigger>
+                <ModifierGroupForm
+                  type={"create"}
+                  currentUserId={id_user}
+                  organizationId={organizationId ?? 0}
+                  stateSheet={setOpenGroupSheet}
+                  stateForm={openGroupSheet}
+                />
+              </Sheet>
+              <Sheet open={openItemSheet} onOpenChange={setOpenItemSheet}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ListPlus className="h-4 w-4" />
+                    เพิ่มตัวเลือกย่อย
+                  </Button>
+                </SheetTrigger>
+                <ModifierItemForm
+                  type={"create"}
+                  relatedData={relatedData}
+                  currentUserId={id_user}
+                  organizationId={organizationId ?? 0}
+                  stateSheet={setOpenItemSheet}
+                  stateForm={openItemSheet}
+                />
+              </Sheet>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-primary-foreground p-4 rounded-lg">
+          <div className="flex items-center mb-4">
+            <Layers className="h-6 w-6 mr-2" />
+            <h3 className="text-lg font-semibold">
+              กลุ่มตัวเลือก (Modifier Groups)
+            </h3>
+          </div>
+
+          <AlertDialog
+            open={!!deleteItemGroup}
+            onOpenChange={(isOpen) => !isOpen && setDeleteItemGroup(null)}
+          >
+            <div className="border rounded-md p-4 text-center text-sm text-muted-foreground">
+              <Data_table_modifiergroup
+                columns={columns_modifiergroup}
+                data={relatedData.modifiergroup}
+              />
+            </div>
+            <Sheet
+              open={openSheetGroupUpdate}
+              onOpenChange={setOpenSheetGroupUpdate}
+            >
+              <ModifierGroupForm
+                type={"update"}
+                data={editingItemGroup}
+                currentUserId={id_user}
+                organizationId={organizationId ?? 0}
+                stateSheet={setOpenSheetGroupUpdate}
+                stateForm={openSheetGroupUpdate}
+              />
+            </Sheet>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  การกระทำนี้ไม่สามารถย้อนกลับได้ จะลบกลุ่ม "
+                  {deleteItemGroup?.name}" และตัวเลือกย่อยในกลุ่มนี้ทั้งหมด
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() =>
+                    handelDeleteModifierGroupConfirm(deleteItemGroup)
+                  }
+                >
+                  ยืนยันการลบ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
+        <div className="bg-primary-foreground p-4 rounded-lg">
+          <div className="flex items-center mb-4">
+            <ListPlus className="h-6 w-6 mr-2" />
+            <h3 className="text-lg font-semibold">
+              ตัวเลือกย่อย (Modifier Items)
+            </h3>
+          </div>
+
+          <AlertDialog
+            open={!!deleteItemItem}
+            onOpenChange={(isOpen) => !isOpen && setDeleteItemItem(null)}
+          >
+            <div className="border rounded-md p-4 text-center text-sm text-muted-foreground">
+              <Data_table_modifieritemgroup
+                columns={columns_modifieritemgroup}
+                data={relatedData.mofifieritemgroup}
+              />
+            </div>
+            <Sheet
+              open={openSheetItemUpdate}
+              onOpenChange={setOpenSheetItemUpdate}
+            >
+              <ModifierItemForm
+                type={"update"}
+                data={editingItemItem}
+                relatedData={relatedData}
+                currentUserId={id_user}
+                organizationId={organizationId ?? 0}
+                stateSheet={setOpenSheetItemUpdate}
+                stateForm={openSheetItemUpdate}
+              />
+            </Sheet>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  ต้องการลบตัวเลือก "{deleteItemItem?.name}" ใช่หรือไม่?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() =>
+                    handelDeleteItemModifierGroupConfirm(deleteItemItem)
+                  }
+                >
+                  ยืนยันการลบ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 bg-primary-foreground p-4 rounded-lg">
         <StockFormularManament
           relatedData={relatedData}
-          currentUserId={parseInt(id_user)}
+          currentUserId={id_user}
           organizationId={organizationId ?? 1}
         />
       </div>

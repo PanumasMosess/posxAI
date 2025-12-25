@@ -47,6 +47,15 @@ const page = async (props: PropsUrl) => {
     include: {
       category: true,
       unitPrice: true,
+      modifiers: {
+        include: {
+          modifierGroup: {
+            include: {
+              items: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
       id: "desc",
@@ -84,6 +93,9 @@ const page = async (props: PropsUrl) => {
       status: "ON_CART",
       organizationId: organizationId,
     },
+    include: {
+      modifiers: true,
+    },
     orderBy: {
       id: "desc",
     },
@@ -110,7 +122,7 @@ const page = async (props: PropsUrl) => {
   });
 
   // console.dir(JSON.stringify(orerData));
-  
+
   const relatedData = {
     categories: categoriesData,
     tabledatas: tableData,
@@ -122,6 +134,8 @@ const page = async (props: PropsUrl) => {
     <MenuOrderPage
       relatedData={relatedData}
       initialItems={itemsData}
+      id_user={0}
+      organizationId={organizationId}
     ></MenuOrderPage>
   );
 };

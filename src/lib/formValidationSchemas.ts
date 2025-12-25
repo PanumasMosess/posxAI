@@ -74,6 +74,7 @@ export const MenuSchema_ = z.object({
   unitPriceId: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),
 
   img: z.any().optional(),
+  modifierGroupIds: z.array(z.number()).optional(),
 });
 export type MenuSchema = z.infer<typeof MenuSchema_>;
 
@@ -105,3 +106,27 @@ export const PrinterSchema_ = z.object({
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
 });
 export type PrinterSchema = z.infer<typeof PrinterSchema_>;
+
+export const modifierGroupSchema_ = z
+  .object({
+    id: z.number().optional(),
+    name: z.string().min(1, { message: "กรุณากรอกชื่อกลุ่ม" }).max(50),
+    minSelect: z.coerce.number().min(0),
+    maxSelect: z.coerce.number().min(1),
+    organizationId: z.coerce.number().min(1),
+  })
+  .refine((data) => data.maxSelect >= data.minSelect, {
+    message: "จำนวนที่เลือกได้สูงสุด ต้องไม่น้อยกว่าจำนวนขั้นต่ำ",
+    path: ["maxSelect"],
+  });
+export type ModifierGroupSchema = z.infer<typeof modifierGroupSchema_>;
+
+export const modifierItemSchema_ = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1, { message: "กรุณากรอกชื่อตัวเลือก" }),
+  price: z.coerce.number().min(0, { message: "ราคาห้ามติดลบ" }),
+  groupId: z.coerce.number().min(1, { message: "กรุณาเลือกกลุ่มตัวเลือก" }),
+  organizationId: z.coerce.number().min(1),
+});
+
+export type ModifierItemSchema = z.infer<typeof modifierItemSchema_>;

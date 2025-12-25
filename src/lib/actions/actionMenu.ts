@@ -41,6 +41,12 @@ export const createMenu = async (
             id: data.unitPriceId,
           },
         },
+        modifiers: {
+          create: data.modifierGroupIds?.map((groupId) => ({
+            modifierGroup: { connect: { id: groupId } },
+            organization: { connect: { id: data.organizationId } },
+          })),
+        },
       },
     });
 
@@ -73,6 +79,13 @@ export const updateMenu = async (
         createdById: data.createdById,
         categoryMenuId: data.categoryMenuId,
         unitPriceId: data.unitPriceId,
+        modifiers: {
+          deleteMany: {},
+          create: data.modifierGroupIds?.map((groupId) => ({
+            modifierGroup: { connect: { id: groupId } },
+            organization: { connect: { id: data.organizationId } },
+          })),
+        },
       },
     });
 
@@ -134,6 +147,7 @@ export const updateImageMenu = async (data: any) => {
 
 export const createMenuToCart = async (data: any) => {
   try {
+    const modifiers = data.modifiers || [];
     await prisma.cart.create({
       data: {
         quantity: data.quantity,
@@ -143,6 +157,13 @@ export const createMenuToCart = async (data: any) => {
         tableId: data.tableId,
         status: "ON_CART",
         organizationId: data.organizationId,
+        modifiers: {
+          create: modifiers.map((mod: any) => ({
+            modifierItemId: mod.modifierItemId,
+            name: mod.name,
+            price: mod.price,
+          })),
+        },
       },
     });
 
@@ -193,6 +214,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
     const organizationId = items[0].organizationId;
     const dateStr = dayjs().format("YYYYMMDD");
 
+    // 1. สร้าง Running Code (ส่วนนี้เหมือนเดิม)
     const countToday = await prisma.orderrunning.count({
       where: {
         organizationId: organizationId,
@@ -208,6 +230,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       .toString()
       .padStart(4, "0")}`;
 
+    // สร้าง Record Running Number
     await prisma.orderrunning.create({
       data: {
         runningCode: runningCode,
@@ -215,20 +238,39 @@ export const createOrder = async (items: CartItemPayload[]) => {
       },
     });
 
-    const dataToCreate = items.map((item) => ({
-      quantity: item.quantity,
-      price_sum: item.price_sum,
-      price_pre_unit: item.price_pre_unit,
-      menuId: item.menuId,
-      tableId: item.tableId,
-      status: "NEW",
-      organizationId: item.organizationId,
-      order_running_code: runningCode,
-    }));
+    await prisma.$transaction(
+      items.map((item) => {
+        const modifiersList = item.modifiers || [];
 
-    await prisma.order.createMany({
-      data: dataToCreate,
-    });
+        return prisma.order.create({
+          data: {
+            quantity: item.quantity,
+            price_sum: item.price_sum,
+            price_pre_unit: item.price_pre_unit,
+            menuId: item.menuId,
+            tableId: item.tableId,
+            status: "NEW",
+            organizationId: item.organizationId,
+            order_running_code: runningCode,
+            orderitems: {
+              create: {
+                menuId: item.menuId,
+                quantity: item.quantity,
+                price: item.price_pre_unit,
+                organizationId: item.organizationId,
+                selectedModifiers: {
+                  create: modifiersList.map((mod: any) => ({
+                    modifierItemId: mod.modifierItemId,
+                    price: mod.price,
+                    organizationId: item.organizationId,
+                  })),
+                },
+              },
+            },
+          },
+        });
+      })
+    );
 
     return { success: true, error: false };
   } catch (err) {

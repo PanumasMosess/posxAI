@@ -125,8 +125,9 @@ model menu {
 
   formularstock formularstock[]
   order         order[]
-
-  carts cart[]
+  carts         cart[]
+  modifiers     menumodifier[]
+  orderitems    orderitem[]
 }
 
 model formularstock {
@@ -181,6 +182,7 @@ model order {
   organization       organization? @relation(fields: [organizationId], references: [id])
   order_running_code String?
   runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
+  orderitems         orderitem[]
 }
 
 model unitprice {
@@ -207,11 +209,25 @@ model cart {
   updatedAt      DateTime @updatedAt
 
   menuId         Int
-  menu           menu          @relation(fields: [menuId], references: [id])
+  menu           menu           @relation(fields: [menuId], references: [id])
   tableId        Int
-  table          table         @relation(fields: [tableId], references: [id])
+  table          table          @relation(fields: [tableId], references: [id])
   organizationId Int?
-  organization   organization? @relation(fields: [organizationId], references: [id])
+  organization   organization?  @relation(fields: [organizationId], references: [id])
+  modifiers  cartmodifier[]
+}
+
+model cartmodifier {
+  id Int @id @default(autoincrement())
+
+  cartId Int
+  cart   cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  modifierItemId Int
+  modifierItem   modifieritem @relation(fields: [modifierItemId], references: [id])
+
+  name  String 
+  price Float 
 }
 
 model orderrunning {
@@ -266,6 +282,11 @@ model organization {
   paymentorders  paymentorder[]
   printers       printer[]
   stations       station[]
+  modifiergroups modifiergroup[]
+  modifieritems  modifieritem[]
+  menumodifiers  menumodifier[]
+  orderitems     orderitem[]
+  ordermodifiers ordermodifier[]
 }
 
 model printer {
@@ -293,4 +314,68 @@ model station {
   organization   organization? @relation(fields: [organizationId], references: [id])
   createdById    Int
   creator        employees     @relation(fields: [createdById], references: [id])
+}
+
+model modifiergroup {
+  id             Int           @id @default(autoincrement())
+  name           String
+  status         String?
+  minSelect      Int           @default(0)
+  maxSelect      Int           @default(1)
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+
+  items modifieritem[]
+  menus menumodifier[]
+}
+
+model modifieritem {
+  id    Int    @id @default(autoincrement())
+  name  String
+  price Float  @default(0)
+
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+  groupId        Int
+  group          modifiergroup @relation(fields: [groupId], references: [id])
+
+  orderModifiers ordermodifier[]
+  modifiers  cartmodifier[]
+}
+
+model menumodifier {
+  id     Int  @id @default(autoincrement())
+  menuId Int
+  menu   menu @relation(fields: [menuId], references: [id])
+
+  modifierGroupId Int
+  modifierGroup   modifiergroup @relation(fields: [modifierGroupId], references: [id])
+  organizationId  Int?
+  organization    organization? @relation(fields: [organizationId], references: [id])
+}
+
+model orderitem {
+  id             Int           @id @default(autoincrement())
+  orderId        Int
+  order          order         @relation(fields: [orderId], references: [id])
+  menuId         Int
+  menu           menu          @relation(fields: [menuId], references: [id])
+  quantity       Int
+  price          Float
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+
+  selectedModifiers ordermodifier[]
+}
+
+model ordermodifier {
+  id          Int       @id @default(autoincrement())
+  orderItemId Int
+  orderItem   orderitem @relation(fields: [orderItemId], references: [id])
+
+  modifierItemId Int
+  modifierItem   modifieritem  @relation(fields: [modifierItemId], references: [id])
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
+  price          Float
 }

@@ -26,10 +26,13 @@ import { deleteFileS3 } from "@/lib/actions/actionIndex";
 
 import InfiniteScroll from "react-infinite-scroll-component";
 
-const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
+const MenuPOSPage = ({
+  initialItems,
+  relatedData,
+  id_user,
+  organizationId,
+}: MenuPOSPageClientProps) => {
   const session = useSession();
-  const id_user = session.data?.user.id || "1";
-  const organizationId = session.data?.user.organizationId;
 
   const [menuItems, setOrderItems] = useState(initialItems);
 
@@ -196,8 +199,8 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                 <MenuFormPOS
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={parseInt(id_user)}
-                  organizationId={organizationId ?? 1}
+                  currentUserId={id_user}
+                  organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
                 />
@@ -207,8 +210,8 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                   type={"update"}
                   relatedData={relatedData}
                   data={itemDetail}
-                  currentUserId={parseInt(id_user)}
-                  organizationId={organizationId ?? 1}
+                  currentUserId={id_user}
+                  organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetUpdate}
                   stateForm={openSheetUpdate}
                 />
@@ -255,7 +258,7 @@ const MenuPOSPage = ({ initialItems, relatedData }: MenuPOSPageClientProps) => {
                           handleGenerateImage(
                             item.menuName,
                             item.id ?? 0,
-                            parseInt(id_user),
+                            id_user,
                             item.img
                           )
                         }

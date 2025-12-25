@@ -54,20 +54,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
-import { useSession } from "next-auth/react";
 import { deleteFileS3 } from "@/lib/actions/actionIndex";
 import { StockPageClientProps } from "@/lib/type";
 
-// 1. Import InfiniteScroll
 import InfiniteScroll from "react-infinite-scroll-component";
 
 const StockPageClient = ({
   initialItems,
   relatedData,
+  id_user,
+  organizationId
 }: StockPageClientProps) => {
-  const session = useSession();
-  const id_user = session.data?.user.id || "1";
-  const organizationId = session.data?.user.organizationId;
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
   const router = useRouter();
 
@@ -270,7 +267,7 @@ const StockPageClient = ({
                 <StockForm
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={parseInt(id_user)}
+                  currentUserId={id_user}
                   organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
@@ -285,7 +282,7 @@ const StockPageClient = ({
                 <StockFormBill
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={parseInt(id_user)}
+                  currentUserId={id_user}
                   organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheetBill}
                   stateForm={openSheetBill}
@@ -367,7 +364,7 @@ const StockPageClient = ({
                                     handleGenerateImage(
                                       item.description,
                                       item.id,
-                                      parseInt(id_user),
+                                      id_user,
                                       item.img
                                     )
                                   }
@@ -442,7 +439,7 @@ const StockPageClient = ({
           <StockForm
             type={"update"}
             relatedData={relatedData}
-            currentUserId={parseInt(id_user)}
+            currentUserId={id_user}
             organizationId={organizationId ?? 1}
             data={editingItem}
             stateSheet={setOpenSheetUpdate}

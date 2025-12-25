@@ -1,6 +1,11 @@
 "use server";
 
-import { PrinterSchema, TableSchema } from "../formValidationSchemas";
+import {
+  ModifierGroupSchema,
+  ModifierItemSchema,
+  PrinterSchema,
+  TableSchema,
+} from "../formValidationSchemas";
 import prisma from "../prisma";
 type CurrentState = { success: boolean; error: boolean };
 
@@ -131,5 +136,148 @@ export const updateNamePrinter = async (id: number, printerName: string) => {
     return { success: true, error: false, data: updatedTableName };
   } catch (err) {
     return { success: false, error: true, data: err };
+  }
+};
+
+export const crearteModifierGroup = async (
+  currentState: CurrentState,
+  data: ModifierGroupSchema
+) => {
+  try {
+    await prisma.modifiergroup.create({
+      data: {
+        name: data.name,
+        minSelect: data.minSelect,
+        maxSelect: data.maxSelect,
+        status: "running",
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateModifierGroup = async (
+  currentState: CurrentState,
+  data: ModifierGroupSchema
+) => {
+  try {
+    const updatedCategory = await prisma.modifiergroup.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        name: data.name,
+        minSelect: data.minSelect,
+        maxSelect: data.maxSelect,
+        organizationId: data.organizationId,
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedCategory };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
+};
+
+export const deleteModifierGroup = async (data: any) => {
+  try {
+    await prisma.modifiergroup.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        name: data.name,
+        status: "stop",
+      },
+    });
+
+    // revalidatePath("/stocks");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const crearteModifierItem = async (
+  currentState: CurrentState,
+  data: ModifierItemSchema
+) => {
+  try {
+    await prisma.modifieritem.create({
+      data: {
+        name: data.name,
+        price: data.price,
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
+        group: {
+          connect: {
+            id: data.groupId,
+          },
+        },
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateModifierItem = async (
+  currentState: CurrentState,
+  data: ModifierItemSchema
+) => {
+  try {
+    const updatedCategory = await prisma.modifieritem.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        name: data.name,
+        price: data.price,
+        groupId: data.groupId,
+        organizationId: data.organizationId,
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false, data: updatedCategory };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true, data: "" };
+  }
+};
+
+export const deleteModifierItem = async (data: any) => {
+  try {
+    await prisma.modifieritem.delete({
+      where: {
+        id: data.id,
+      },
+    });
+
+    // revalidatePath("/stocks");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
   }
 };

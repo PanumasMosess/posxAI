@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma";
 
 const page = async () => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const userId = session?.user?.id ? parseInt(session.user.id) : 0;
+  const organizationId = session?.user.organizationId ?? 0;
   const itemsData = await prisma.table.findMany({
     where: {
       organizationId: organizationId,
@@ -19,7 +20,7 @@ const page = async () => {
 
   return (
     <div>
-      <SettingTables initialItems={itemsData} />
+      <SettingTables initialItems={itemsData}  userId={userId} organizationId={organizationId} />
     </div>
   );
 };
