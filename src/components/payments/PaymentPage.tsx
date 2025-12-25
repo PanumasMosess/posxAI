@@ -12,9 +12,9 @@ import {
   Utensils,
   Search,
   XCircle,
-  Settings, 
-  RefreshCcw, 
-  Printer, 
+  Settings,
+  RefreshCcw,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -69,11 +69,12 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 
-const PaymentPage = ({ initialItems }: KitchecOrderList) => {
-  const session = useSession();
-  const id_user = session.data?.user.id || "1";
+const PaymentPage = ({
+  initialItems,
+  id_user,
+  organizationId,
+}: KitchecOrderList) => {
   const router = useRouter();
-  const organizationId = session.data?.user.organizationId ?? 0;
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
@@ -81,7 +82,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
   );
   const [cashReceived, setCashReceived] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false); 
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [printerList, setPrinterList] = useState<string[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
@@ -121,44 +122,78 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
     });
   };
 
-  const groupedOrders = useMemo(() => {
+const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
-    initialItems.forEach((item: any) => {
-      const key = item.order_running_code || `TABLE-${item.table.id}`;
+    initialItems.forEach((order) => {
+      // ใช้ runningCode เป็น Key (หรือ ID)
+      const key = order.order_running_code || `ORDER-${order.id}`;
 
       if (!groups[key]) {
         groups[key] = {
           id: key,
-          runningCode: item.order_running_code || "-",
-          table: item.table.tableName,
-          tableId: item.table.id,
-          guests: 0,
-          time: new Date(item.createdAt).toLocaleTimeString("th-TH", {
+          firstOrderId: order.id,
+          runningCode: order.order_running_code || "-",
+          table: order.table.tableName,
+          tableId: order.table.id,
+          time: new Date(order.createdAt).toLocaleTimeString("th-TH", {
             hour: "2-digit",
             minute: "2-digit",
           }),
           total: 0,
           items: [],
-          currency: item.menu.unitPrice.label,
+          currency: "฿",
+          allOrderIds: [],
         };
       }
 
-      groups[key].items.push({
-        id: item.id,
-        name: item.menu.menuName,
-        qty: item.quantity,
-        price:
-          item.price_sum > 0
-            ? item.price_sum
-            : item.menu.price_sale * item.quantity,
-        img: item.menu.img,
-      });
+      groups[key].allOrderIds.push(order.id);
 
-      groups[key].total +=
-        item.price_sum > 0
-          ? item.price_sum
-          : item.menu.price_sale * item.quantity;
+      // บวกยอดรวมทั้งหมดของบิล (จาก price_sum ที่คำนวณมาแล้วจาก DB)
+      groups[key].total += order.price_sum || 0;
+
+      if (order.orderitems && Array.isArray(order.orderitems)) {
+        order.orderitems.forEach((item) => {
+          if (groups[key].items.length === 0 && item.menu.unitPrice?.label) {
+            groups[key].currency = item.menu.unitPrice.label;
+          }
+
+          // ตัวแปรสำหรับเก็บผลรวมราคา Modifier ของสินค้านี้
+          let modifiersTotal = 0;
+
+          const modifiersText = item.selectedModifiers
+            ?.map((m: any) => {
+              const price = m.price || 0;
+              
+              // ✅ 1. บวกราคา Modifier เข้าไปในตัวแปรผลรวม
+              modifiersTotal += price;
+
+              if (price > 0) {
+                return `${m.modifierItem.name} (+${price})`;
+              }
+              return m.modifierItem.name;
+            })
+            .join(", ");
+
+          const displayName = modifiersText
+            ? `${item.menu.menuName} (${modifiersText})`
+            : item.menu.menuName;
+
+          const basePrice = item.menu.price_sale || 0;
+          
+          const finalUnitPrice = basePrice + modifiersTotal;
+
+          const totalPriceForItem = finalUnitPrice * item.quantity;
+
+          groups[key].items.push({
+            id: item.id,
+            name: displayName,
+            qty: item.quantity,
+            img: item.menu.img,
+            price: totalPriceForItem,
+          });
+        });
+      }
     });
 
     return Object.values(groups);
@@ -226,11 +261,15 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
     setIsProcessing(true);
     try {
       initQZSecurity();
-      const receiptData: ReceiptProps = {
+      const receiptData = {
         orderId: orderData.runningCode,
         table: orderData.table,
         date: new Date().toLocaleString("th-TH"),
-        items: orderData.items,
+        items: orderData.items.map((i: any) => ({
+          name: i.name,
+          quantity: i.qty,
+          price: i.price,
+        })),
         total: orderData.total,
         currency: orderData.currency,
         paymentMethod: paymentMethod,
@@ -274,7 +313,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
       tableId: selectedOrder.tableId,
       paymentMethod: paymentMethod,
       totalAmount: totalAmount,
-      createdById: parseInt(id_user),
+      createdById: id_user,
       organizationId: organizationId,
       cashReceived:
         paymentMethod === "CASH" ? parseFloat(cashReceived) : totalAmount,
@@ -331,7 +370,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                 </button>
               )}
             </div>
-    
+
             <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -633,6 +672,7 @@ const PaymentPage = ({ initialItems }: KitchecOrderList) => {
                               </p>
                             </div>
                           </div>
+                          {/* ราคาตรงนี้จะเป็น 0 หากใช้ตาม Type Fix แต่แสดงผลเพื่อความครบถ้วน */}
                           <span className="font-medium text-zinc-900 dark:text-white">
                             {item.price.toLocaleString()}
                           </span>

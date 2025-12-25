@@ -3,7 +3,11 @@ import { HistoryOrderProps } from "@/lib/type";
 import HistoryOrderComple from "./HistoryOrderComple";
 import HistoryOrderCancel from "./HistoryOrderCancel";
 
-const HistoryOrderPage = ({ initialItems }: HistoryOrderProps) => {
+const HistoryOrderPage = ({
+  initialItems,
+  id_user,
+  organizationId,
+}: HistoryOrderProps) => {
   const inActiveOrders = initialItems.filter((item) =>
     ["CANCELLED"].includes(item.status)
   );
@@ -26,10 +30,18 @@ const HistoryOrderPage = ({ initialItems }: HistoryOrderProps) => {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full mt-4">
         <div className="w-full bg-primary-foreground p-2">
-          <HistoryOrderComple initialItems={inActiveOrdersFinish} />
+          <HistoryOrderComple
+            initialItems={inActiveOrdersFinish}
+            id_user={id_user}
+            organizationId={organizationId}
+          />
         </div>
         <div className="w-full bg-primary-foreground p-2">
-          <HistoryOrderCancel initialItems={inActiveOrders} />
+          <HistoryOrderCancel
+            initialItems={inActiveOrders}
+            id_user={id_user}
+            organizationId={organizationId}
+          />
         </div>
       </div>
     </div>

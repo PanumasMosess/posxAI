@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma";
 
 const page = async () => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const userId = session?.user?.id ? parseInt(session.user.id) : 0;
+  const organizationId = session?.user.organizationId ?? 0;
   const itemsData = await prisma.order.findMany({
     where: {
       status: {
@@ -27,7 +28,11 @@ const page = async () => {
 
   return (
     <div>
-      <HistoryOrderPage initialItems={itemsData} />
+      <HistoryOrderPage
+        initialItems={itemsData}
+        id_user={userId}
+        organizationId={organizationId}
+      />
     </div>
   );
 };

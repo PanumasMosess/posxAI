@@ -26,7 +26,6 @@ import {
 } from "@/lib/actions/actionMenu";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,10 +40,10 @@ import { MenuOrderHistorySheet } from "./MenuOrderHistorySheet";
 const MenuOrderPage = ({
   relatedData,
   initialItems,
+  id_user,
+  organizationId,
 }: MenuPOSPageClientProps) => {
   const router = useRouter();
-  const session = useSession();
-  const organizationId = session.data?.user.organizationId;
   const itemsPerPage = 10;
 
   // State
@@ -411,7 +410,6 @@ const MenuOrderPage = ({
                       key={item.id}
                       className="flex gap-4 items-start bg-card p-2 rounded-lg border border-border/50"
                     >
-                      {/* ส่วนแสดงรูปภาพ */}
                       <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0 relative overflow-hidden">
                         {menuItem?.img ? (
                           <Image
@@ -428,7 +426,7 @@ const MenuOrderPage = ({
                         )}
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1">
                           <h4 className="font-semibold text-sm text-foreground line-clamp-1">
                             {menuItem.menuName ||
@@ -439,23 +437,40 @@ const MenuOrderPage = ({
                             onClick={() =>
                               handleRemoveFromCart(item.id, item.menuId)
                             }
-                            className="text-muted-foreground hover:text-destructive p-1"
+                            className="text-muted-foreground hover:text-destructive p-1 shrink-0"
                           >
                             <Trash2 size={16} />
                           </button>
                         </div>
-
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="font-bold text-primary">
-                            {item.price_sum} {menuItem.unitPrice.label}
+                        {item.modifiers && item.modifiers.length > 0 && (
+                          <div className="mb-2 flex flex-wrap gap-1">
+                            {item.modifiers.map((mod: any, index: number) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground"
+                              >
+                                {mod.name}
+                                {mod.price > 0 && (
+                                  <span className="ml-1 text-primary">
+                                    (+{mod.price})
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex justify-between items-end mt-2">
+                          <span className="font-bold text-primary text-sm">
+                            {item.price_sum.toLocaleString()}{" "}
+                            {menuItem.unitPrice.label}
                           </span>
 
-                          {/* Quantity Control */}
                           <div className="flex items-center gap-3 bg-muted rounded-lg px-2 py-1">
                             <button
                               onClick={() => {
                                 if (item.quantity > 1) {
                                   const newQty = item.quantity - 1;
+
                                   const unitPrice =
                                     item.price_sum / item.quantity;
                                   handleUpdateCartQuantity(

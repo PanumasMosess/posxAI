@@ -4,28 +4,41 @@ import prisma from "@/lib/prisma";
 
 const page = async () => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const userId = session?.user?.id ? parseInt(session.user.id) : 0;
+  const organizationId = session?.user.organizationId ?? 0;
   const itemsData = await prisma.order.findMany({
     where: {
       organizationId: Number(organizationId),
     },
-    include: {
-      menu: {
-        include: {
-          unitPrice: true,
+    include: {  
+      table: true,
+      orderitems: {
+        include: {        
+          menu: {
+            include: {
+              unitPrice: true,
+            },
+          },
+          selectedModifiers: {
+            include: {
+              modifierItem: true, 
+            },
+          },
         },
       },
-      table: true,
     },
     orderBy: {
-      id: "desc",
+      id: "asc",
     },
   });
 
-
   return (
     <div>
-      <KitchecPage initialItems={itemsData}  />
+      <KitchecPage
+        initialItems={itemsData}
+        id_user={userId}
+        organizationId={organizationId}
+      />
     </div>
   );
 };

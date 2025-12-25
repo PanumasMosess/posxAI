@@ -45,10 +45,11 @@ const page = async () => {
     cartdatas: cartData,
   };
   return (
-    <MenuOrderPage
-      relatedData={relatedData}
-      initialItems={itemsData}
-    ></MenuOrderPage>
+    // <MenuOrderPage
+    //   relatedData={relatedData}
+    //   initialItems={itemsData}
+    // ></MenuOrderPage>
+    <div></div>
   );
 };
 

@@ -7,9 +7,12 @@ import { updateStatusOrder } from "@/lib/actions/actionMenu";
 import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
-const KitchecPage = ({ initialItems }: KitchecOrderList) => {
+const KitchecPage = ({
+  initialItems,
+  id_user,
+  organizationId,
+}: KitchecOrderList) => {
   const router = useRouter();
-
 
   const onStatusChange = async (idOrder: number | number[], status: string) => {
     if (Array.isArray(idOrder)) {
@@ -23,33 +26,48 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
   };
 
   const activeOrders = initialItems.filter(
-    (item) => !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(item.status)
+    (order) =>
+      !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status)
   );
 
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
-    activeOrders.forEach((order: any) => {
-      const key = `${order.menu.id}-${order.status}`;
-      if (!groups[key]) {
-        groups[key] = {
-          ...order,
-          totalQuantity: 0,
-          orders: [],
-          orderIds: [],
-        };
-      }
+    activeOrders.forEach((order) => {
+      order.orderitems.forEach((item) => {
+        const modifierKey = item.selectedModifiers
+          .map((m) => m.modifierItem.name)
+          .sort()
+          .join("|");
 
-      groups[key].totalQuantity += order.quantity;
+        const groupKey = `${item.menu.menuName}-${order.status}-${modifierKey}`;
 
-      groups[key].orderIds.push(order.id);
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            menu: item.menu,
+            status: order.status,
 
-      groups[key].orders.push({
-        id: order.id,
-        tableName: order.table.tableName,
-        quantity: order.quantity,
-        status: order.status,
-        order_running_code: order.order_running_code,
+            modifiers: item.selectedModifiers,
+            totalQuantity: 0,
+
+            orders: [],
+            orderIds: [],
+          };
+        }
+
+        groups[groupKey].totalQuantity += item.quantity;
+
+        if (!groups[groupKey].orderIds.includes(order.id)) {
+          groups[groupKey].orderIds.push(order.id);
+        }
+
+        groups[groupKey].orders.push({
+          id: order.id,
+          tableName: order.table.tableName,
+          quantity: item.quantity,
+          status: order.status,
+          order_running_code: order.order_running_code,
+        });
       });
     });
 
@@ -92,13 +110,14 @@ const KitchecPage = ({ initialItems }: KitchecOrderList) => {
           </div>
         </div>
       ) : (
-        groupedOrders.map((group: any) => (
+        groupedOrders.map((group: any, index: number) => (
           <KitchenTicket
-            key={`${group.menu.id}-${group.status}`}
+            key={`${group.menu.menuName}-${group.status}-${index}`}
             initialItems={group}
             onStatusChange={onStatusChange}
             isGrouped={true}
-           
+            id_user={id_user}
+            organizationId={organizationId}
           />
         ))
       )}

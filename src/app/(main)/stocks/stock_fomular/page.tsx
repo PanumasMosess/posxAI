@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma";
 
 const page = async () => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const userId = session?.user?.id ? parseInt(session.user.id) : 0;
+  const organizationId = session?.user.organizationId ?? 0;
   const itemsData = await prisma.stock.findMany({
     where: {
       status: "ON_STOCK",
@@ -19,13 +20,13 @@ const page = async () => {
   });
 
   const categoriesData = await prisma.categorystock.findMany({
-     where: {
+    where: {
       organizationId: Number(organizationId),
     },
     select: { id: true, categoryName: true },
   });
   const suppliersData = await prisma.supplier.findMany({
-     where: {
+    where: {
       organizationId: Number(organizationId),
     },
     select: { id: true, supplierName: true },
@@ -34,7 +35,7 @@ const page = async () => {
   const excludedMenus = await prisma.formularstock.findMany({
     where: {
       status: "RUN_FORMULAR",
-       organizationId: Number(organizationId),
+      organizationId: Number(organizationId),
     },
     select: {
       id: true,
@@ -75,16 +76,45 @@ const page = async () => {
     },
   });
 
+  const itemsGroup = await prisma.modifiergroup.findMany({
+    where: {
+      organizationId: Number(organizationId),
+      status: "running",
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+  const itemsInGroup = await prisma.modifieritem.findMany({
+    where: {
+      organizationId: Number(organizationId),
+    },
+    include: {
+      group: true,
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
   const relatedData = {
     categories: categoriesData,
     suppliers: suppliersData,
     menu: itemsMenu,
     stocks: itemsData,
     formular: excludedMenus,
+    modifiergroup: itemsGroup,
+    mofifieritemgroup: itemsInGroup,
   };
 
   return (
-    <StockPageFormular initialItems={itemsData} relatedData={relatedData} />
+    <StockPageFormular
+      initialItems={itemsData}
+      relatedData={relatedData}
+      organizationId={organizationId}
+      id_user={userId}
+    />
   );
 };
 

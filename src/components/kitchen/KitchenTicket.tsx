@@ -9,8 +9,8 @@ import {
   Layers,
   Printer,
   Loader2,
-  Settings, // เพิ่ม Icon Settings
-  RefreshCcw, // เพิ่ม Icon Refresh
+  Settings,
+  RefreshCcw,
 } from "lucide-react";
 import {
   Card,
@@ -32,7 +32,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
-// เพิ่ม Dialog สำหรับเลือก Printer
 import {
   Dialog,
   DialogContent,
@@ -46,14 +45,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // ต้องมี component Select ของ shadcn (ถ้าไม่มีใช้ html select แทนได้)
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
 import { KitchecTicketProps } from "@/lib/type";
 import { toast } from "react-toastify";
 import { printToKitchen } from "@/lib/printers/qz-service-kitchen";
-import { useSession } from "next-auth/react";
-import qz from "qz-tray"; // Import qz-tray
+import qz from "qz-tray";
 import {
   getCertContentFromS3,
   signDataWithS3Key,
@@ -63,13 +61,13 @@ const KitchenTicket = ({
   initialItems: group,
   onStatusChange,
   isGrouped = false,
-  printerName: defaultPrinterName, // รับ prop มาเผื่อเป็นค่า default
+  printerName: defaultPrinterName,
+  id_user,
+  organizationId,
 }: KitchecTicketProps) => {
   const { nextStatus, label: buttonLabel } = statusColorList.getNextStepConfig(
     group.status
   );
-  const session = useSession();
-  const organizationId = session.data?.user.organizationId ?? 0;
   const statusBadge = statusColorList.getStatusBadgeConfig(group.status);
 
   const [isPrinting, setIsPrinting] = useState(false);
@@ -173,12 +171,17 @@ const KitchenTicket = ({
 
     setIsPrinting(true);
     try {
+      const modifiersText = group.modifiers
+        ?.map((m: any) => m.modifierItem.name)
+        .join(", ");
+
       const result = await printToKitchen(
         {
           menuName: group.menu.menuName,
           totalQuantity: group.totalQuantity,
           orders: group.orders || [],
           printerName: selectedPrinter,
+          modifiers: modifiersText,
         },
         organizationId
       );
@@ -216,6 +219,18 @@ const KitchenTicket = ({
           <span className="text-lg font-bold leading-tight line-clamp-2">
             {group.menu.menuName}
           </span>
+          {group.modifiers && group.modifiers.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {group.modifiers.map((mod: any, index: number) => (
+                <span
+                  key={index}
+                  className="text-xs font-semibold text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded"
+                >
+                  + {mod.modifierItem.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -239,7 +254,6 @@ const KitchenTicket = ({
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="printer">เลือกเครื่องพิมพ์</Label>
                   <div className="flex gap-2">
-                    {/* ใช้ Select ของ Shadcn หรือ HTML Select ก็ได้ */}
                     <Select
                       value={selectedPrinter}
                       onValueChange={handlePrinterChange}

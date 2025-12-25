@@ -2,17 +2,18 @@
 import { PrinterProps } from "@/lib/type";
 import { Data_table_setting_printers } from "../tables/data-table-setting-printers";
 import column_setting_printers from "../tables/column_setting_printer";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   updateNamePrinter,
   updateStationUse,
 } from "@/lib/actions/actionSettings";
 
-const SettingPrinterPage = ({ initialItems, reationData }: PrinterProps) => {
-  const session = useSession();
-  const id_user = session.data?.user.id || "1";
-  const organizationId = session.data?.user.organizationId;
+const SettingPrinterPage = ({
+  initialItems,
+  reationData,
+  id_user,
+  organizationId,
+}: PrinterProps) => {
   const router = useRouter();
 
   const onUpdateStationUse = async (id: number, stationName: string) => {
@@ -32,7 +33,7 @@ const SettingPrinterPage = ({ initialItems, reationData }: PrinterProps) => {
   const columns = column_setting_printers(
     onUpdatePrinterName,
     onUpdateStationUse,
-    organizationId ?? 1,
+    organizationId ?? 0,
     reationData
   );
   return (
@@ -53,8 +54,8 @@ const SettingPrinterPage = ({ initialItems, reationData }: PrinterProps) => {
             <Data_table_setting_printers
               columns={columns}
               data={initialItems}
-              userId={parseInt(id_user)}
-              organizationId={organizationId ?? 1}
+              userId={id_user}
+              organizationId={organizationId ?? 0}
               reationdata={reationData}
             />
           </div>

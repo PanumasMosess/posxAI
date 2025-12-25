@@ -56,7 +56,26 @@ export interface StockPageFormularProps {
         productName: string;
       };
     }[];
+    modifiergroup: {
+      id: number;
+      name: string;
+      minSelect: number;
+      maxSelect: number;
+    }[];
+    mofifieritemgroup: {
+      id: number;
+      name: string;
+      price: number;
+      groupId: number;
+      organizationId: number | null;
+      group?: {
+        id: number;
+        name: string;
+      } | null;
+    }[];
   };
+  id_user: number;
+  organizationId: number;
 }
 
 type MenuFormular = {
@@ -85,6 +104,12 @@ export interface MenuPOSPageClientProps {
       price_sum: number;
       price_pre_unit: number;
       organizationId: number | null;
+      modifiers: {
+        id: number;
+        name: string;
+        price: number;
+        modifierItemId: number;
+      }[];
     }[];
     orders?: {
       id: number;
@@ -128,6 +153,8 @@ export interface MenuPOSPageClientProps {
       };
     }[];
   };
+  id_user: number;
+  organizationId: number;
 }
 
 export interface StockPageClientProps {
@@ -136,6 +163,8 @@ export interface StockPageClientProps {
     categories: { id: number; categoryName: string }[];
     suppliers: { id: number; supplierName: string }[];
   };
+  id_user: number;
+  organizationId: number;
 }
 
 export interface MenuItemCardProps {
@@ -212,6 +241,7 @@ export type CartItem = {
   price_sum: any;
   price_pre_unit: any;
   organizationId: number | null;
+  modifiers: any[];
 };
 
 export type CartDetailItem = {
@@ -268,9 +298,14 @@ export interface CartItemPayload {
   price_sum: number;
   price_pre_unit: number;
   organizationId: number | null;
+  modifiers?: {
+    modifierItemId: number;
+    name: string;
+    price: number;
+  }[];
 }
 
-export type KitchecOrder = {
+export type KitchenOrder = {
   id: number;
   quantity: number;
   price_sum: number;
@@ -278,13 +313,6 @@ export type KitchecOrder = {
   createdAt: Date;
   status: string;
   order_running_code: string | null;
-  menu: {
-    menuName: string;
-    img: string | null;
-    unitPrice: {
-      label: string;
-    };
-  };
   table: {
     id: number;
     tableName: string;
@@ -298,17 +326,69 @@ export type KitchecOrder = {
     status: string;
     order_running_code: string | null;
   }[];
+  orderitems: {
+    id: number;
+    quantity: number;
+    menu: {
+      menuName: string;
+      price_sale: number;
+      img: string | null;
+      unitPrice: {
+        label: string;
+      };
+    };
+
+    selectedModifiers: {
+      id: number;
+      modifierItem: {
+        name: string;
+      };
+    }[];
+  }[];
 };
 
 export interface KitchecOrderList {
-  initialItems: KitchecOrder[];
+  initialItems: KitchenOrder[];
+  id_user: number;
+  organizationId: number;
 }
 
+export type KitchenTicketItem = {
+  menu: {
+    id: number;
+    menuName: string;
+    img: string | null;
+    unitPrice: {
+      label: string;
+    };
+  };
+  status: string;
+
+  totalQuantity: number;
+  orderIds: number[];
+  orders: {
+    id: number;
+    tableName: string;
+    quantity: number;
+    status: string;
+    order_running_code: string | null;
+  }[];
+
+  modifiers?: {
+    id: number;
+    modifierItem: {
+      name: string;
+    };
+  }[];
+};
+
 export interface KitchecTicketProps {
-  initialItems: KitchecOrder;
+  initialItems: KitchenTicketItem;
   onStatusChange: (id: number | number[], status: string) => void;
   isGrouped?: boolean;
   printerName?: string | null;
+  id_user: number;
+  organizationId: number;
 }
 
 export type HistoryOrder = {
@@ -332,6 +412,8 @@ export type HistoryOrder = {
 
 export interface HistoryOrderProps {
   initialItems: HistoryOrder[];
+  id_user: number;
+  organizationId: number;
 }
 
 export type SettingTable = {
@@ -349,6 +431,8 @@ export type SettingTable = {
 
 export interface SettingTableProps {
   initialItems: SettingTable[];
+  userId: number;
+  organizationId: number;
 }
 export interface ReceiptProps {
   orderId: string;
@@ -399,6 +483,8 @@ export type HistoryPayment = {
 
 export interface HistoryPaymentProps {
   initialItems: HistoryPayment[];
+  userId: number;
+  organizationId: number;
 }
 
 export type PropsUrl = {
@@ -413,6 +499,7 @@ export interface PrintTicketData {
   totalQuantity: number | undefined;
   orders: any[];
   printerName: string;
+  modifiers?: string;
 }
 
 export type Printer = {
@@ -443,6 +530,8 @@ export type Station = {
 export interface PrinterProps {
   initialItems: Printer[];
   reationData: Station[];
+  id_user: number;
+  organizationId: number;
 }
 
 export interface OrderHistoryList {

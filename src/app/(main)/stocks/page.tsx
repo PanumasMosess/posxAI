@@ -4,7 +4,8 @@ import { auth } from "@/auth";
 
 const Page = async () => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const id_user = session?.user.id ? parseInt(session.user.id) : 0;
+  const organizationId = session?.user.organizationId ?? 0;
   const itemsData = await prisma.stock.findMany({
     where: {
       status: "ON_STOCK",
@@ -44,7 +45,7 @@ const Page = async () => {
     unitprices: unitpriceData,
   };
 
-  return <StockPageClient initialItems={itemsData} relatedData={relatedData} />;
+  return <StockPageClient initialItems={itemsData} relatedData={relatedData} id_user={id_user} organizationId={organizationId} />;
 };
 
 export default Page;

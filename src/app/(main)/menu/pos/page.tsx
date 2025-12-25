@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma";
 
 const page = async () => {
   const session = await auth();
-  const organizationId = session?.user.organizationId;
+  const userId = session?.user?.id ? parseInt(session.user.id) : 1;
+  const organizationId = session?.user.organizationId ?? 0;
   const itemsData = await prisma.menu.findMany({
     where: {
       organizationId: organizationId,
@@ -12,6 +13,7 @@ const page = async () => {
     include: {
       category: true,
       unitPrice: true,
+      modifiers: true,
     },
     orderBy: {
       id: "desc",
@@ -46,6 +48,19 @@ const page = async () => {
       status: "ON_CART",
       organizationId: organizationId,
     },
+    include: {
+      modifiers: true,
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+
+  const itemsGroup = await prisma.modifiergroup.findMany({
+    where: {
+      organizationId: Number(organizationId),
+      status: "running",
+    },
     orderBy: {
       id: "desc",
     },
@@ -56,10 +71,16 @@ const page = async () => {
     unitprices: unitpriceData,
     tabledatas: tableData,
     cartdatas: cartData,
+    modifierGroups: itemsGroup,
   };
   return (
     <div>
-      <MenuPOSPage initialItems={itemsData} relatedData={relatedData} />
+      <MenuPOSPage
+        initialItems={itemsData}
+        relatedData={relatedData}
+        id_user={userId}
+        organizationId={organizationId}
+      />
     </div>
   );
 };

@@ -106,9 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.surname = dbUser.surname;
             token.status = dbUser.status;
             token.login_fail = dbUser.login_fail;
-            token.birthday = dbUser.birthday;
             token.position_id = dbUser.position_id;
-            token.email = dbUser.email;
             token.image = dbUser.img;
             token.organizationId = dbUser.organizationId;
           }
@@ -120,9 +118,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.surname = user.surname;
           token.status = user.status;
           token.login_fail = user.login_fail;
-          token.birthday = user.birthday;
           token.position_id = user.position_id;
-          token.email = user.email;
           token.image = user.image;
           token.organizationId = user.organizationId;
         }
@@ -137,10 +133,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.surname = token.surname as string;
       session.user.status = token.status as string;
       session.user.login_fail = token.login_fail as number;
-      session.user.birthday = token.birthday as Date;
       session.user.position_id = token.position_id as number;
       session.user.image = token.image as string | null;
-      session.user.email = token.email as string;
       session.user.organizationId = token.organizationId as number | 1;
       return session;
     },
