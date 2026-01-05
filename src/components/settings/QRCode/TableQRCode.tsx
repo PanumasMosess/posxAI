@@ -78,22 +78,34 @@ export const TableQRAction = ({
     });
   };
 
-  const fetchPrinters = async () => {
-    if (isLoadingPrinters || isConnecting.current) return;
+const fetchPrinters = async () => {
+   
+    if (isLoadingPrinters) return;
     setIsLoadingPrinters(true);
-    isConnecting.current = true;
+
     try {
       initQZSecurity();
 
       if (!qz.websocket.isActive()) {
         try {
           await qz.websocket.connect();
-        } catch (e) {
-          console.warn("Connection failed, retrying...", e);
-          try {
-            await qz.websocket.disconnect();
-          } catch (err) {}
-          await qz.websocket.connect();
+        } catch (err: any) {
+         
+          if (err.message && err.message.includes("Waiting for previous disconnect")) {
+           
+             await new Promise(resolve => setTimeout(resolve, 1000));         
+             if (!qz.websocket.isActive()) {
+                await qz.websocket.connect();
+             }
+          } else {
+             
+             try { 
+               await qz.websocket.disconnect(); 
+             } catch (e) {}
+             
+             await new Promise(resolve => setTimeout(resolve, 500));
+             await qz.websocket.connect();
+          }
         }
       }
 
@@ -104,13 +116,14 @@ export const TableQRAction = ({
         console.warn("Stale connection detected. Reconnecting...", err);
 
         if (qz.websocket.isActive()) {
-          await qz.websocket.disconnect();
+          try { await qz.websocket.disconnect(); } catch (e) {}
         }
+        await new Promise(resolve => setTimeout(resolve, 500));
         await qz.websocket.connect();
         foundPrinters = await qz.printers.find();
       }
+      
       setPrinters(foundPrinters);
-
       if (!selectedPrinter) {
         try {
           const defaultPrinter = await qz.printers.getDefault();
@@ -121,7 +134,6 @@ export const TableQRAction = ({
       }
     } catch (err) {
       console.error("Error fetching printers:", err);
-      // toast.error("ไม่สามารถเชื่อมต่อ QZ Tray ได้");
     } finally {
       setIsLoadingPrinters(false);
     }
