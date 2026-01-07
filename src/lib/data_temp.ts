@@ -5,6 +5,7 @@ import {
   ScrollText,
   Settings,
   Table,
+  UserCog,
   Wallet,
   Warehouse,
 } from "lucide-react";
@@ -84,6 +85,7 @@ const settingsMenu = {
   subItems: [
     { title: "จัดการโต๊ะ", url: "/settings/tables", icon: Table },
     { title: "จัดการเครื่องปริ้น", url: "/settings/printers", icon: Printer },
+    { title: "จัดการพนักงาน", url: "/settings/employees", icon: UserCog },
   ],
 };
 
@@ -249,10 +251,16 @@ const tableStatuses = [
   },
 ];
 
+const positionStatuses = [
+  { value: "ACTIVE", label: "ใช้งาน", color: "bg-green-500" },
+  { value: "INACTIVE", label: "ไม่ใช้งาน", color: "bg-gray-400" },
+];
+
 export default {
   menuList,
   settingsMenu,
   tableStatuses,
+  positionStatuses,
   statusColor,
   getButtonActionColor,
   getNextStepConfig,

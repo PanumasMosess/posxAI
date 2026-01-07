@@ -41,6 +41,7 @@ model employees {
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
   stations       station[]
+  posiotions     posiotion[]
 }
 
 model categorystock {
@@ -214,7 +215,7 @@ model cart {
   table          table          @relation(fields: [tableId], references: [id])
   organizationId Int?
   organization   organization?  @relation(fields: [organizationId], references: [id])
-  modifiers  cartmodifier[]
+  modifiers      cartmodifier[]
 }
 
 model cartmodifier {
@@ -226,8 +227,8 @@ model cartmodifier {
   modifierItemId Int
   modifierItem   modifieritem @relation(fields: [modifierItemId], references: [id])
 
-  name  String 
-  price Float 
+  name  String
+  price Float
 }
 
 model orderrunning {
@@ -287,6 +288,7 @@ model organization {
   menumodifiers  menumodifier[]
   orderitems     orderitem[]
   ordermodifiers ordermodifier[]
+  posiotions     posiotion[]
 }
 
 model printer {
@@ -340,7 +342,7 @@ model modifieritem {
   group          modifiergroup @relation(fields: [groupId], references: [id])
 
   orderModifiers ordermodifier[]
-  modifiers  cartmodifier[]
+  modifiers      cartmodifier[]
 }
 
 model menumodifier {
@@ -378,4 +380,17 @@ model ordermodifier {
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
   price          Float
+}
+
+model posiotion {
+  id            Int      @id @default(autoincrement())
+  position_name String
+  status        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  createdById    Int
+  creator        employees     @relation(fields: [createdById], references: [id])
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
 }
