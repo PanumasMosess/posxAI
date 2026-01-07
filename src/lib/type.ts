@@ -618,3 +618,52 @@ export interface MenuOrderHistorySheetProps {
   };
   tableNumber: number;
 }
+
+export type SettingEmployee = {
+  id: number;
+  username: string;
+  name: string;
+  surname: string;
+  email: string | null;
+  img: string | null;
+  status: string;
+  position_id: number | null;
+  login_fail: number;
+  created_by: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  birthday: Date | null;
+  id_google: string | null;
+  organizationId: number | null;
+};
+
+export interface SettingEmployeeProps {
+  initialItems: SettingEmployee[];
+  userId: number;
+  organizationId: number;
+  relatedData: {
+    positions: {
+      id: number;
+      position_name: string;
+      status: string | null;
+      creator: {
+        id: number;
+        name: string;
+        surname: string;
+      };
+      organizationId: number | null;
+    }[];
+  };
+}
+
+export type SettingPositions = {
+  id: number;
+  position_name: string;
+  status: string | null;
+  creator: {
+    id: number;
+    name: string;
+    surname: string;
+  };
+  organizationId: number | null;
+};

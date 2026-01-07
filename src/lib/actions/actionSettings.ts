@@ -3,6 +3,7 @@
 import {
   ModifierGroupSchema,
   ModifierItemSchema,
+  PositionSchema,
   PrinterSchema,
   TableSchema,
 } from "../formValidationSchemas";
@@ -279,5 +280,70 @@ export const deleteModifierItem = async (data: any) => {
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
+  }
+};
+
+export const createPosition = async (
+  currentState: CurrentState,
+  data: PositionSchema
+) => {
+  try {
+    await prisma.posiotion.create({
+      data: {
+        position_name: data.position_name,
+        status: "ACTIVE",
+        creator: {
+          connect: {
+            id: data.createdById,
+          },
+        },
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateStusPosition = async (id: number, status: string) => {
+  try {
+    const updatedPositionStatus = await prisma.posiotion.update({
+      where: {
+        id: id,
+      },
+      data: {
+        status: status,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedPositionStatus };
+  } catch (err) {
+    return { success: false, error: true, data: err };
+  }
+};
+
+export const updateNamePosition = async (id: number, positionName: string) => {
+  try {
+    const updatedPositionName = await prisma.posiotion.update({
+      where: {
+        id: id,
+      },
+      data: {
+        position_name: positionName,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedPositionName };
+  } catch (err) {
+    return { success: false, error: true, data: err };
   }
 };
