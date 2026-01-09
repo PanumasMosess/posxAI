@@ -45,6 +45,7 @@ export function Data_table_order_cancel<TData, TValue>({
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    autoResetPageIndex: false,
     state: {
       sorting,
       rowSelection,

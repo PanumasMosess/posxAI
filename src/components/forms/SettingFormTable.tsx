@@ -47,7 +47,7 @@ const SettingFormTable = ({
     defaultValues: {
       tableName: "",
       closeById: currentUserId,
-      status: "WAIT_BOOKING",
+      status: "AVAILABLE",
       organizationId: organizationId
     },
   });
