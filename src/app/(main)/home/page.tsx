@@ -1,31 +1,49 @@
-import AppAreaChart from "@/components/AppAreaChart";
-import AppBarChart from "@/components/AppBarChart";
-import AppPieChart from "@/components/AppPieChart";
-import CardList from "@/components/CardList";
-import TodoList from "@/components/TodoList";
+import { auth } from "@/auth";
+import prisma from "@/lib/prisma";
+import MainPageComponanceHome from "@/components/home/MainPageComponentsHome";
 
 const Home = async () => {
+  const session = await auth();
+  const userId = session?.user?.id ? parseInt(session.user.id) : 0;
+  const organizationId = session?.user.organizationId ?? 0;
+  const itemsData = await prisma.table.findMany({
+    where: {
+      organizationId: organizationId,
+    },
+    include: {
+      creator: {
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+        },
+      },
+      order: {
+        where: {
+          status: {          
+            notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+          },
+        },
+        include: {
+          orderitems: {
+            include: {
+              menu: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
-      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-        <AppBarChart />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <CardList title="Latest Transactions" />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <AppPieChart />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <TodoList />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-        <AppAreaChart />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <CardList title="Popular Content" />
-      </div>
-    </div>
+    <MainPageComponanceHome
+      initialItems={itemsData}
+      userId={userId}
+      organizationId={organizationId}
+    />
   );
 };
 
