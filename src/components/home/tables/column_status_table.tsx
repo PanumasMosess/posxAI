@@ -191,12 +191,23 @@ const column_status_table = (
     header: () => <div className="text-center">จัดการ</div>,
     cell: ({ row }) => {
       const table = row.original;
+      const orders = (table as any).order || [];
+      const hasActiveOrders = orders.some(
+        (o: any) =>
+          !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(o.status)
+      );
+
       return (
         <div className="flex justify-center">
           <Button
             variant="outline"
             size="sm"
-            className="text-zinc-600 border-zinc-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all"
+            disabled={!hasActiveOrders}
+            className={`text-zinc-600 border-zinc-300 transition-all ${
+              hasActiveOrders
+                ? "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                : "opacity-50 cursor-not-allowed bg-zinc-100 text-zinc-400"
+            }`}
             onClick={() => onMoveTable(table)}
           >
             <ArrowRightLeft className="w-4 h-4 mr-2" />

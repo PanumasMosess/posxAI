@@ -11,20 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Armchair, CheckCircle2, MoveRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type TableItem = {
-  id: number;
-  tableName: string;
-  status: "AVAILABLE" | "OCCUPIED" | "RESERVED";
-};
-
-interface MoveTableDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  currentTable: TableItem;
-  allTables: TableItem[];
-  onConfirm: (fromId: number, toId: number) => void;
-}
+import { MoveTableDialogProps } from "@/lib/type";
 
 const TableStatusPage = ({
   isOpen,

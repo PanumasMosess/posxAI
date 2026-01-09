@@ -733,3 +733,16 @@ export interface StatusTableProps {
   userId: number;
   organizationId: number | null;
 }
+export type TableItem = {
+  id: number;
+  tableName: string;
+  status: "AVAILABLE" | "OCCUPIED" | "RESERVED";
+};
+
+export interface MoveTableDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentTable: TableItem;
+  allTables: TableItem[];
+  onConfirm: (fromId: number, toId: number) => void;
+}
