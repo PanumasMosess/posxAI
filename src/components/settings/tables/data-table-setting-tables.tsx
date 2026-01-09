@@ -53,6 +53,7 @@ export function Data_table_setting_tables<TData, TValue>({
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    autoResetPageIndex: false,
     state: {
       sorting,
       rowSelection,
