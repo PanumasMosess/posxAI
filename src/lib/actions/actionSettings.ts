@@ -347,3 +347,57 @@ export const updateNamePosition = async (id: number, positionName: string) => {
     return { success: false, error: true, data: err };
   }
 };
+
+export const moveTableFunction = async (
+  fromTableId: number,
+  toTableId: number,
+  activeOrderIds: number[]
+) => {
+  try {
+    if (!activeOrderIds || activeOrderIds.length === 0) {
+      return {
+        success: false,
+        error: true,
+        data: "ไม่พบรายการออเดอร์ที่ต้องการย้าย",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.updateMany({
+        where: {
+          id: {
+            in: activeOrderIds,
+          },
+        },
+        data: {
+          tableId: toTableId,
+        },
+      });
+
+      await tx.table.update({
+        where: { id: toTableId },
+        data: { status: "OCCUPIED" },
+      });
+
+      const remainingOrders = await tx.order.count({
+        where: {
+          tableId: fromTableId,
+          status: {
+            notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+          },
+        },
+      });
+
+      if (remainingOrders === 0) {
+        await tx.table.update({
+          where: { id: fromTableId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+    });
+
+    return { success: true, error: false, data: "ย้ายโต๊ะเรียบร้อยแล้ว" };
+  } catch (err) {
+    return { success: false, error: true, data: err };
+  }
+};

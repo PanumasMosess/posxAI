@@ -667,3 +667,69 @@ export type SettingPositions = {
   };
   organizationId: number | null;
 };
+
+export type Menu = {
+  id: number;
+  menuName: string;
+  price_sale: number;
+  price_cost: number;
+  unit: string;
+  img: string | null;
+  description: string | null;
+  status: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  createdById: number | null; 
+  categoryMenuId: number | null; 
+  unitPriceId: number | null; 
+  organizationId: number | null;
+};
+
+export type OrderItem = {
+  id: number;
+  orderId: number;
+  menuId: number;
+  quantity: number;
+  price: number;
+  organizationId: number | null;
+  menu: Menu;
+};
+
+export type Order = {
+  id: number;
+  order_running_code: string | null;
+  status: string;
+  tableId: number;
+  menuId: number;
+  organizationId: number | null;
+  quantity: number;
+  price_sum: number;
+  price_pre_unit: number;
+  orderDetail: string | null;
+
+  createdAt: Date | string;
+  updatedAt: Date | string;
+
+  orderitems: OrderItem[];
+};
+
+export type StatusTable = {
+  id: number;
+  tableName: string;
+  status: string;
+  organizationId: number | null;
+ createdAt?: Date | string;
+  updatedAt?: Date | string;
+
+  order: Order[];
+  creator?: {
+    id: number;
+    name: string;
+  };
+};
+
+export interface StatusTableProps {
+  initialItems: StatusTable[];
+  userId: number;
+  organizationId: number | null;
+}

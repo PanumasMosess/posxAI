@@ -256,6 +256,17 @@ const positionStatuses = [
   { value: "INACTIVE", label: "ไม่ใช้งาน", color: "bg-gray-400" },
 ];
 
+export const mockTables = [
+  { id: 1, tableName: "T-01", status: "OCCUPIED" as const },
+  { id: 2, tableName: "T-02", status: "AVAILABLE" as const },
+  { id: 3, tableName: "T-03", status: "RESERVED" as const },
+  { id: 4, tableName: "T-04", status: "AVAILABLE" as const },
+  { id: 5, tableName: "V-01", status: "OCCUPIED" as const },
+  { id: 6, tableName: "V-02", status: "AVAILABLE" as const },
+  { id: 7, tableName: "Bar-01", status: "AVAILABLE" as const },
+  { id: 8, tableName: "Bar-02", status: "AVAILABLE" as const },
+];
+
 export default {
   menuList,
   settingsMenu,
