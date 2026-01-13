@@ -20,7 +20,7 @@ const Home = async () => {
       },
       order: {
         where: {
-          status: {          
+          status: {
             notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
           },
         },
@@ -38,11 +38,43 @@ const Home = async () => {
     },
   });
 
+  const itemsDataOrder = await prisma.order.findMany({
+    where: {
+      organizationId: Number(organizationId),
+      status: {
+        notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+      },
+    },
+    include: {
+      table: true,
+      orderitems: {
+        include: {
+          menu: {
+            include: {
+              unitPrice: true,
+            },
+          },
+          selectedModifiers: {
+            include: {
+              modifierItem: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+
+  const relatedData = { orderRunning: itemsDataOrder };
+
   return (
     <MainPageComponanceHome
       initialItems={itemsData}
       userId={userId}
       organizationId={organizationId}
+      relatedData={relatedData}
     />
   );
 };
