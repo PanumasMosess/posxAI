@@ -9,6 +9,8 @@ import {
   MoreHorizontal,
   PlayCircle,
   RefreshCcw,
+  Ticket,
+  ChefHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ConfigStyle from "@/lib/data_temp";
@@ -43,44 +45,74 @@ export default function OrderStatusPage({
 
   return (
     <div className="w-full h-full font-sans space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
-              สถานะครัว
-            </h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground"
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCcw
-                className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
-              />
-            </Button>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shadow-sm border border-amber-500/20">
+            <ChefHat className="h-6 w-6" />
           </div>
-          <p className="text-xs text-muted-foreground">
-            {filteredOrders.length} active
-          </p>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold tracking-tight text-foreground">
+                สถานะครัว
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                title="Refresh Orders"
+              >
+                <RefreshCcw
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    isRefreshing && "animate-spin text-primary"
+                  )}
+                />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+              <Ticket className="w-3.5 h-3.5 opacity-70" />
+              <span className="font-medium">{filteredOrders.length}</span>
+              <span>active tickets</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex p-1 bg-background rounded-md border shadow-sm overflow-x-auto max-w-full">
-          {["ALL", "NEW", "PREPARING", "COOKING"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={cn(
-                "px-3 py-1 text-[10px] font-semibold rounded-sm transition-all whitespace-nowrap",
-                filter === status
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              {status === "ALL" ? "All" : status}
-            </button>
-          ))}
+        <div className="flex p-1 bg-muted/40 rounded-lg border border-border/50 shadow-sm overflow-x-auto max-w-full">
+          {["ALL", "NEW", "PREPARING", "COOKING"].map((status) => {
+            const StatusIcon = ConfigStyle.getFilterIcon(status);
+            const isActive = filter === status;
+
+            return (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap",
+                  isActive
+                    ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                )}
+              >
+                <StatusIcon
+                  className={cn(
+                    "w-3.5 h-3.5",
+                    isActive && status === "COOKING"
+                      ? "text-orange-500"
+                      : isActive && status === "READY"
+                      ? "text-emerald-500"
+                      : isActive && status === "NEW"
+                      ? "text-blue-500"
+                      : ""
+                  )}
+                />
+                {status === "ALL" ? "All" : status}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -216,7 +248,7 @@ export default function OrderStatusPage({
                 )}
               </div>
 
-              <div className="p-3 pt-0 mt-auto border-t border-transparent">
+              {/* <div className="p-3 pt-0 mt-auto border-t border-transparent">
                 {order.status === "READY" ? (
                   <Button className="w-full h-8 rounded-md text-xs font-bold shadow-none bg-emerald-600 hover:bg-emerald-700 text-white">
                     <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
@@ -240,7 +272,7 @@ export default function OrderStatusPage({
                     Details
                   </Button>
                 )}
-              </div>
+              </div> */}
             </div>
           );
         })}
