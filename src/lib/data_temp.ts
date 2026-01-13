@@ -15,6 +15,10 @@ import {
   Loader2,
   CheckCircle2,
   MoreHorizontal,
+  LayoutGrid,
+  Sparkles,
+  Utensils,
+  Flame,
 } from "lucide-react";
 
 const menuList = [
@@ -124,6 +128,21 @@ const statusColor = (status: string) => {
 
     default:
       return "border-zinc-200 dark:border-zinc-800";
+  }
+};
+
+const getFilterIcon = (status: string) => {
+  switch (status) {
+    case "ALL":
+      return LayoutGrid;
+    case "NEW":
+      return Sparkles;
+    case "PREPARING":
+      return Utensils;
+    case "COOKING":
+      return Flame;
+    default:
+      return CheckCircle2;
   }
 };
 
@@ -333,4 +352,5 @@ export default {
   getNextStepConfig,
   getStatusBadgeConfig,
   getStatusStylesCardDashboard,
+  getFilterIcon,
 };
