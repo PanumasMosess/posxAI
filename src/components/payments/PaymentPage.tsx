@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// import { ScrollArea } from "@/components/ui/scroll-area"; // ไม่ได้ใช้ ScrollArea แล้ว
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -122,11 +122,10 @@ const PaymentPage = ({
     });
   };
 
-const groupedOrders = useMemo(() => {
+  const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
     initialItems.forEach((order) => {
-      // ใช้ runningCode เป็น Key (หรือ ID)
       const key = order.order_running_code || `ORDER-${order.id}`;
 
       if (!groups[key]) {
@@ -149,7 +148,6 @@ const groupedOrders = useMemo(() => {
 
       groups[key].allOrderIds.push(order.id);
 
-      // บวกยอดรวมทั้งหมดของบิล (จาก price_sum ที่คำนวณมาแล้วจาก DB)
       groups[key].total += order.price_sum || 0;
 
       if (order.orderitems && Array.isArray(order.orderitems)) {
@@ -158,14 +156,12 @@ const groupedOrders = useMemo(() => {
             groups[key].currency = item.menu.unitPrice.label;
           }
 
-          // ตัวแปรสำหรับเก็บผลรวมราคา Modifier ของสินค้านี้
           let modifiersTotal = 0;
 
           const modifiersText = item.selectedModifiers
             ?.map((m: any) => {
               const price = m.price || 0;
-              
-              // ✅ 1. บวกราคา Modifier เข้าไปในตัวแปรผลรวม
+
               modifiersTotal += price;
 
               if (price > 0) {
@@ -180,7 +176,7 @@ const groupedOrders = useMemo(() => {
             : item.menu.menuName;
 
           const basePrice = item.menu.price_sale || 0;
-          
+
           const finalUnitPrice = basePrice + modifiersTotal;
 
           const totalPriceForItem = finalUnitPrice * item.quantity;
@@ -342,8 +338,8 @@ const groupedOrders = useMemo(() => {
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden relative">
-      <div className="flex-1 p-4 md:p-6 flex flex-col w-full max-w-[1600px] mx-auto">
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+      <div className="flex-1 p-4 md:p-6 flex flex-col w-full max-w-[1600px] mx-auto h-full overflow-hidden">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm shrink-0">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
               รอชำระเงิน
@@ -432,14 +428,14 @@ const groupedOrders = useMemo(() => {
           </div>
         </div>
 
-        <ScrollArea className="flex-1 -mr-4 pr-4">
+        <div className="flex-1 overflow-y-auto -mr-4 pr-4">
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-zinc-400">
               <Search className="h-12 w-12 mb-4 opacity-20" />
               <p>ไม่พบรายการที่ค้นหา "{searchTerm}"</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 pb-20 lg:pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 pb-4">
               {filteredOrders.map((order: any) => {
                 const isSelected = selectedOrder?.id === order.id;
                 return (
@@ -503,9 +499,8 @@ const groupedOrders = useMemo(() => {
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
-
       <AnimatePresence mode="wait">
         {selectedOrder && (
           <motion.div
@@ -515,202 +510,196 @@ const groupedOrders = useMemo(() => {
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="
-    fixed inset-0 z-50 w-full h-full bg-white dark:bg-zinc-900 
-    lg:static lg:w-[420px] lg:h-full lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:shadow-2xl
-    overflow-hidden 
-  "
+              fixed inset-0 z-50 w-full h-full bg-white dark:bg-zinc-900 
+              lg:static lg:w-[420px] lg:h-full lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:shadow-2xl
+              flex flex-col
+            "
           >
-            <div className="flex flex-col h-full w-full relative">
-              <div className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm flex items-center gap-3 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden -ml-2 text-zinc-500"
-                  onClick={() => setSelectedOrder(null)}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <h2 className="text-lg font-bold">ชำระเงิน</h2>
-                    <Badge className="bg-zinc-900 text-white dark:bg-white dark:text-black">
-                      โต๊ะ {selectedOrder.table}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-mono">
-                    {selectedOrder.runningCode}
+            <div className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm flex items-center gap-3 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden -ml-2 text-zinc-500"
+                onClick={() => setSelectedOrder(null)}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1">
+                  <h2 className="text-lg font-bold">ชำระเงิน</h2>
+                  <Badge className="bg-zinc-900 text-white dark:bg-white dark:text-black">
+                    โต๊ะ {selectedOrder.table}
+                  </Badge>
+                </div>
+                <p className="text-xs text-zinc-400 font-mono">
+                  {selectedOrder.runningCode}
+                </p>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                title="พิมพ์ใบเสร็จ"
+                onClick={() => handlePrintReceipt(selectedOrder)}
+              >
+                <Printer className="h-5 w-5 text-zinc-500 hover:text-zinc-800" />
+              </Button>
+            </div>
+
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 md:p-6 space-y-6 pb-24">
+                <div className="text-center py-4">
+                  <p className="text-sm text-zinc-500 font-medium mb-1">
+                    ยอดสุทธิ
                   </p>
+                  <div className="text-4xl font-extrabold text-zinc-900 dark:text-white">
+                    {selectedOrder.total.toLocaleString()}{" "}
+                    <span className="text-lg text-zinc-400">
+                      {selectedOrder.currency}
+                    </span>
+                  </div>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  title="พิมพ์ใบเสร็จ"
-                  onClick={() => handlePrintReceipt(selectedOrder)}
-                >
-                  <Printer className="h-5 w-5 text-zinc-500 hover:text-zinc-800" />
-                </Button>
-              </div>
-              <ScrollArea className="flex-1 h-[1px]">
-                <div className="p-4 md:p-6 space-y-6 pb-24">
-                  <div className="text-center py-4">
-                    <p className="text-sm text-zinc-500 font-medium mb-1">
-                      ยอดสุทธิ
-                    </p>
-                    <div className="text-4xl font-extrabold text-zinc-900 dark:text-white">
-                      {selectedOrder.total.toLocaleString()}{" "}
-                      <span className="text-lg text-zinc-400">
-                        {selectedOrder.currency}
-                      </span>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <PaymentOption
+                    icon={QrCode}
+                    label="QR"
+                    active={paymentMethod === "QR"}
+                    onClick={() => setPaymentMethod("QR")}
+                    disabled={true}
+                  />
+                  <PaymentOption
+                    icon={Banknote}
+                    label="เงินสด"
+                    active={paymentMethod === "CASH"}
+                    onClick={() => setPaymentMethod("CASH")}
+                  />
+                  <PaymentOption
+                    icon={CreditCard}
+                    label="บัตร"
+                    active={paymentMethod === "CARD"}
+                    onClick={() => setPaymentMethod("CARD")}
+                    disabled={true}
+                  />
+                </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <PaymentOption
-                      icon={QrCode}
-                      label="QR"
-                      active={paymentMethod === "QR"}
-                      onClick={() => setPaymentMethod("QR")}
-                      disabled={true}
-                    />
-                    <PaymentOption
-                      icon={Banknote}
-                      label="เงินสด"
-                      active={paymentMethod === "CASH"}
-                      onClick={() => setPaymentMethod("CASH")}
-                    />
-                    <PaymentOption
-                      icon={CreditCard}
-                      label="บัตร"
-                      active={paymentMethod === "CARD"}
-                      onClick={() => setPaymentMethod("CARD")}
-                      disabled={true}
-                    />
-                  </div>
-
-                  <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800 transition-all duration-300">
-                    {paymentMethod === "QR" && (
-                      <div className="flex flex-col items-center justify-center space-y-4 py-2">
-                        <div className="bg-white p-3 rounded-xl shadow-sm border">
-                          <div className="w-40 h-40 bg-zinc-200 rounded-lg animate-pulse flex items-center justify-center text-zinc-400 text-xs">
-                            QR Code
-                          </div>
+                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800 transition-all duration-300">
+                  {paymentMethod === "QR" && (
+                    <div className="flex flex-col items-center justify-center space-y-4 py-2">
+                      <div className="bg-white p-3 rounded-xl shadow-sm border">
+                        <div className="w-40 h-40 bg-zinc-200 rounded-lg animate-pulse flex items-center justify-center text-zinc-400 text-xs">
+                          QR Code
                         </div>
-                        <p className="text-sm text-zinc-500">
-                          สแกนเพื่อชำระเงิน
-                        </p>
                       </div>
-                    )}
+                      <p className="text-sm text-zinc-500">สแกนเพื่อชำระเงิน</p>
+                    </div>
+                  )}
 
-                    {paymentMethod === "CASH" && (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium pl-1 text-zinc-600 dark:text-zinc-400">
-                            รับเงินมา
-                          </label>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              placeholder="0.00"
-                              className="text-right text-xl h-12 pr-12 font-bold bg-white dark:bg-zinc-950"
-                              value={cashReceived}
-                              onChange={(e) => setCashReceived(e.target.value)}
-                              onFocus={(e) => e.target.select()}
-                              autoFocus
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">
-                              {selectedOrder.currency}
-                            </span>
-                          </div>
-                        </div>
-                        <Separator className="bg-zinc-200 dark:bg-zinc-700" />
-                        <div className="flex justify-between items-center px-1">
-                          <span className="text-sm text-zinc-500">เงินทอน</span>
-                          <span
-                            className={`text-xl font-bold ${
-                              change < 0 ? "text-red-500" : "text-emerald-600"
-                            }`}
-                          >
-                            {change >= 0 ? `${change.toLocaleString()}` : "-"}
+                  {paymentMethod === "CASH" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium pl-1 text-zinc-600 dark:text-zinc-400">
+                          รับเงินมา
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            className="text-right text-xl h-12 pr-12 font-bold bg-white dark:bg-zinc-950"
+                            value={cashReceived}
+                            onChange={(e) => setCashReceived(e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            autoFocus
+                          />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">
+                            {selectedOrder.currency}
                           </span>
                         </div>
                       </div>
-                    )}
-
-                    {paymentMethod === "CARD" && (
-                      <div className="flex flex-col items-center justify-center py-8 text-zinc-400 space-y-2">
-                        <CreditCard className="h-10 w-10 opacity-50" />
-                        <p className="text-sm">เสียบบัตรที่เครื่อง EDC</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-zinc-400 uppercase mb-3">
-                      รายการอาหาร
-                    </p>
-                    <div className="space-y-3 border rounded-xl p-4">
-                      {selectedOrder.items.map((item: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="flex justify-between items-start text-sm"
+                      <Separator className="bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-sm text-zinc-500">เงินทอน</span>
+                        <span
+                          className={`text-xl font-bold ${
+                            change < 0 ? "text-red-500" : "text-emerald-600"
+                          }`}
                         >
-                          <div className="flex gap-3">
-                            <Avatar className="h-10 w-10 rounded-md border border-zinc-100">
-                              <AvatarImage
-                                src={item.img || "/placeholder.png"}
-                                className="object-cover"
-                              />
-                              <AvatarFallback>IMG</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold text-zinc-800 dark:text-zinc-200">
-                                {item.name}
-                              </p>
-                              <p className="text-xs text-zinc-400">
-                                x{item.qty}
-                              </p>
-                            </div>
-                          </div>
-                          {/* ราคาตรงนี้จะเป็น 0 หากใช้ตาม Type Fix แต่แสดงผลเพื่อความครบถ้วน */}
-                          <span className="font-medium text-zinc-900 dark:text-white">
-                            {item.price.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
+                          {change >= 0 ? `${change.toLocaleString()}` : "-"}
+                        </span>
+                      </div>
                     </div>
+                  )}
+
+                  {paymentMethod === "CARD" && (
+                    <div className="flex flex-col items-center justify-center py-8 text-zinc-400 space-y-2">
+                      <CreditCard className="h-10 w-10 opacity-50" />
+                      <p className="text-sm">เสียบบัตรที่เครื่อง EDC</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-zinc-400 uppercase mb-3">
+                    รายการอาหาร
+                  </p>
+                  <div className="space-y-3 border rounded-xl p-4">
+                    {selectedOrder.items.map((item: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between items-start text-sm"
+                      >
+                        <div className="flex gap-3">
+                          <Avatar className="h-10 w-10 rounded-md border border-zinc-100">
+                            <AvatarImage
+                              src={item.img || "/placeholder.png"}
+                              className="object-cover"
+                            />
+                            <AvatarFallback>IMG</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-zinc-800 dark:text-zinc-200">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-zinc-400">x{item.qty}</p>
+                          </div>
+                        </div>
+                        <span className="font-medium text-zinc-900 dark:text-white">
+                          {item.price.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </ScrollArea>
-
-              <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe shrink-0 z-10">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
-                      disabled={paymentMethod === "CASH" && !isCashSufficient}
-                    >
-                      ยืนยันการชำระเงิน
-                      <ChevronRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะเป็น
-                        "ชำระเงินแล้ว" อย่างถาวร
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                      <AlertDialogAction onClick={handlePayment}>
-                        ยืนยัน
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </div>
+            </div>
+            <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe shrink-0 z-10">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
+                    disabled={paymentMethod === "CASH" && !isCashSufficient}
+                  >
+                    ยืนยันการชำระเงิน
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะเป็น
+                      "ชำระเงินแล้ว" อย่างถาวร
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                    <AlertDialogAction onClick={handlePayment}>
+                      ยืนยัน
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </motion.div>
         )}

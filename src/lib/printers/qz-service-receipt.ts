@@ -11,12 +11,18 @@ import React from "react";
 const RECEIPT_STYLES = `
   @page { margin: 0; size: 80mm auto; }
   body { 
-    margin: 0; 
-    padding: 10px; 
-    font-family: 'Courier New', monospace; 
-    width: 75mm; /* เผื่อขอบ */
-    color: #000;
-  }
+     margin: 0; 
+     padding: 10px; 
+     font-family: 'Tahoma', sans-serif; /* เปลี่ยน Font */
+     width: 75mm; 
+     color: #000000 !important;
+     -webkit-font-smoothing: none; /* ปิด Font เบลอ */
+   }
+   
+   /* บังคับตัวหนาทุกตัว */
+   div, span, p, td, th {
+     font-weight: bold; 
+   }
   
   /* Utilities mimic Tailwind */
   .text-center { text-align: center; }
@@ -110,9 +116,10 @@ export const printReceiptQZ = async (
     const config = qz.configs.create(printerName || "POS-80", {
       size: { width: 80 },
       units: "mm",
-      rasterize: true, 
+      rasterize: true,
       scaleContent: true,
       margins: 0,
+      density: 150,
     });
 
     const printData = [
