@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ConfigStyle from "@/lib/data_temp";
-import {  StatusTableProps } from "@/lib/type";
+import { StatusTableProps } from "@/lib/type";
 
 export default function OrderStatusPage({
   initialItems = [],
@@ -39,13 +39,10 @@ export default function OrderStatusPage({
 
   const allOrders = relatedData?.orderRunning || [];
   const filteredOrders =
-    filter === "ALL"
-      ? allOrders
-      : allOrders.filter((o) => o.status === filter);
+    filter === "ALL" ? allOrders : allOrders.filter((o) => o.status === filter);
 
   return (
     <div className="w-full h-full font-sans space-y-4">
-      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -70,7 +67,7 @@ export default function OrderStatusPage({
         </div>
 
         <div className="flex p-1 bg-background rounded-md border shadow-sm overflow-x-auto max-w-full">
-          {["ALL", "NEW", "COOKING", "READY"].map((status) => (
+          {["ALL", "NEW", "PREPARING", "COOKING"].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -107,26 +104,30 @@ export default function OrderStatusPage({
               key={order.id}
               className={cn(
                 "relative flex flex-col rounded-lg border transition-all duration-300 shadow-sm",
-                "bg-background text-foreground", 
+                "bg-background text-foreground",
                 styles.cardBorder,
-                isLate ? "!border-red-500 ring-1 ring-red-500/20" : "border-border"
+                isLate
+                  ? "!border-red-500 ring-1 ring-red-500/20"
+                  : "border-border"
               )}
             >
-  
               <div className="p-4 pb-2 flex justify-between items-start">
-                <div className="min-w-0"> 
+                <div className="min-w-0">
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-0.5">
                     {order.order_running_code ? "Ticket" : "Table"}
                   </span>
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-lg font-bold leading-none truncate" title={order.order_running_code || ""}>
-                         {order.order_running_code || `Order #${order.id}`}
+                    <h3
+                      className="text-lg font-bold leading-none truncate"
+                      title={order.order_running_code || ""}
+                    >
+                      {order.order_running_code || `Order #${order.id}`}
                     </h3>
                   </div>
                   {order.table?.tableName && (
-                     <span className="text-xs text-muted-foreground mt-1 block truncate">
-                        Table: {order.table.tableName}
-                     </span>
+                    <span className="text-xs text-muted-foreground mt-1 block truncate">
+                      Table: {order.table.tableName}
+                    </span>
                   )}
                 </div>
 
@@ -147,7 +148,9 @@ export default function OrderStatusPage({
                   <div
                     className={cn(
                       "text-[10px] font-mono font-medium flex items-center gap-1",
-                      isLate ? "text-red-500 font-bold" : "text-muted-foreground"
+                      isLate
+                        ? "text-red-500 font-bold"
+                        : "text-muted-foreground"
                     )}
                   >
                     <Clock className="w-3 h-3 opacity-70" />
@@ -162,7 +165,10 @@ export default function OrderStatusPage({
               <div className="px-4 pt-0 pb-2 h-[140px] overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                 {order.orderitems && order.orderitems.length > 0 ? (
                   order.orderitems.map((item) => (
-                    <div key={item.id} className="flex items-start gap-2.5 group pr-1">
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-2.5 group pr-1"
+                    >
                       <div className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-muted text-[10px] font-bold text-muted-foreground shrink-0 mt-0.5">
                         {item.quantity}
                       </div>
@@ -180,14 +186,15 @@ export default function OrderStatusPage({
                             {item.menu.menuName}
                           </span>
                         </div>
-                        
+
                         {item.menu.unitPrice?.label && (
                           <span className="text-[10px] text-muted-foreground">
                             ({item.menu.unitPrice.label})
                           </span>
                         )}
 
-                        {item.selectedModifiers && item.selectedModifiers.length > 0 && (
+                        {item.selectedModifiers &&
+                          item.selectedModifiers.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {item.selectedModifiers.map((mod) => (
                                 <span
