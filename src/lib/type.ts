@@ -679,9 +679,9 @@ export type Menu = {
   status: string;
   createdAt: Date | string;
   updatedAt: Date | string;
-  createdById: number | null; 
-  categoryMenuId: number | null; 
-  unitPriceId: number | null; 
+  createdById: number | null;
+  categoryMenuId: number | null;
+  unitPriceId: number | null;
   organizationId: number | null;
 };
 
@@ -718,7 +718,7 @@ export type StatusTable = {
   tableName: string;
   status: string;
   organizationId: number | null;
- createdAt?: Date | string;
+  createdAt?: Date | string;
   updatedAt?: Date | string;
 
   order: Order[];
@@ -732,6 +732,9 @@ export interface StatusTableProps {
   initialItems: StatusTable[];
   userId: number;
   organizationId: number | null;
+  relatedData: {
+    orderRunning: KitchenOrder[];
+  };
 }
 export type TableItem = {
   id: number;

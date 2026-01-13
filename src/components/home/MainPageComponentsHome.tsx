@@ -1,19 +1,21 @@
 "use client";
 import { StatusTable, StatusTableProps } from "@/lib/type";
-import AppAreaChart from "./AppAreaChart";
-import CardList from "./CardList";
 import { Data_table_status_table } from "./tables/data-table-status-table";
-import TodoList from "./TodoList";
 import column_status_table from "./tables/column_status_table";
 import { useRouter } from "next/navigation";
-import { moveTableFunction, updateStatusTable } from "@/lib/actions/actionSettings";
+import {
+  moveTableFunction,
+  updateStatusTable,
+} from "@/lib/actions/actionSettings";
 import TableStatusPage from "./TableStatusPage";
 import { useState } from "react";
+import OrderStatusPage from "./OrderStatusPage";
 
 const MainPageComponentsHome = ({
   initialItems,
   userId,
   organizationId,
+  relatedData
 }: StatusTableProps) => {
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [selectedTableToMove, setSelectedTableToMove] =
@@ -47,6 +49,14 @@ const MainPageComponentsHome = ({
   );
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
+      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-4 xl:col-span-1 2xl:col-span-4">
+        <OrderStatusPage
+          initialItems={initialItems}
+          userId={userId}
+          organizationId={organizationId}
+          relatedData={relatedData}
+        />
+      </div>
       <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
         <Data_table_status_table
           columns={columns}
@@ -70,8 +80,11 @@ const MainPageComponentsHome = ({
               status: t.status as any,
             }))}
             onConfirm={async (fromTableId, toTableId) => {
-
-              const result = await moveTableFunction(fromTableId, toTableId, activeOrderIds);
+              const result = await moveTableFunction(
+                fromTableId,
+                toTableId,
+                activeOrderIds
+              );
 
               if (result.success) {
                 router.refresh();
@@ -81,9 +94,7 @@ const MainPageComponentsHome = ({
           />
         )}
       </div>
-      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-        {/* <CardList title="Latest Transactions" /> */}
-      </div>
+
       {/* <div className="bg-primary-foreground p-4 rounded-lg">
         <AppPieChart />
       </div>

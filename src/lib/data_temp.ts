@@ -8,6 +8,13 @@ import {
   UserCog,
   Wallet,
   Warehouse,
+  ChefHat,
+  XCircle,
+  BellRing,
+  Clock,
+  Loader2,
+  CheckCircle2,
+  MoreHorizontal,
 } from "lucide-react";
 
 const menuList = [
@@ -117,6 +124,66 @@ const statusColor = (status: string) => {
 
     default:
       return "border-zinc-200 dark:border-zinc-800";
+  }
+};
+
+const getStatusStylesCardDashboard = (status: string) => {
+  switch (status) {
+    case "NEW":
+    case "WAITING":
+      return {
+        cardBorder:
+          "border-blue-500/50 shadow-blue-500/10 hover:border-blue-500",
+        badge: "bg-blue-50 text-blue-700 border-blue-200",
+        icon: Clock,
+        label: "New Order",
+      };
+    case "PREPARING":
+      return {
+        cardBorder:
+          "border-amber-500/50 shadow-amber-500/10 hover:border-amber-500",
+        badge: "bg-amber-50 text-amber-700 border-amber-200",
+        icon: ChefHat,
+        label: "Preparing",
+      };
+    case "COOKING":
+      return {
+        cardBorder:
+          "border-orange-500/50 shadow-orange-500/10 hover:border-orange-500",
+        badge: "bg-orange-50 text-orange-700 border-orange-200",
+        icon: Loader2,
+        label: "Cooking",
+      };
+    case "READY":
+      return {
+        cardBorder:
+          "border-emerald-500/50 shadow-emerald-500/10 hover:border-emerald-500",
+        badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        icon: BellRing,
+        label: "Ready",
+      };
+    case "COMPLETED":
+      return {
+        cardBorder:
+          "border-slate-500/50 shadow-slate-500/10 hover:border-slate-500 opacity-75",
+        badge: "bg-slate-100 text-slate-600 border-slate-200",
+        icon: CheckCircle2,
+        label: "Completed",
+      };
+    case "CANCELLED":
+      return {
+        cardBorder: "border-red-500/50 shadow-red-500/10 hover:border-red-500",
+        badge: "bg-red-50 text-red-700 border-red-200",
+        icon: XCircle,
+        label: "Cancelled",
+      };
+    default:
+      return {
+        cardBorder: "border-zinc-200 dark:border-zinc-800",
+        badge: "bg-zinc-100 text-zinc-500",
+        icon: MoreHorizontal,
+        label: status,
+      };
   }
 };
 
@@ -256,17 +323,6 @@ const positionStatuses = [
   { value: "INACTIVE", label: "ไม่ใช้งาน", color: "bg-gray-400" },
 ];
 
-export const mockTables = [
-  { id: 1, tableName: "T-01", status: "OCCUPIED" as const },
-  { id: 2, tableName: "T-02", status: "AVAILABLE" as const },
-  { id: 3, tableName: "T-03", status: "RESERVED" as const },
-  { id: 4, tableName: "T-04", status: "AVAILABLE" as const },
-  { id: 5, tableName: "V-01", status: "OCCUPIED" as const },
-  { id: 6, tableName: "V-02", status: "AVAILABLE" as const },
-  { id: 7, tableName: "Bar-01", status: "AVAILABLE" as const },
-  { id: 8, tableName: "Bar-02", status: "AVAILABLE" as const },
-];
-
 export default {
   menuList,
   settingsMenu,
@@ -276,4 +332,5 @@ export default {
   getButtonActionColor,
   getNextStepConfig,
   getStatusBadgeConfig,
+  getStatusStylesCardDashboard,
 };
