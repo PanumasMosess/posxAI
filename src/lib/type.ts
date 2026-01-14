@@ -325,6 +325,7 @@ export type KitchenOrder = {
     quantity: number;
     status: string;
     order_running_code: string | null;
+    createdAt: Date | string;
   }[];
   orderitems: {
     id: number;
@@ -372,6 +373,7 @@ export type KitchenTicketItem = {
     quantity: number;
     status: string;
     order_running_code: string | null;
+    createdAt: Date | string;
   }[];
 
   modifiers?: {
@@ -380,6 +382,7 @@ export type KitchenTicketItem = {
       name: string;
     };
   }[];
+  createdAt: Date | string;
 };
 
 export interface KitchecTicketProps {
@@ -500,6 +503,7 @@ export interface PrintTicketData {
   orders: any[];
   printerName: string;
   modifiers?: string;
+  createdAt: Date | string;
 }
 
 export type Printer = {
