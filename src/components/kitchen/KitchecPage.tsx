@@ -52,6 +52,7 @@ const KitchecPage = ({
             totalQuantity: 0,
             orders: [],
             orderIds: [],
+            createdAt: order.createdAt,
           };
         }
 
@@ -67,6 +68,7 @@ const KitchecPage = ({
           quantity: item.quantity,
           status: order.status,
           order_running_code: order.order_running_code,
+          createdAt: order.createdAt,
         });
       });
     });

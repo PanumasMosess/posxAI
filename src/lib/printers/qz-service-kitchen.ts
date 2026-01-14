@@ -174,10 +174,15 @@ export const printToKitchen = async (
       <body>
         <div class="header">
           <div class="title">KITCHEN</div>
-          <div class="time">${new Date().toLocaleString("th-TH", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}</div>
+       <div class="time">${new Date(
+         data.createdAt || new Date()
+       ).toLocaleString("lo-LA", {
+         day: "2-digit",
+         month: "2-digit",
+         year: "numeric",
+         hour: "2-digit",
+         minute: "2-digit",
+       })}</div>
         </div>
 
         <div class="table-box">

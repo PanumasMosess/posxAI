@@ -77,6 +77,7 @@ const KitchenTicket = ({
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+
   useEffect(() => {
     const savedPrinter = localStorage.getItem("kitchen_preferred_printer");
     if (savedPrinter) {
@@ -182,6 +183,7 @@ const KitchenTicket = ({
           orders: group.orders || [],
           printerName: selectedPrinter,
           modifiers: modifiersText,
+          createdAt: group.createdAt,
         },
         organizationId
       );
