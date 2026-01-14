@@ -41,9 +41,6 @@ const Home = async () => {
   const itemsDataOrder = await prisma.order.findMany({
     where: {
       organizationId: Number(organizationId),
-      status: {
-        notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
-      },
     },
     include: {
       table: true,
