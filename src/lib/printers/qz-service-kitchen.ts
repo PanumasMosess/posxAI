@@ -64,45 +64,110 @@ export const printToKitchen = async (
       <head>
         <style>
           @page { size: 80mm auto; margin: 0; }
+          
+          * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            line-height: 1; 
+          }
+
           body { 
             font-family: 'Leelawadee UI', 'Tahoma', sans-serif; 
-            margin: 0; padding: 5px; width: 75mm; color: #000;
+            width: 75mm; 
+            color: #000;
+            padding: 0 2px; 
           }
-          * { box-sizing: border-box; }
 
-          .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-          .title { font-size: 18px; font-weight: bold; background: #000; color: #fff; padding: 2px 5px; border-radius: 4px; display: inline-block; }
-          .time { font-size: 12px; margin-top: 5px; font-weight: bold;}
-
-          .table-box {
-            display: flex; justify-content: center; align-items: baseline;
-            border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px;
+          /* --- Header Zone --- */
+          .header { 
+            text-align: center; 
+            border-bottom: 2px solid #000; 
+            padding-bottom: 3px;
+            margin-bottom: 3px;
+            padding-top: 2px; /* เว้นขอบบนนิดเดียวพอให้พิมพ์ติด */
           }
-          .tbl-label { font-size: 20px; font-weight: bold; margin-right: 5px; }
-          .tbl-num { font-size: 36px; font-weight: 900; line-height: 1; }
-
-          .menu-row { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 5px; }
-          .menu-name { font-size: 22px; font-weight: bold; width: 70%; line-height: 1.1; word-wrap: break-word; }
-          .menu-qty { font-size: 30px; font-weight: 900; width: 30%; text-align: right; line-height: 1; }
-          .modifiers-box {
-            font-size: 20px; 
+          .title { 
+            font-size: 14px; /* ขนาดปกติ */
             font-weight: bold; 
-            margin-top: 5px; 
-            margin-bottom: 5px;
-            padding-left: 10px;
-            border-left: 4px solid #000; /* ขีดดำด้านหน้าเพื่อให้เด่น */
-            line-height: 1.2;
+            background: #000; 
+            color: #fff; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            display: inline-block; 
           }
+          .time { 
+            font-size: 12px; 
+            font-weight: bold;
+            margin-top: 2px;
+          }
+      
+          /* --- Table Zone --- */
+          .table-box {
+            display: flex; 
+            justify-content: center; 
+            align-items: baseline;
+            border-bottom: 1px dashed #000; 
+            padding-bottom: 3px; 
+            margin-bottom: 3px;
+          }
+          .tbl-label { font-size: 16px; font-weight: bold; margin-right: 5px; }
+          .tbl-num { font-size: 18px; font-weight: 900; } /* เลขโต๊ะใหญ่ชัด */
 
-          .sub-list { margin-top: 5px; padding-left: 0; list-style: none; border-top: 1px dotted #ccc; padding-top: 5px; }
-          .sub-item {
-             font-size: 16px; margin-bottom: 2px; padding-left: 5px; 
-             display: flex; justify-content: space-between; flex-wrap: wrap;
+          /* --- Menu Zone --- */
+          .menu-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            margin-top: 3px; 
+          }
+          .menu-name { 
+            font-size: 14px; /* ชื่อเมนูใหญ่ */
+            font-weight: bold; 
+            width: 75%; 
+            line-height: 1; 
+            word-wrap: break-word; 
+          }
+          .menu-qty { 
+            font-size: 14x; /* จำนวนใหญ่ */
+            font-weight: 900; 
+            width: 25%; 
+            text-align: right; 
           }
           
+          /* --- Modifiers Zone --- */
+          .modifiers-box {
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-top: 2px; 
+            padding-left: 10px;
+            border-left: 3px solid #000; 
+          }
+
+          /* --- Sub List Zone --- */
+          .sub-list { 
+            margin-top: 3px; 
+            padding-top: 3px; 
+            border-top: 1px dotted #ccc; 
+            list-style: none; 
+          }
+          .sub-item {
+             font-size: 12px; 
+             margin-bottom: 2px; 
+             padding-left: 5px; 
+             display: flex; 
+             justify-content: space-between; 
+             flex-wrap: wrap;
+          }
           .table-tag {
-             font-weight: bold; font-size: 14px; background: #eee; border: 1px solid #000;
-             padding: 0 4px; border-radius: 3px; margin-right: 5px; display: inline-block;
+             font-weight: bold; 
+             font-size: 10px; 
+             background: #eee; 
+             border: 1px solid #000;
+             padding: 0 4px; 
+             border-radius: 3px; 
+             margin-right: 5px; 
+             display: inline-block;
           }
         </style>
       </head>
@@ -119,7 +184,7 @@ export const printToKitchen = async (
           <span class="tbl-label">โต๊ะ</span>
           <span class="tbl-num">${headerTableName}</span>
         </div>
-
+        
         <div class="menu-row">
           <div class="menu-name">${data.menuName}</div>
           <div class="menu-qty">x${data.totalQuantity}</div>
@@ -139,7 +204,6 @@ export const printToKitchen = async (
               .map((order) => {
                 const showTableLabel =
                   isMixedTable || order.tableName !== data.orders[0]?.tableName;
-
                 return `
               <li class="sub-item">
                 <div style="width:85%">
@@ -163,8 +227,6 @@ export const printToKitchen = async (
         `
             : ""
         }
-        
-        <div style="height: 10px;"></div>
       </body>
       </html>
     `;

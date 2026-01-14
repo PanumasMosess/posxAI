@@ -9,11 +9,12 @@ import {
 import React from "react";
 
 const RECEIPT_STYLES = `
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
   @page { margin: 0; size: 80mm auto; }
   body { 
      margin: 0; 
      padding: 10px; 
-     font-family: 'Tahoma', sans-serif; /* เปลี่ยน Font */
+     font-family: 'Noto Sans Lao', 'Phetsarath OT', 'Saysettha OT', sans-serif;
      width: 75mm; 
      color: #000000 !important;
      -webkit-font-smoothing: none; /* ปิด Font เบลอ */
