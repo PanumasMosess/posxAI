@@ -1,20 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Clock,
   CheckCircle2,
-  MoreHorizontal,
   PlayCircle,
   RefreshCcw,
   Ticket,
   ChefHat,
+  UtensilsCrossed,
+  Flame,
+  BellRing,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ConfigStyle from "@/lib/data_temp";
 import { StatusTableProps } from "@/lib/type";
+import { updateStatusOrder } from "@/lib/actions/actionMenu";
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "NEW":
+      return "bg-blue-500 text-white border-blue-200";
+    case "COOKING":
+      return "bg-orange-500 text-white border-orange-200";
+    case "READY":
+      return "bg-emerald-500 text-white border-emerald-200";
+    default:
+      return "bg-zinc-500 text-white border-zinc-200";
+  }
+};
+
+const getStatusBorder = (status: string) => {
+  switch (status) {
+    case "NEW":
+      return "border-l-4 border-l-blue-500";
+    case "COOKING":
+      return "border-l-4 border-l-orange-500 ring-1 ring-orange-500/20";
+    case "READY":
+      return "border-l-4 border-l-emerald-500";
+    default:
+      return "border-l-4 border-l-zinc-300";
+  }
+};
 
 export default function OrderStatusPage({
   initialItems = [],
@@ -26,12 +56,90 @@ export default function OrderStatusPage({
   const [filter, setFilter] = useState("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const rawOrders = relatedData?.orderRunning || [];
+  const activeOrders = rawOrders.filter(
+    (order) =>
+      !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status)
+  );
+
+  const prevOrderCountRef = useRef(activeOrders.length);
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (activeOrders.length > prevOrderCountRef.current) {
+      try {
+        const audio = new Audio(
+          "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3"
+        );
+        audio.play().catch((e) => console.error("Audio play failed", e));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    prevOrderCountRef.current = activeOrders.length;
+  }, [activeOrders]);
+
+  const groupedOrders = useMemo(() => {
+    const groups: { [key: string]: any } = {};
+    activeOrders.forEach((order) => {
+      if (order.orderitems) {
+        order.orderitems.forEach((item) => {
+          const modifierKey = item.selectedModifiers
+            ? item.selectedModifiers
+                .map((m) => m.modifierItem.name)
+                .sort()
+                .join("|")
+            : "";
+          const groupKey = `${item.menu.menuName}-${order.status}-${modifierKey}`;
+
+          if (!groups[groupKey]) {
+            groups[groupKey] = {
+              uniqueKey: groupKey,
+              menu: item.menu,
+              status: order.status,
+              modifiers: item.selectedModifiers || [],
+              totalQuantity: 0,
+              orders: [],
+              orderIds: [],
+              firstCreatedAt: order.createdAt,
+            };
+          }
+          groups[groupKey].totalQuantity += item.quantity;
+          if (!groups[groupKey].orderIds.includes(order.id)) {
+            groups[groupKey].orderIds.push(order.id);
+          }
+          groups[groupKey].orders.push({
+            id: order.id,
+            tableName: order.table.tableName,
+            quantity: item.quantity,
+            status: order.status,
+            order_running_code: order.order_running_code,
+            createdAt: order.createdAt,
+          });
+        });
+      }
+    });
+    return Object.values(groups).sort(
+      (a: any, b: any) =>
+        new Date(a.firstCreatedAt).getTime() -
+        new Date(b.firstCreatedAt).getTime()
+    );
+  }, [activeOrders]);
+
+  const displayOrders =
+    filter === "ALL"
+      ? groupedOrders
+      : groupedOrders.filter((group: any) => group.status === filter);
+
+  const onStatusChange = async (orderIds: number[], newStatus: string) => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all(orderIds.map((id) => updateStatusOrder(id, newStatus)));
       router.refresh();
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [router]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);
@@ -39,243 +147,214 @@ export default function OrderStatusPage({
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const allOrders = relatedData?.orderRunning || [];
-  const filteredOrders =
-    filter === "ALL" ? allOrders : allOrders.filter((o) => o.status === filter);
+  useEffect(() => {
+    const interval = setInterval(() => router.refresh(), 10000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   return (
-    <div className="w-full h-full font-sans space-y-4">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-4">
+    <div className="w-full h-full flex flex-col font-sans bg-zinc-50/50 dark:bg-zinc-950/20 rounded-xl">
+      <div className="flex-none p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-t-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shadow-sm border border-amber-500/20">
+          <div className="h-10 w-10 bg-amber-500/10 text-amber-600 rounded-lg flex items-center justify-center border border-amber-500/20 shadow-sm">
             <ChefHat className="h-6 w-6" />
           </div>
-
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight text-foreground">
+              <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                 สถานะครัว
-              </h2>
+              </h1>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="h-6 w-6 rounded-full text-zinc-400 hover:text-zinc-900"
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
-                title="Refresh Orders"
               >
                 <RefreshCcw
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    isRefreshing && "animate-spin text-primary"
-                  )}
+                  className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
                 />
               </Button>
             </div>
-
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-              <Ticket className="w-3.5 h-3.5 opacity-70" />
-              <span className="font-medium">{filteredOrders.length}</span>
-              <span>active tickets</span>
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <Ticket className="h-3 w-3" />
+              <span className="font-medium">{displayOrders.length}</span> รายการ
             </div>
           </div>
         </div>
 
-        <div className="flex p-1 bg-muted/40 rounded-lg border border-border/50 shadow-sm overflow-x-auto max-w-full">
-          {["ALL", "NEW", "PREPARING", "COOKING"].map((status) => {
-            const StatusIcon = ConfigStyle.getFilterIcon(status);
+        <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg self-start sm:self-center overflow-x-auto max-w-full">
+          {["ALL", "NEW", "COOKING"].map((status) => {
             const isActive = filter === status;
-
             return (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap",
+                  "px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5",
                   isActive
-                    ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600"
+                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50"
                 )}
               >
-                <StatusIcon
-                  className={cn(
-                    "w-3.5 h-3.5",
-                    isActive && status === "COOKING"
-                      ? "text-orange-500"
-                      : isActive && status === "READY"
-                      ? "text-emerald-500"
-                      : isActive && status === "NEW"
-                      ? "text-blue-500"
-                      : ""
-                  )}
-                />
-                {status === "ALL" ? "All" : status}
+                {status === "COOKING" && (
+                  <Flame
+                    className={cn("h-3 w-3", isActive ? "text-orange-500" : "")}
+                  />
+                )}
+                {status === "NEW" && (
+                  <PlayCircle
+                    className={cn("h-3 w-3", isActive ? "text-blue-500" : "")}
+                  />
+                )}
+                {status === "ALL" ? "ทั้งหมด" : status}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4 items-start">
-        {filteredOrders.map((order) => {
-          const styles = ConfigStyle.getStatusStylesCardDashboard(order.status);
-          const Icon = styles.icon || MoreHorizontal;
+      <div className="flex-1 overflow-y-auto p-4">
+        {displayOrders.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-zinc-400 min-h-[300px]">
+            <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-3">
+              <UtensilsCrossed className="h-8 w-8 opacity-30" />
+            </div>
+            <p>ไม่มีรายการอาหารค้าง</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4">
+            {displayOrders.map((group: any) => {
+              const startTime = new Date(group.firstCreatedAt);
+              const elapsedMins = Math.floor(
+                (new Date().getTime() - startTime.getTime()) / 60000
+              );
+              const isLate = elapsedMins > 20 && group.status !== "COMPLETED";
 
-          const startTime = new Date(order.createdAt);
-          const elapsedMins = Math.floor(
-            (new Date().getTime() - startTime.getTime()) / 60000
-          );
-          const isLate =
-            elapsedMins > 20 &&
-            order.status !== "COMPLETED" &&
-            order.status !== "READY" &&
-            order.status !== "CANCELLED";
+              const statusColor = getStatusColor(group.status);
+              const borderStyle = getStatusBorder(group.status);
 
-          return (
-            <div
-              key={order.id}
-              className={cn(
-                "relative flex flex-col rounded-lg border transition-all duration-300 shadow-sm",
-                "bg-background text-foreground",
-                styles.cardBorder,
-                isLate
-                  ? "!border-red-500 ring-1 ring-red-500/20"
-                  : "border-border"
-              )}
-            >
-              <div className="p-4 pb-2 flex justify-between items-start">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-0.5">
-                    {order.order_running_code ? "Ticket" : "Table"}
-                  </span>
-                  <div className="flex items-baseline gap-2">
-                    <h3
-                      className="text-lg font-bold leading-none truncate"
-                      title={order.order_running_code || ""}
-                    >
-                      {order.order_running_code || `Order #${order.id}`}
-                    </h3>
-                  </div>
-                  {order.table?.tableName && (
-                    <span className="text-xs text-muted-foreground mt-1 block truncate">
-                      Table: {order.table.tableName}
-                    </span>
+              return (
+                <div
+                  key={group.uniqueKey}
+                  className={cn(
+                    "flex flex-col bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all hover:shadow-md",
+                    borderStyle,
+                    isLate ? "ring-2 ring-red-500/30" : ""
                   )}
-                </div>
-
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <div
-                    className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border",
-                      styles.badge
-                    )}
-                  >
-                    {order.status === "COOKING" ? (
-                      <Icon className="w-2.5 h-2.5 animate-spin" />
-                    ) : (
-                      <Icon className="w-2.5 h-2.5" />
-                    )}
-                    {styles.label}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-[10px] font-mono font-medium flex items-center gap-1",
-                      isLate
-                        ? "text-red-500 font-bold"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <Clock className="w-3 h-3 opacity-70" />
-                    {elapsedMins}m
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full px-4">
-                <div className="h-px w-full bg-border/40 border-b border-dashed border-border/60 my-2" />
-              </div>
-              <div className="px-4 pt-0 pb-2 h-[140px] overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-                {order.orderitems && order.orderitems.length > 0 ? (
-                  order.orderitems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-2.5 group pr-1"
-                    >
-                      <div className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-muted text-[10px] font-bold text-muted-foreground shrink-0 mt-0.5">
-                        {item.quantity}
+                >
+                  <div className="p-4 flex gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide",
+                            group.status === "NEW"
+                              ? "bg-blue-100 text-blue-700"
+                              : group.status === "COOKING"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-zinc-100 text-zinc-700"
+                          )}
+                        >
+                          {group.status}
+                        </span>
+                        <div
+                          className={cn(
+                            "flex items-center text-xs font-mono",
+                            isLate ? "text-red-600 font-bold" : "text-zinc-400"
+                          )}
+                        >
+                          <Clock className="h-3 w-3 mr-1" />
+                          {elapsedMins}m
+                        </div>
                       </div>
+                      <h3
+                        className="text-lg font-bold text-zinc-800 dark:text-zinc-100 leading-tight line-clamp-2"
+                        title={group.menu.menuName}
+                      >
+                        {group.menu.menuName}
+                      </h3>
+                      {group.modifiers && group.modifiers.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {group.modifiers.map((mod: any, i: number) => (
+                            <span
+                              key={i}
+                              className="text-[10px] bg-orange-50 text-orange-700 border border-orange-100 px-1.5 py-0.5 rounded-sm"
+                            >
+                              + {mod.modifierItem.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 text-xl font-black shadow-inner",
+                        statusColor
+                      )}
+                    >
+                      {group.totalQuantity}
+                    </div>
+                  </div>
 
-                      <div className="flex flex-col min-w-0 w-full">
-                        <div className="flex justify-between items-start w-full gap-2">
-                          <span
-                            className={cn(
-                              "text-sm font-medium leading-tight truncate",
-                              order.status === "COMPLETED"
-                                ? "text-muted-foreground line-through"
-                                : "text-foreground/90"
-                            )}
-                          >
-                            {item.menu.menuName}
+                  <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-700 to-transparent mx-4" />
+
+                  <div className="flex-1 px-4 py-3 max-h-[150px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-zinc-200">
+                    {group.orders.map((orderItem: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between items-center text-sm group"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <div className="h-1.5 w-1.5 rounded-full bg-zinc-300 group-hover:bg-zinc-500" />
+                          <span className="font-semibold text-zinc-700 dark:text-zinc-300 truncate">
+                            {orderItem.tableName}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline-block">
+                            #{orderItem.order_running_code?.split("-").pop()}
                           </span>
                         </div>
-
-                        {item.menu.unitPrice?.label && (
-                          <span className="text-[10px] text-muted-foreground">
-                            ({item.menu.unitPrice.label})
-                          </span>
-                        )}
-
-                        {item.selectedModifiers &&
-                          item.selectedModifiers.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {item.selectedModifiers.map((mod) => (
-                                <span
-                                  key={mod.id}
-                                  className="text-[9px] text-orange-600 bg-orange-50 px-1 rounded-sm whitespace-nowrap"
-                                >
-                                  + {mod.modifierItem.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                        <div className="text-xs font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                          x{orderItem.quantity}
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                    Empty
+                    ))}
                   </div>
-                )}
-              </div>
 
-              {/* <div className="p-3 pt-0 mt-auto border-t border-transparent">
-                {order.status === "READY" ? (
-                  <Button className="w-full h-8 rounded-md text-xs font-bold shadow-none bg-emerald-600 hover:bg-emerald-700 text-white">
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
-                    Complete
-                  </Button>
-                ) : order.status === "NEW" ? (
-                  <Button className="w-full h-8 rounded-md text-xs font-bold shadow-none bg-blue-600 hover:bg-blue-700 text-white">
-                    <PlayCircle className="w-3.5 h-3.5 mr-2" />
-                    Cooking
-                  </Button>
-                ) : order.status === "COMPLETED" ? (
-                  <div className="w-full h-8 flex items-center justify-center text-xs text-muted-foreground font-medium bg-muted/30 rounded-md">
-                    Done
+                  {/* ✅ --- FOOTER ACTIONS (UPDATED) --- */}
+                  <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800">
+                    {group.status === "NEW" ? (
+                      <Button
+                        className="w-full h-10 border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200 font-bold shadow-sm"
+                        onClick={() =>
+                          onStatusChange(group.orderIds, "COOKING")
+                        }
+                      >
+                        <Flame className="h-4 w-4 mr-2" /> ปรุงอาหาร
+                      </Button>
+                    ) : group.status === "COOKING" ? (
+                      <Button
+                        className="w-full h-10 border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 font-bold shadow-sm"
+                        onClick={() => onStatusChange(group.orderIds, "READY")}
+                      >
+                        <BellRing className="h-4 w-4 mr-2" /> เสร็จแล้ว
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full h-10 border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all duration-200 font-bold shadow-sm"
+                        onClick={() =>
+                          onStatusChange(group.orderIds, "COMPLETED")
+                        }
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" /> ส่งมอบ
+                      </Button>
+                    )}
                   </div>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="w-full h-8 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-                  >
-                    <MoreHorizontal className="w-4 h-4 mr-2" />
-                    Details
-                  </Button>
-                )}
-              </div> */}
-            </div>
-          );
-        })}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
