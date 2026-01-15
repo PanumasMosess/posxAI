@@ -29,29 +29,27 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
     return (
       <div
         ref={ref}
-        className="bg-white text-black mx-auto font-sans leading-none flex flex-col items-stretch px-2"
+        className="bg-white text-black mx-auto font-sans leading-tight flex flex-col items-stretch px-3 pb-4"
         style={{
-          fontFamily: "'Noto Sans Lao', 'Saysettha OT', sans-serif",
+          fontFamily:
+            "'Leelawadee UI', 'DokChampa', 'Saysettha OT', sans-serif",
           zoom: "0.75",
           width: "380px",
           padding: "5px",
         }}
       >
-        {/* ================= HEADER ================= */}
         <div className="text-center mb-1">
           <h1 className="text-[16px] font-black mb-0.5 tracking-tight text-gray-800">
             18 Garage
           </h1>
-          <div className="font-bold text-[10px]">ບິນຮັບເງິນ</div>
+          <div className="font-bold text-[10px]">ບີນຮັບເງີນ</div>
         </div>
 
-        {/* ================= INFO ================= */}
-        <div className="flex justify-between items-end mb-1 font-bold text-gray-700 border-b border-dashed border-gray-400 pb-0.5">
-          <div className="flex flex-col gap-0 text-[10px]">
+        <div className="flex justify-between items-end mb-1 font-bold text-gray-700 border-b border-dashed border-black pb-1">
+          <div className="flex flex-col gap-0.5 text-[10px]">
             <span>ວັນທີ: {date}</span>
-            {/* <span className="uppercase">ພ.ງ: {staffName}</span> */}
           </div>
-          <div className="flex flex-col items-end gap-0">
+          <div className="flex flex-col items-end gap-0.5">
             <span className="text-[11px]">
               ໂຕະ <span className="border-b border-black">{table}</span>
             </span>
@@ -65,15 +63,15 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
         >
           <thead>
             <tr>
-              <th className="py-1 text-left pl-1 w-[55%]">ລາຍການ</th>
+              <th className="py-1.5 text-left pl-1 w-[55%]">ລາຍການ</th>
               <th
-                className="py-1 text-center w-[10%]"
+                className="py-1.5 text-center w-[10%]"
                 style={{ whiteSpace: "nowrap" }}
               >
                 ຈ/ນ
               </th>
-              <th className="py-1 text-right w-[17%]">ລາຄາ</th>
-              <th className="py-1 text-right w-[55%] pr-1">ລວມ</th>
+              <th className="py-1.5 text-right w-[17%]">ລາຄາ</th>
+              <th className="py-1.5 text-right w-[55%] pr-1">ລວມ</th>
             </tr>
           </thead>
           <tbody className="align-top">
@@ -98,7 +96,7 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
                   key={index}
                   className="text-gray-900 font-bold border-b border-dotted border-gray-300 last:border-b-0"
                 >
-                  <td className="py-1 pl-1 pr-1 text-left align-top w-[55%] break-words">
+                  <td className="py-1.5 pl-1 pr-1 text-left align-top w-[55%] break-words">
                     <div className="leading-tight">- {mainName}</div>
                     {modifiersList.length > 0 && (
                       <div className="flex flex-col font-normal text-gray-500 mt-0.5">
@@ -114,15 +112,15 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
                     )}
                   </td>
 
-                  <td className="py-1 text-center align-top w-[10%]">
+                  <td className="py-1.5 text-center align-top w-[10%]">
                     {item.quantity}
                   </td>
 
-                  <td className="py-1 text-right align-top whitespace-nowrap w-[17%]">
+                  <td className="py-1.5 text-right align-top whitespace-nowrap w-[17%]">
                     {unitPrice.toLocaleString()}
                   </td>
 
-                  <td className="py-1 text-right align-top pr-1 whitespace-nowrap w-[18%]">
+                  <td className="py-1.5 text-right align-top pr-1 whitespace-nowrap w-[18%]">
                     {item.price.toLocaleString()}
                   </td>
                 </tr>
@@ -131,9 +129,7 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
           </tbody>
         </table>
 
-        <div className="border-t border-dashed border-gray-400 mb-0.5"></div>
-
-        {/* ================= TOTALS ================= */}
+        <div className="border-t border-dashed border-gray-400 mb-1 mt-1"></div>
         <div className="flex justify-between items-start mt-0.5">
           <div className="flex flex-col text-[8px] font-bold text-gray-700">
             <div className="mb-0.5 pb-0.5 border-b border-gray-300 w-fit">
@@ -170,11 +166,11 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
           </div>
         </div>
 
-        <div className="border-t-2 border-double border-gray-300 mt-1 mb-0.5 opacity-60"></div>
+        <div className="border-t-2 border-double border-gray-300 mt-1 mb-2 opacity-60"></div>
 
         <div className="text-center pb-0.5">
           <div className="font-bold text-[9px] tracking-wide">
-            ຂອບໃຈ ໂອກາດໜ້າເຊີນໃໝ່
+            ຂອບໃຈ ໂອກາດຫນ້າເຊີນໄຫມ່
           </div>
         </div>
       </div>
