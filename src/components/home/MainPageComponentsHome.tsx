@@ -10,12 +10,13 @@ import {
 import TableStatusPage from "./TableStatusPage";
 import { useState } from "react";
 import OrderStatusPage from "./OrderStatusPage";
+import PaymentStatusPage from "./PaymentStatusPage";
 
 const MainPageComponentsHome = ({
   initialItems,
   userId,
   organizationId,
-  relatedData
+  relatedData,
 }: StatusTableProps) => {
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [selectedTableToMove, setSelectedTableToMove] =
@@ -95,13 +96,15 @@ const MainPageComponentsHome = ({
         )}
       </div>
 
-      {/* <div className="bg-primary-foreground p-4 rounded-lg">
-        <AppPieChart />
+      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-4 xl:col-span-1 2xl:col-span-4">
+        <PaymentStatusPage
+          initialItems={relatedData.orderRunning}
+          id_user={userId}
+          organizationId={organizationId ?? 0}
+        />
       </div>
-      <div className="bg-primary-foreground p-4 rounded-lg">
-        <TodoList />
-      </div>
-      <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
+      {/* <div className="bg-primary-foreground p-4 rounded-lg"></div> */}
+      {/* <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
         <AppAreaChart />
       </div>
       <div className="bg-primary-foreground p-4 rounded-lg">
