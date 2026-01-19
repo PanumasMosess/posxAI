@@ -660,6 +660,11 @@ export interface SettingEmployeeProps {
   };
 }
 
+export type PositionType = {
+  id: number;
+  position_name: string;
+};
+
 export type SettingPositions = {
   id: number;
   position_name: string;

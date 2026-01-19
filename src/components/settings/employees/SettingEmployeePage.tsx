@@ -4,9 +4,14 @@ import { useRouter } from "next/navigation";
 import { Data_table_setting_position } from "../tables/data-table-setting-position";
 import column_setting_position from "../tables/column_setting_position";
 import {
+  updateNameEmp,
   updateNamePosition,
+  updateStausEmp,
   updateStusPosition,
+  updateSurNameEmp,
 } from "@/lib/actions/actionSettings";
+import { Data_table_setting_employee } from "../tables/data-table-setting-employee";
+import column_setting_employee from "../tables/column_setting_employee";
 
 const SettingEmployeePage = ({
   initialItems,
@@ -29,9 +34,37 @@ const SettingEmployeePage = ({
       router.refresh();
     }
   };
+
+  const handleStatusChangeEmp = async (id: number, status: string) => {
+    const result = await updateStausEmp(id, status);
+    if (result.success) {
+      router.refresh();
+    }
+  };
+
+  const onUpdateNameEmp = async (id: number, newName: string) => {
+    const result = await updateNameEmp(id, newName);
+    if (result.success) {
+      router.refresh();
+    }
+  };
+
+  const onUpdateSurNameEmp = async (id: number, newSurName: string) => {
+    const result = await updateSurNameEmp(id, newSurName);
+    if (result.success) {
+      router.refresh();
+    }
+  };
   const columns = column_setting_position(
     handleStatusChange,
     onUpdateName,
+    organizationId ?? 0
+  );
+
+  const column_employee = column_setting_employee(
+    handleStatusChangeEmp,
+    onUpdateNameEmp,
+    onUpdateSurNameEmp,
     organizationId ?? 0
   );
   return (
@@ -71,12 +104,13 @@ const SettingEmployeePage = ({
       >
         <div className="overflow-x-auto w-full">
           <div className="min-w-[600px] md:min-w-full p-4">
-            {/* <Data_table_setting_position
-              columns={columns}
-              data={relatedData.positions} 
+            <Data_table_setting_employee
+              columns={column_employee}
+              data={initialItems}
               userId={userId}
               organizationId={organizationId ?? 0}
-            /> */}
+              position={relatedData.positions}
+            />
           </div>
         </div>
       </div>

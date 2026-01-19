@@ -20,13 +20,13 @@ import {
   Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { KitchecOrderList, ReceiptProps } from "@/lib/type";
+import { KitchecOrderList } from "@/lib/type";
 import PaymentOption from "@/components/payments/PaymentOption";
 import { toast } from "react-toastify";
 import {
@@ -127,7 +127,7 @@ const PaymentStatusPage = ({
 
     initialItems.forEach((order) => {
       if (order.status !== "COMPLETED") {
-        return; 
+        return;
       }
 
       const key = order.order_running_code || `ORDER-${order.id}`;

@@ -13,7 +13,7 @@ export const userSignIn = async ({
     const user = await prisma.employees.findFirst({
       where: {
         username: username,
-        status: "ON",
+        status: "ACTIVE",
       },
     });
 

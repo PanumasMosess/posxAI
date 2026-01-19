@@ -77,7 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id_google: profile?.sub,
                 username: user.email!,
                 password: "password_google",
-                status: "ON",
+                status: "ACTIVE",
                 position_id: 2,
                 login_fail: 0,
                 created_by: "Google Sign-In",

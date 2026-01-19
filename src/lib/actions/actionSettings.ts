@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  EmployeeSchema,
   ModifierGroupSchema,
   ModifierItemSchema,
   PositionSchema,
@@ -8,6 +9,7 @@ import {
   TableSchema,
 } from "../formValidationSchemas";
 import prisma from "../prisma";
+import bcrypt from "bcryptjs";
 type CurrentState = { success: boolean; error: boolean };
 
 export const createTable = async (
@@ -397,6 +399,94 @@ export const moveTableFunction = async (
     });
 
     return { success: true, error: false, data: "ย้ายโต๊ะเรียบร้อยแล้ว" };
+  } catch (err) {
+    return { success: false, error: true, data: err };
+  }
+};
+
+export const createEmployee = async (
+  currentState: CurrentState,
+  data: EmployeeSchema
+) => {
+  try {
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    await prisma.employees.create({
+      data: {
+        username: data.username,
+        password: hashedPassword, 
+        name: data.name,
+        surname: data.surname,
+        email: data.email,     
+        img: data.img,        
+        status: "ACTIVE",      
+        position_id: data.position_id,
+        login_fail: data.login_fail || 0,
+        birthday: data.birthday || new Date(),
+        created_by: data.created_by?.toString(),       
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateStausEmp = async (id: number, status: string) => {
+  try {
+    const updatedStatus = await prisma.employees.update({
+      where: {
+        id: id,
+      },
+      data: {
+        status: status,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedStatus };
+  } catch (err) {
+    return { success: false, error: true, data: err };
+  }
+};
+
+export const updateNameEmp = async (id: number, name: string) => {
+  try {
+    const updatedName = await prisma.employees.update({
+      where: {
+        id: id,
+      },
+      data: {
+        name: name,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedName };
+  } catch (err) {
+    return { success: false, error: true, data: err };
+  }
+};
+
+export const updateSurNameEmp = async (id: number, surname: string) => {
+  try {
+    const updatedSurName = await prisma.employees.update({
+      where: {
+        id: id,
+      },
+      data: {
+        surname: surname,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedSurName };
   } catch (err) {
     return { success: false, error: true, data: err };
   }
