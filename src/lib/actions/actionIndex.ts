@@ -271,3 +271,53 @@ export async function signDataWithS3Key(
     return { success: false, message: "Server Signing Failed" };
   }
 }
+
+export const profile_handleImageUpload = async (file: File): Promise<string> => {
+  const result = await profile_getPresignedUrl(file.type, file.size);
+  if (!result.success || !result.url) {
+    throw new Error(result.error || "ไม่สามารถขอสิทธิ์อัปโหลดได้");
+  }
+
+  const uploadResponse = await fetch(result.url, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type, "x-amz-acl": "public-read" },
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("การอัปโหลดไฟล์ล้มเหลว");
+  }
+
+  return result.url.split("?")[0];
+};
+
+export const profile_getPresignedUrl = async (
+  fileType: string,
+  fileSize: number
+) => {
+  try {
+    if (fileSize > 10 * 1024 * 1024) {
+      return { success: false, error: "File size must be less than 10MB" };
+    }
+
+    const randomBytes = crypto.randomBytes(16);
+    const uniqueFilename = randomBytes.toString("hex");
+    const fileExtension = fileType.split("/")[1];
+    const key = `uploads/profile_img/${uniqueFilename}.${fileExtension}`;
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET!,
+      Key: key,
+      ContentType: fileType,
+      ContentLength: fileSize,
+      ACL: "public-read",
+    });
+
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); 
+
+    return { success: true, url, key };
+  } catch (error) {
+    console.error("Error creating presigned URL", error);
+    return { success: false, error: "Error creating presigned URL" };
+  }
+};

@@ -1,5 +1,6 @@
 "use client";
 
+import SettingFormEmployee from "@/components/forms/SettingFormEmployee";
 import SettingFormTable from "@/components/forms/SettingFormTable";
 import { DataTablePagination } from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PositionType } from "@/lib/type";
 import {
   ColumnDef,
   flexRender,
@@ -23,7 +25,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Armchair, Plus, Search } from "lucide-react";
+import { Plus, Search, Users } from "lucide-react";
 import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
@@ -31,12 +33,14 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   userId: number;
   organizationId: number;
+  position: PositionType[];
 }
 export function Data_table_setting_employee<TData, TValue>({
   columns,
   data,
   userId,
-  organizationId
+  organizationId,
+  position,
 }: DataTableProps<TData, TValue>) {
   const [openSheetInsertTable, setOpenSheetInsertTable] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -71,14 +75,14 @@ export function Data_table_setting_employee<TData, TValue>({
       <div className="flex flex-col sm:flex-row items-center justify-between py-6 gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
-            <Armchair className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="flex flex-col">
             <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">
-              จัดการข้อมูลโต๊ะ
+              จัดการพนักงาน
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              ตั้งค่าสถานะและตรวจสอบรายชื่อโต๊ะทั้งหมด
+              ตั้งค่าสิทธิ์และตรวจสอบรายชื่อพนักงานทั้งหมด
             </p>
           </div>
         </div>
@@ -105,15 +109,16 @@ export function Data_table_setting_employee<TData, TValue>({
                         dark:border-zinc-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                เพิ่มโต๊ะ
+                เพิ่มพนักงาน
               </Button>
             </SheetTrigger>
-            <SettingFormTable
+            <SettingFormEmployee
               type={"create"}
               currentUserId={userId}
               organizationId={organizationId ?? 1}
               stateSheet={setOpenSheetInsertTable}
               stateForm={openSheetInsertTable}
+              positions={position}
             />
           </Sheet>
         </div>

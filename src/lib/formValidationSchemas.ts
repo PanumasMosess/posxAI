@@ -138,3 +138,19 @@ export const PositionSchema_ = z.object({
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
 });
 export type PositionSchema = z.infer<typeof PositionSchema_>;
+
+export const EmployeeSchema_ = z.object({
+  id: z.number().optional(),
+  username: z.string().min(1, { message: "กรุณากรอก username" }).max(50),
+  password: z.string().min(1, { message: "กรุณากรอก password" }).max(50),
+  name: z.string().min(1, { message: "กรุณากรอกชื่อ" }).max(50),
+  surname: z.string().min(1, { message: "กรุณากรอกชื่อ" }).max(50),
+  email: z.string().optional(),
+  img: z.any().optional(),
+  position_id: z.coerce.number().min(1, "ต้องมี ID ต่ำแหน่ง"),
+  login_fail: z.number().optional(),
+  birthday: z.coerce.date().optional(),
+  created_by: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
+  organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
+});
+export type EmployeeSchema = z.infer<typeof EmployeeSchema_>;
