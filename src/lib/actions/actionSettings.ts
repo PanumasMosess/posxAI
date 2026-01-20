@@ -491,3 +491,21 @@ export const updateSurNameEmp = async (id: number, surname: string) => {
     return { success: false, error: true, data: err };
   }
 };
+
+export const updatePositionEmp = async (id: number, status: number) => {
+  try {
+    const updatedStatus = await prisma.employees.update({
+      where: {
+        id: id,
+      },
+      data: {
+        position_id: status,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: false, data: updatedStatus };
+  } catch (err) {
+    return { success: false, error: true, data: err };
+  }
+};

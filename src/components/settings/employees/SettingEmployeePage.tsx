@@ -6,6 +6,7 @@ import column_setting_position from "../tables/column_setting_position";
 import {
   updateNameEmp,
   updateNamePosition,
+  updatePositionEmp,
   updateStausEmp,
   updateStusPosition,
   updateSurNameEmp,
@@ -55,6 +56,13 @@ const SettingEmployeePage = ({
       router.refresh();
     }
   };
+
+  const onUpdatePositionEmp = async (id: number, positionId: number) => {
+    const result = await updatePositionEmp(id, positionId);
+    if (result.success) {
+      router.refresh();
+    }
+  };
   const columns = column_setting_position(
     handleStatusChange,
     onUpdateName,
@@ -65,7 +73,9 @@ const SettingEmployeePage = ({
     handleStatusChangeEmp,
     onUpdateNameEmp,
     onUpdateSurNameEmp,
-    organizationId ?? 0
+    onUpdatePositionEmp,
+    organizationId ?? 0,
+    relatedData.positions
   );
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4">
