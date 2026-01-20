@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SettingEmployee } from "@/lib/type";
+import { PositionType, SettingEmployee } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil } from "lucide-react";
 import status from "@/lib/data_temp";
@@ -63,7 +63,7 @@ const EditableCell = ({
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={onKeyDown}
-        className="h-8 text-center font-bold text-sm"
+        className="h-8 text-center font-bold text-lg"
       />
     );
   }
@@ -71,11 +71,11 @@ const EditableCell = ({
   return (
     <div
       onClick={() => setIsEditing(true)}
-      className="cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1 flex items-center justify-center gap-2 group w-full"
-      title="คลิกเพื่อแก้ไขชื่อ"
+      className="cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1 flex items-center justify-center gap-2 group"
+      title="คลิกเพื่อแก้ไข"
     >
       <span className="font-medium text-sm truncate">{value}</span>
-      <Pencil className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+      <Pencil className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
 };
@@ -84,7 +84,9 @@ const column_setting_employee = (
   onUpdateStatus: (id: number, newStatus: string) => void,
   onUpdateName: (id: number, newName: string) => void,
   onUpdateSurName: (id: number, newSurname: string) => void,
-  organizationId: number
+  onUpdatePosition: (id: number, newPositionId: number) => void,
+  organizationId: number,
+  positions: PositionType[]
 ): ColumnDef<SettingEmployee>[] => [
   {
     id: "id",
@@ -158,6 +160,50 @@ const column_setting_employee = (
     accessorKey: "surname",
     header: "นามสกุล",
     cell: (props) => <EditableCell {...props} onUpdate={onUpdateSurName} />,
+  },
+  {
+    accessorKey: "position_id",
+    header: ({ column }) => <div className="text-center">ตำแหน่ง</div>,
+    cell: ({ row }) => {
+      const currentPositionId = row.getValue("position_id");
+      const empId = row.original.id;
+
+      const selectValue =
+        currentPositionId != null ? String(currentPositionId) : "";
+      return (
+        <div className="flex justify-center items-center">
+          <select
+            className="border rounded-md px-2 py-1 text-sm 
+                       bg-white dark:bg-zinc-800 
+                       text-zinc-900 dark:text-zinc-100 
+                       border-zinc-300 dark:border-zinc-700 
+                       focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectValue}
+            onChange={(e) => {
+              const newPositionId = parseInt(e.target.value, 10);
+              if (onUpdatePosition) {
+                onUpdatePosition(empId, newPositionId);
+              }
+            }}
+          >
+            <option value="" disabled className="text-gray-400">
+              เลือกตำแหน่ง
+            </option>
+            {positions && positions.length > 0 ? (
+              positions.map((pos) => (
+                <option key={pos.id} value={String(pos.id)}>
+                  {pos.position_name}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                กำลังโหลด...
+              </option>
+            )}
+          </select>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "email",
