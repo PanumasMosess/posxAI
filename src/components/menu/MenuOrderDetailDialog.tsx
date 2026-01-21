@@ -16,7 +16,6 @@ import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Separator } from "../ui/separator";
-import { ScrollArea } from "../ui/scroll-area";
 
 const MenuOrderDetailDialog = ({
   stateDialog,

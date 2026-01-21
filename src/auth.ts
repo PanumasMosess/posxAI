@@ -63,12 +63,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
-          const existingUser = await prisma.employees.findFirst({
+          let existingUser = await prisma.employees.findFirst({
             where: { id_google: profile?.sub },
           });
 
           if (!existingUser) {
-            await prisma.employees.create({
+            existingUser = await prisma.employees.create({
               data: {
                 name: user.name ?? "",
                 surname: "",
@@ -77,7 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id_google: profile?.sub,
                 username: user.email!,
                 password: "password_google",
-                status: "ACTIVE",
+                status: "INACTIVE",
                 position_id: 2,
                 login_fail: 0,
                 created_by: "Google Sign-In",
@@ -86,9 +86,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               },
             });
           }
+
+          return true;
         } catch (error) {
-          // console.error("Error creating user from Google OAuth:", error);
-          return false;
+          let errorMessage =
+            "บัญชีของคุณยังไม่ได้รับการอนุมัติ หรือถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ (Contact Admin)";
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+          // console.error("SignIn Error:", errorMessage);
+          throw new Error(errorMessage);
         }
       }
       return true;

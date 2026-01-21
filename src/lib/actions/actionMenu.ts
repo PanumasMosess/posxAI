@@ -212,65 +212,116 @@ export const deleteMenuInCart = async (data: any) => {
 export const createOrder = async (items: CartItemPayload[]) => {
   try {
     const organizationId = items[0].organizationId;
-    const dateStr = dayjs().format("YYYYMMDD");
+    const tableId = items[0].tableId;
 
-    // 1. สร้าง Running Code (ส่วนนี้เหมือนเดิม)
-    const countToday = await prisma.orderrunning.count({
-      where: {
-        organizationId: organizationId,
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          lt: new Date(new Date().setHours(23, 59, 59, 999)),
+    const currentTable = await prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!currentTable) {
+      return { success: false, error: true, message: "Table not found" };
+    }
+
+    let runningCode = "";
+
+    const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
+
+    if (!newBillStatuses.includes(currentTable.status)) {
+      const lastOrder = await prisma.order.findFirst({
+        where: {
+          tableId: tableId,
+          organizationId: organizationId,
+          status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
         },
-      },
-    });
+        orderBy: { createdAt: "desc" },
+      });
 
-    const nextSequence = countToday + 1;
-    const runningCode = `Q-${dateStr}-${nextSequence
-      .toString()
-      .padStart(4, "0")}`;
-
-    // สร้าง Record Running Number
-    await prisma.orderrunning.create({
-      data: {
-        runningCode: runningCode,
-        organizationId: organizationId,
-      },
-    });
-
-    await prisma.$transaction(
-      items.map((item) => {
-        const modifiersList = item.modifiers || [];
-
-        return prisma.order.create({
-          data: {
-            quantity: item.quantity,
-            price_sum: item.price_sum,
-            price_pre_unit: item.price_pre_unit,
-            menuId: item.menuId,
-            tableId: item.tableId,
-            status: "NEW",
-            organizationId: item.organizationId,
-            order_running_code: runningCode,
-            orderitems: {
-              create: {
-                menuId: item.menuId,
-                quantity: item.quantity,
-                price: item.price_pre_unit,
-                organizationId: item.organizationId,
-                selectedModifiers: {
-                  create: modifiersList.map((mod: any) => ({
-                    modifierItemId: mod.modifierItemId,
-                    price: mod.price,
-                    organizationId: item.organizationId,
-                  })),
-                },
-              },
+      if (lastOrder && lastOrder.order_running_code) {
+        runningCode = lastOrder.order_running_code;
+      } else {
+        const dateStr = dayjs().format("YYYYMMDD");
+        const countToday = await prisma.orderrunning.count({
+          where: {
+            organizationId: organizationId,
+            createdAt: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0)),
+              lt: new Date(new Date().setHours(23, 59, 59, 999)),
             },
           },
         });
-      })
-    );
+        const nextSequence = countToday + 1;
+        runningCode = `Q-${dateStr}-${nextSequence
+          .toString()
+          .padStart(4, "0")}`;
+
+        await prisma.orderrunning.create({
+          data: { runningCode, organizationId },
+        });
+      }
+    } else {
+      const dateStr = dayjs().format("YYYYMMDD");
+      const countToday = await prisma.orderrunning.count({
+        where: {
+          organizationId: organizationId,
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            lt: new Date(new Date().setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      const nextSequence = countToday + 1;
+      runningCode = `Q-${dateStr}-${nextSequence.toString().padStart(4, "0")}`;
+
+      await prisma.orderrunning.create({
+        data: {
+          runningCode: runningCode,
+          organizationId: organizationId,
+        },
+      });
+    }
+
+    const transactionOperations: any[] = items.map((item) => {
+      const modifiersList = item.modifiers || [];
+      return prisma.order.create({
+        data: {
+          quantity: item.quantity,
+          price_sum: item.price_sum,
+          price_pre_unit: item.price_pre_unit,
+          menuId: item.menuId,
+          tableId: item.tableId,
+          status: "NEW",
+          organizationId: item.organizationId,
+          order_running_code: runningCode,
+          orderitems: {
+            create: {
+              menuId: item.menuId,
+              quantity: item.quantity,
+              price: item.price_pre_unit,
+              organizationId: item.organizationId,
+              selectedModifiers: {
+                create: modifiersList.map((mod: any) => ({
+                  modifierItemId: mod.modifierItemId,
+                  price: mod.price,
+                  organizationId: item.organizationId,
+                })),
+              },
+            },
+          },
+        },
+      });
+    });
+
+    if (newBillStatuses.includes(currentTable.status)) {
+      transactionOperations.push(
+        prisma.table.update({
+          where: { id: tableId },
+          data: { status: "BUSY" },
+        })
+      );
+    }
+
+    await prisma.$transaction(transactionOperations);
 
     return { success: true, error: false };
   } catch (err) {
