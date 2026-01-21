@@ -54,7 +54,7 @@ const MainPageComponentsHome = ({
         <OrderStatusPage
           initialItems={initialItems}
           userId={userId}
-          organizationId={organizationId}
+          organizationId={organizationId ?? 1}
           relatedData={relatedData}
         />
       </div>
