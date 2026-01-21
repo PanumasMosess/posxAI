@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { StatusTable } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowRightLeft, ArrowUpDown, Receipt, Utensils } from "lucide-react";
+import { ArrowRightLeft, ArrowUpDown, ExternalLink, Receipt, Utensils } from "lucide-react";
 import status from "@/lib/data_temp";
 import {
   Popover,
@@ -32,7 +32,7 @@ const column_status_table = (
       <div className="text-left font-medium ml-4">{row.index + 1}</div>
     ),
   },
-  {
+ {
     accessorKey: "tableName",
     header: ({ column }) => (
       <div className="text-center">
@@ -44,11 +44,26 @@ const column_status_table = (
         </Button>
       </div>
     ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        <span className="font-bold text-lg">{row.getValue("tableName")}</span>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const tableId = row.original.id; 
+      const tableName = row.getValue("tableName") as string;
+
+      return (
+        <div 
+          className="text-center flex justify-center items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors group"
+          title="คลิกเพื่อเปิดหน้าสั่งอาหาร"
+          onClick={() => {
+            const origin = window.location.origin;
+            const url = `${origin}/orders?table=${tableId}&organizationId=${organizationId}`;
+            
+            window.open(url, "_blank");
+          }}
+        >
+          <span className="font-bold text-lg">{tableName}</span>
+          <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+      );
+    },
   },
   {
     id: "orders",
