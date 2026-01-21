@@ -10,6 +10,7 @@ export const printToKitchen = async (
   organizationId: number
 ) => {
   try {
+    // ... (ส่วน Certificate และ Security เหมือนเดิม ไม่ต้องแก้)
     qz.security.setCertificatePromise((resolve: any, reject: any) => {
       getCertContentFromS3(`digital-certificate_${organizationId}.txt`)
         .then((res) => {
@@ -45,7 +46,7 @@ export const printToKitchen = async (
     const config = qz.configs.create(printerToUse, {
       size: { width: 80 },
       units: "mm",
-      rasterize: true,
+      rasterize: false,
       scaleContent: true,
       margins: 0,
     });
@@ -60,129 +61,120 @@ export const printToKitchen = async (
     }
 
     const htmlContent = `
+      <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="UTF-8">
         <style>
-          @page { size: 80mm auto; margin: 0; }
-          
           * { 
             margin: 0; 
             padding: 0; 
             box-sizing: border-box; 
+            font-family: 'Noto Sans Lao', 'Phetsarath OT', 'Saysettha OT', sans-serif;
+            font-size: 12px;
             line-height: 1; 
           }
 
           body { 
-            font-family: 'Leelawadee UI', 'Tahoma', sans-serif; 
-            width: 75mm; 
+            width: 100%;
+            background-color: #fff;
             color: #000;
             padding: 0 2px; 
           }
 
-          /* --- Header Zone --- */
           .header { 
             text-align: center; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 3px;
-            margin-bottom: 3px;
-            padding-top: 2px; /* เว้นขอบบนนิดเดียวพอให้พิมพ์ติด */
+            border-bottom: 1px solid #000; 
+            padding-bottom: 2px; 
+            margin-bottom: 2px; 
           }
           .title { 
-            font-size: 14px; /* ขนาดปกติ */
+            font-size: 16px; 
             font-weight: bold; 
             background: #000; 
             color: #fff; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
+            padding: 0 6px; 
+            border-radius: 2px; 
             display: inline-block; 
+            margin-bottom: 2px;
           }
-          .time { 
-            font-size: 12px; 
-            font-weight: bold;
-            margin-top: 2px;
-          }
+          .time { font-size: 10px; font-weight: bold; }
       
-          /* --- Table Zone --- */
-          .table-box {
+          .table-box { 
             display: flex; 
             justify-content: center; 
-            align-items: baseline;
+            align-items: baseline; 
             border-bottom: 1px dashed #000; 
-            padding-bottom: 3px; 
-            margin-bottom: 3px;
+            padding-bottom: 2px; 
+            margin-bottom: 2px; 
           }
-          .tbl-label { font-size: 16px; font-weight: bold; margin-right: 5px; }
-          .tbl-num { font-size: 18px; font-weight: 900; } /* เลขโต๊ะใหญ่ชัด */
+          .tbl-label { font-size: 14px; font-weight: bold; margin-right: 4px; }
+          .tbl-num { font-size: 18px; font-weight: 900; }
 
-          /* --- Menu Zone --- */
           .menu-row { 
             display: flex; 
             justify-content: space-between; 
             align-items: flex-start; 
-            margin-top: 3px; 
+            margin-top: 2px; 
           }
           .menu-name { 
-            font-size: 14px; /* ชื่อเมนูใหญ่ */
+            font-size: 14px; 
             font-weight: bold; 
-            width: 75%; 
-            line-height: 1; 
-            word-wrap: break-word; 
+            width: 80%; 
+            line-height: 1.1; 
           }
           .menu-qty { 
-            font-size: 14x; /* จำนวนใหญ่ */
+            font-size: 16px; 
             font-weight: 900; 
-            width: 25%; 
+            width: 20%; 
             text-align: right; 
           }
           
-          /* --- Modifiers Zone --- */
-          .modifiers-box {
-            font-size: 12px; 
+          .modifiers-box { 
+            font-size: 11px; 
             font-weight: bold; 
-            margin-top: 2px; 
-            padding-left: 10px;
-            border-left: 3px solid #000; 
+            margin-top: 1px; 
+            padding-left: 6px; 
+            border-left: 2px solid #000; 
+            line-height: 1.1;
           }
 
-          /* --- Sub List Zone --- */
           .sub-list { 
-            margin-top: 3px; 
-            padding-top: 3px; 
+            margin-top: 2px; 
+            padding-top: 2px; 
             border-top: 1px dotted #ccc; 
             list-style: none; 
           }
-          .sub-item {
-             font-size: 12px; 
-             margin-bottom: 2px; 
-             padding-left: 5px; 
-             display: flex; 
-             justify-content: space-between; 
-             flex-wrap: wrap;
+          .sub-item { 
+            font-size: 11px; 
+            margin-bottom: 1px; 
+            padding-left: 4px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
           }
-          .table-tag {
-             font-weight: bold; 
-             font-size: 10px; 
-             background: #eee; 
-             border: 1px solid #000;
-             padding: 0 4px; 
-             border-radius: 3px; 
-             margin-right: 5px; 
-             display: inline-block;
+          .table-tag { 
+            font-weight: bold; 
+            font-size: 9px; 
+            background: #eee; 
+            border: 1px solid #000; 
+            padding: 0 2px; 
+            border-radius: 2px; 
+            margin-right: 4px; 
           }
         </style>
       </head>
       <body>
         <div class="header">
           <div class="title">KITCHEN</div>
-       <div class="time">${new Date(
-         data.createdAt || new Date()
-       ).toLocaleString("lo-LA", {
-         day: "2-digit",
-         month: "2-digit",
-         year: "numeric",
-         hour: "2-digit",
-         minute: "2-digit",
-       })}</div>
+          <div class="time">${new Date(
+            data.createdAt || new Date()
+          ).toLocaleString("th-TH", {
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "2-digit",
+            month: "2-digit",
+          })}</div>
         </div>
 
         <div class="table-box">
@@ -211,7 +203,7 @@ export const printToKitchen = async (
                   isMixedTable || order.tableName !== data.orders[0]?.tableName;
                 return `
               <li class="sub-item">
-                <div style="width:85%">
+                <div style="width:85%; display:flex; align-items:center; flex-wrap:wrap;">
                   ${
                     showTableLabel
                       ? `<span class="table-tag">โต๊ะ ${order.tableName}</span>`
@@ -224,8 +216,7 @@ export const printToKitchen = async (
                     ? `<div style="font-weight:bold;">x${order.quantity}</div>`
                     : ""
                 }
-              </li>
-            `;
+              </li>`;
               })
               .join("")}
           </ul>
