@@ -14,10 +14,12 @@ import {
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { googleLogin, verifyCredentials } from "@/lib/actions/actionAuths";
 import { toast } from "react-toastify";
 
 const SigninForm = () => {
+  const router = useRouter();
   const formSignin = useForm<SignInSchema>({
     resolver: zodResolver(signInSchema_),
     defaultValues: {
