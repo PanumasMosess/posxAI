@@ -62,7 +62,6 @@ const MenuOrderPage = ({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // Extract Categories
   const categories = useMemo(() => {
     const cats = new Set(
       initialItems.map((item: any) => item.category.categoryName)
@@ -70,7 +69,6 @@ const MenuOrderPage = ({
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
 
-  // Calculate Total Price
   const totalPrice = useMemo(() => {
     return relatedData.cartdatas.reduce(
       (sum, item) => sum + (item.price_sum || 0),
@@ -78,7 +76,13 @@ const MenuOrderPage = ({
     );
   }, [relatedData.cartdatas]);
 
-  // --- Handlers ---
+  const currentTableName = useMemo(() => {
+    if (!tableNumber || !relatedData.tabledatas) return "-";
+    const table = relatedData.tabledatas.find(
+      (t: any) => t.id === Number(tableNumber)
+    );
+    return table ? table.tableName : tableNumber;
+  }, [tableNumber, relatedData.tabledatas]);
 
   const handelOpendetail = async (id_for_detail: any) => {
     const itemToDetail = initialItems.find(
@@ -250,7 +254,7 @@ const MenuOrderPage = ({
                 <p className="text-muted-foreground text-sm">
                   โต๊ะ:{" "}
                   <span className="font-bold text-primary text-lg">
-                    {tableNumber || "-"}
+                    {currentTableName || "-"}
                   </span>
                 </p>
               </div>
