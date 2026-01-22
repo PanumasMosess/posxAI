@@ -26,21 +26,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         let signInResult = null;
-
         const parsedCredentials = signInSchema_.safeParse(credentials);
-        if (!parsedCredentials.success) {
-          // console.error("Invalid credentials:", parsedCredentials.error.errors);
-          return null;
-        }
+        if (!parsedCredentials.success) return null;
 
         const { username, password } = parsedCredentials.data;
         signInResult = await userSignIn({ username, password });
 
-        if (!signInResult) {
-          // console.log("Invalid credentials");
-          return null;
-        }
-
+        if (!signInResult) return null;
         return signInResult;
       },
     }),
@@ -49,15 +41,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     authorized({ request: { nextUrl }, auth }) {
       const isLoggedIn = !!auth?.user;
       const { pathname } = nextUrl;
-
       const isProtectedRoute =
-        pathname.startsWith("/home") || pathname.startsWith("/stock");
+        pathname.startsWith("/home") ||
+        pathname.startsWith("/stock") ||
+        pathname.startsWith("/menu") ||
+        pathname.startsWith("/menu") ||
+        pathname.startsWith("/payments") ||
+        pathname.startsWith("/settings");
 
       if (isProtectedRoute) {
         if (isLoggedIn) return true;
         return false;
       }
-
       return true;
     },
     async signIn({ user, account, profile }) {
@@ -68,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
 
           if (!existingUser) {
-            existingUser = await prisma.employees.create({
+            await prisma.employees.create({
               data: {
                 name: user.name ?? "",
                 surname: "",
@@ -85,16 +80,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 birthday: new Date(),
               },
             });
+
+            throw new Error(
+              "บัญชีถูกสร้างเรียบร้อยแล้ว กรุณารอผู้ดูแลระบบอนุมัติ (Wait for Admin Approval)"
+            );
+          }
+
+          if (existingUser.status !== "ACTIVE") {
+            throw new Error(
+              "บัญชีของคุณยังไม่ได้รับการอนุมัติ หรือถูกระงับการใช้งาน (Contact Admin)"
+            );
           }
 
           return true;
         } catch (error) {
-          let errorMessage =
-            "บัญชีของคุณยังไม่ได้รับการอนุมัติ หรือถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ (Contact Admin)";
+          let errorMessage = "เกิดข้อผิดพลาดในการเข้าสู่ระบบ";
           if (error instanceof Error) {
             errorMessage = error.message;
           }
-          // console.error("SignIn Error:", errorMessage);
+
           throw new Error(errorMessage);
         }
       }
@@ -148,5 +152,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   pages: {
     signIn: "/",
+    error: "/", 
   },
 });

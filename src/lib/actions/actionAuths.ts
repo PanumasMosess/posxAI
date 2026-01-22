@@ -37,5 +37,7 @@ export const handleSignOut = async () => {
 };
 
 export const googleLogin = async () => {
-  const result = await signIn("google", { redirectTo: "/home" });
+  const result = await signIn("google", {
+    redirectTo: "/home",
+  });
 };
