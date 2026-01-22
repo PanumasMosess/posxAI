@@ -62,8 +62,8 @@ const column_status_table = (
             const origin = window.location.origin;
             const url = `${origin}/orders?table=${tableId}&organizationId=${organizationId}`;
 
-            const popupWidth = 1200;
-            const popupHeight = 800;
+            const popupWidth = 390;
+            const popupHeight = 844;
 
             const screenLeft =
               window.screenLeft !== undefined
