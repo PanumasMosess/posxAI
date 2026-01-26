@@ -52,13 +52,24 @@ import { toast } from "react-toastify";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 const items = menuList.menuList;
 const settingList = menuList.settingsMenu;
 
 const AppSidebar = () => {
   const { state, isMobile } = useSidebar();
-  const { data: session } = useSession(); 
+  const { data: session } = useSession();
 
   const isCollapsed = state === "collapsed" && !isMobile;
 
@@ -86,7 +97,7 @@ const AppSidebar = () => {
       const result = await uploadCertToS3(formData);
       if (result.success) {
         toast.success(result.message);
-        setIsPrinterDialogOpen(false); 
+        setIsPrinterDialogOpen(false);
         setCertFile(null);
         setKeyFile(null);
       } else {
@@ -105,12 +116,11 @@ const AppSidebar = () => {
     url: string;
     target?: string;
   }) => {
-    
     if (subItem.title === "จัดการเครื่องปริ้น") {
       return (
         <SidebarMenuButton
           key={subItem.title}
-          onClick={() => setIsPrinterDialogOpen(true)} 
+          onClick={() => setIsPrinterDialogOpen(true)}
           className="w-full justify-start cursor-pointer"
         >
           {subItem.title}
@@ -277,7 +287,6 @@ const AppSidebar = () => {
 
         <SidebarFooter>
           <SidebarMenu>
-            {/* Settings Menu */}
             {isCollapsed ? (
               <SidebarMenuItem>
                 <DropdownMenu>
@@ -292,8 +301,7 @@ const AppSidebar = () => {
                     className="w-48"
                   >
                     {settingList.subItems.map((subItem) =>
-                      // ✅ เรียกใช้ฟังก์ชัน render ที่สร้างไว้
-                      renderSubMenuItem(subItem)
+                      renderSubMenuItem(subItem),
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -313,8 +321,7 @@ const AppSidebar = () => {
                   <CollapsibleContent>
                     <div className="flex flex-col gap-1 pl-9 py-1">
                       {settingList.subItems.map((subItem) =>
-                        // ✅ เรียกใช้ฟังก์ชัน render ที่สร้างไว้
-                        renderSubMenuItem(subItem)
+                        renderSubMenuItem(subItem),
                       )}
                     </div>
                   </CollapsibleContent>
@@ -323,14 +330,37 @@ const AppSidebar = () => {
             )}
 
             <SidebarMenuItem key={"logout"}>
-              <SidebarMenuButton
-                onClick={handleSignOut}
-                className={isCollapsed ? "justify-center py-3" : "py-3"}
-                tooltip={isCollapsed ? "ออกจากระบบ" : undefined}
-              >
-                <LogOut className="h-[1.2rem] w-[1.2rem]" />
-                {!isCollapsed && <span className="ml-3">{"ออกจากระบบ"}</span>}
-              </SidebarMenuButton>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <SidebarMenuButton
+                    className={isCollapsed ? "justify-center py-3" : "py-3"}
+                    tooltip={isCollapsed ? "ออกจากระบบ" : undefined}
+                  >
+                    <LogOut className="h-[1.2rem] w-[1.2rem]" />
+                    {!isCollapsed && (
+                      <span className="ml-3">{"ออกจากระบบ"}</span>
+                    )}
+                  </SidebarMenuButton>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>ยืนยันการออกจากระบบ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชีของคุณ?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleSignOut}
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      ยืนยันการออกจากระบบ
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
