@@ -14,8 +14,19 @@ import { SidebarTrigger } from "./ui/sidebar";
 import { NavbarTheme } from "./navbar-theme";
 import { useSession } from "next-auth/react";
 import { handleSignOut } from "@/lib/actions/actionAuths";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
-const Navbar =  () => {
+const Navbar = () => {
   const session = useSession();
   const img_user = session.data?.user.image?.toString();
 
@@ -58,10 +69,36 @@ const Navbar =  () => {
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
               ตั้งค่าโปรไฟล์
             </DropdownMenuItem> */}
-            <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
-              <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
-              ออกจากระบบ
-            </DropdownMenuItem>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={(e) => e.preventDefault()}
+                  className="text-red-600 focus:bg-red-50 dark:focus:bg-red-950 cursor-pointer"
+                >
+                  <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
+                  ออกจากระบบ
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>ยืนยันการออกจากระบบ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชีของคุณ?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleSignOut}
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    ยืนยัน
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
