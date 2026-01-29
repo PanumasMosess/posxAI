@@ -52,7 +52,7 @@ const MenuOrderPage = ({
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [filteredItems, setFilteredItems] = useState(initialItems);
   const [currentItems, setCurrentItems] = useState(
-    initialItems.slice(0, itemsPerPage)
+    initialItems.slice(0, itemsPerPage),
   );
   const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
   const [isOpenDetail, setIsOpenDetail] = useState(false);
@@ -64,7 +64,7 @@ const MenuOrderPage = ({
 
   const categories = useMemo(() => {
     const cats = new Set(
-      initialItems.map((item: any) => item.category.categoryName)
+      initialItems.map((item: any) => item.category.categoryName),
     );
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
@@ -72,21 +72,21 @@ const MenuOrderPage = ({
   const totalPrice = useMemo(() => {
     return relatedData.cartdatas.reduce(
       (sum, item) => sum + (item.price_sum || 0),
-      0
+      0,
     );
   }, [relatedData.cartdatas]);
 
   const currentTableName = useMemo(() => {
     if (!tableNumber || !relatedData.tabledatas) return "-";
     const table = relatedData.tabledatas.find(
-      (t: any) => t.id === Number(tableNumber)
+      (t: any) => t.id === Number(tableNumber),
     );
     return table ? table.tableName : tableNumber;
   }, [tableNumber, relatedData.tabledatas]);
 
   const handelOpendetail = async (id_for_detail: any) => {
     const itemToDetail = initialItems.find(
-      (item: any) => item.id === id_for_detail
+      (item: any) => item.id === id_for_detail,
     );
     setItemnDetail(itemToDetail);
     setIsOpenDetail(true);
@@ -119,7 +119,7 @@ const MenuOrderPage = ({
     cartId: number,
     menuId: number,
     newQuantity: number,
-    priceSum: number
+    priceSum: number,
   ) => {
     const cartItem = {
       id: cartId,
@@ -163,13 +163,13 @@ const MenuOrderPage = ({
         setIsCartOpen(false);
         router.refresh();
       } else {
-        toast.error("ผิดพลาด!", {
+        toast.error(`ผิดพลาด! ${result.message || "ไม่สามารถส่งออเดอร์ได้"}`, {
           position: "bottom-center",
           className: "responsive-toast",
         });
       }
     } catch (error) {
-      toast.error("ติดต่อพนักงาน!", {
+      toast.error(`ติดต่อพนักงาน! ${error}`, {
         position: "bottom-center",
         className: "responsive-toast",
       });
@@ -203,7 +203,7 @@ const MenuOrderPage = ({
   useEffect(() => {
     if (tableNumber !== 0 && relatedData.cartdatas) {
       const itemsForThisTable = relatedData.cartdatas.filter(
-        (item) => item.tableId === tableNumber
+        (item) => item.tableId === tableNumber,
       );
       setCartCount(itemsForThisTable.length);
     } else {
@@ -407,7 +407,7 @@ const MenuOrderPage = ({
               <div className="flex flex-col gap-4 pb-20">
                 {relatedData.cartdatas.map((item) => {
                   const menuItem = initialItems.find(
-                    (m: any) => m.id === item.menuId
+                    (m: any) => m.id === item.menuId,
                   );
                   return (
                     <div
@@ -481,7 +481,7 @@ const MenuOrderPage = ({
                                     item.id,
                                     item.menuId,
                                     newQty,
-                                    unitPrice * newQty
+                                    unitPrice * newQty,
                                   );
                                 }
                               }}
@@ -501,7 +501,7 @@ const MenuOrderPage = ({
                                   item.id,
                                   item.menuId,
                                   newQty,
-                                  unitPrice * newQty
+                                  unitPrice * newQty,
                                 );
                               }}
                               className="w-6 h-6 flex items-center justify-center bg-primary rounded shadow-sm text-primary-foreground active:scale-95"
