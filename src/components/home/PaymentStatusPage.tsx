@@ -18,6 +18,9 @@ import {
   LayoutGrid,
   ChefHat,
   Filter,
+  Delete,
+  X,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -78,7 +81,7 @@ const PaymentStatusPage = ({
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
-    "CASH"
+    "CASH",
   );
   const [cashReceived, setCashReceived] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,6 +102,30 @@ const PaymentStatusPage = ({
   useEffect(() => {
     setCashReceived("0");
   }, [selectedOrder]);
+
+  const handleNumpadClick = (value: string) => {
+    if (value === "C") {
+      setCashReceived("0");
+    } else if (value === "BACKSPACE") {
+      setCashReceived((prev) => (prev.length > 1 ? prev.slice(0, -1) : "0"));
+    } else if (value === ".") {
+      if (!cashReceived.includes(".")) {
+        setCashReceived((prev) => prev + ".");
+      }
+    } else {
+      setCashReceived((prev) => (prev === "0" ? value : prev + value));
+    }
+  };
+
+  const handleQuickAmount = (amount: number) => {
+    setCashReceived(amount.toString());
+  };
+
+  const handleExactAmount = () => {
+    if (selectedOrder) {
+      setCashReceived(selectedOrder.total.toString());
+    }
+  };
 
   const initQZSecurity = () => {
     qz.security.setCertificatePromise((resolve: any, reject: any) => {
@@ -199,7 +226,7 @@ const PaymentStatusPage = ({
     (order: any) =>
       order.table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.runningCode &&
-        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase()))
+        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const totalAmount = selectedOrder ? selectedOrder.total : 0;
@@ -273,7 +300,7 @@ const PaymentStatusPage = ({
       const result = await printReceiptQZ(
         receiptData,
         selectedPrinter,
-        organizationId
+        organizationId,
       );
 
       if (result.success) {
@@ -324,13 +351,9 @@ const PaymentStatusPage = ({
     setIsProcessing(false);
   };
 
-  // --- REDESIGN UI START ---
-
   return (
     <div className="flex h-screen bg-zinc-50/50 dark:bg-zinc-950 w-full overflow-hidden">
-      {/* LEFT: Dashboard Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
         <header className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg text-primary">
@@ -424,7 +447,6 @@ const PaymentStatusPage = ({
           </div>
         </header>
 
-        {/* Content Grid */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-[60vh] text-zinc-400">
@@ -549,7 +571,6 @@ const PaymentStatusPage = ({
                           </div>
                         </div>
                       </div>
-                      {/* Decorative elements */}
                       <div
                         className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/5 rounded-bl-full pointer-events-none`}
                       />
@@ -562,7 +583,6 @@ const PaymentStatusPage = ({
         </main>
       </div>
 
-      {/* RIGHT: Payment Sidebar Drawer */}
       <AnimatePresence mode="wait">
         {selectedOrder && (
           <motion.div
@@ -572,12 +592,11 @@ const PaymentStatusPage = ({
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="
-              fixed inset-y-0 right-0 z-50 w-full sm:w-[450px]
+              fixed inset-y-0 right-0 z-50 w-full sm:w-[500px]
               bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl
               flex flex-col
             "
           >
-            {/* Sidebar Header */}
             <div className="h-16 px-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 <Button
@@ -615,10 +634,8 @@ const PaymentStatusPage = ({
               </div>
             </div>
 
-            {/* Sidebar Content */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6 space-y-8">
-                {/* Total Display */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <div className="p-6 space-y-6">
                 <div className="text-center relative py-6">
                   <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-900 rounded-3xl -z-10 transform -skew-y-2" />
                   <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-2">
@@ -634,7 +651,6 @@ const PaymentStatusPage = ({
                   </div>
                 </div>
 
-                {/* Payment Methods */}
                 <div className="grid grid-cols-3 gap-3">
                   <PaymentOption
                     icon={QrCode}
@@ -658,8 +674,7 @@ const PaymentStatusPage = ({
                   />
                 </div>
 
-                {/* Dynamic Content based on Payment Method */}
-                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-6 border border-zinc-100 dark:border-zinc-800">
+                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-800">
                   {paymentMethod === "QR" && (
                     <div className="flex flex-col items-center justify-center space-y-4 py-4">
                       <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
@@ -674,38 +689,141 @@ const PaymentStatusPage = ({
                   )}
 
                   {paymentMethod === "CASH" && (
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <label className="text-xs font-bold text-zinc-400 uppercase pl-1">
-                          จำนวนเงินที่รับ
-                        </label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center px-1">
+                          <label className="text-xs font-bold text-zinc-400 uppercase">
+                            รับเงินมา
+                          </label>
+                          {change >= 0 && (
+                            <span className="text-xs font-bold text-emerald-600">
+                              เงินทอน: {change.toLocaleString()}
+                            </span>
+                          )}
+                          {change < 0 && (
+                            <span className="text-xs font-bold text-red-500">
+                              ขาดอีก: {Math.abs(change).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+
                         <div className="relative group">
                           <Input
-                            type="number"
-                            placeholder="0.00"
-                            className="text-right text-2xl h-14 pr-12 font-bold bg-white dark:bg-zinc-950 border-zinc-200 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all rounded-xl shadow-sm"
-                            value={cashReceived}
-                            onChange={(e) => setCashReceived(e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                            autoFocus
+                            type="text"
+                            readOnly
+                            className="text-right text-3xl h-16 pr-4 font-black bg-white dark:bg-zinc-950 border-zinc-200 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all rounded-xl shadow-sm tracking-tight"
+                            value={parseFloat(cashReceived).toLocaleString()}
                           />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-medium text-sm">
-                            {selectedOrder.currency}
-                          </span>
                         </div>
                       </div>
 
-                      <div className="bg-white dark:bg-zinc-950 rounded-xl p-4 border border-zinc-100 dark:border-zinc-800 flex justify-between items-center shadow-sm">
-                        <span className="text-sm font-medium text-zinc-500">
-                          เงินทอน
-                        </span>
-                        <span
-                          className={`text-xl font-bold ${
-                            change < 0 ? "text-red-500" : "text-emerald-600"
-                          }`}
+                      <div className="grid grid-cols-4 gap-2">
+                        <Button
+                          variant="outline"
+                          className="h-10 col-span-2 text-xs font-bold bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 hover:border-primary rounded-xl transition-all"
+                          onClick={handleExactAmount}
                         >
-                          {change >= 0 ? change.toLocaleString() : "-"}
-                        </span>
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          พอดี ({selectedOrder.total.toLocaleString()})
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 col-span-2 text-xs font-bold text-red-500 bg-red-50 border-red-100 hover:bg-red-100 hover:border-red-200 hover:text-red-600 rounded-xl transition-all"
+                          onClick={() => setCashReceived("0")}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          เคลียร์
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2">
+                        {[50000, 100000, 200000, 500000, 1000000].map(
+                          (amt, i) => (
+                            <Button
+                              key={amt}
+                              variant="outline"
+                              className="h-10 text-xs font-medium bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-primary/50 hover:bg-primary/5 hover:text-primary rounded-xl transition-all shadow-sm"
+                              style={
+                                i >= 3
+                                  ? { gridColumn: "span 2" }
+                                  : { gridColumn: "span 2" }
+                              }
+                              onClick={() => handleQuickAmount(amt)}
+                            >
+                              {amt.toLocaleString()}
+                            </Button>
+                          ),
+                        )}
+                        <div className="col-span-1" />
+                      </div>
+
+                      <Separator className="bg-zinc-200/50 dark:bg-zinc-700/50" />
+
+                      <div className="grid grid-cols-4 gap-2">
+                        {["7", "8", "9"].map((btn) => (
+                          <Button
+                            key={btn}
+                            variant="ghost"
+                            className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
+                            onClick={() => handleNumpadClick(btn)}
+                          >
+                            {btn}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          className="h-14 text-xl font-bold bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-2xl active:scale-95 transition-all"
+                          onClick={() => handleNumpadClick("BACKSPACE")}
+                        >
+                          <Delete className="w-6 h-6" />
+                        </Button>
+
+                        {["4", "5", "6"].map((btn) => (
+                          <Button
+                            key={btn}
+                            variant="ghost"
+                            className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
+                            onClick={() => handleNumpadClick(btn)}
+                          >
+                            {btn}
+                          </Button>
+                        ))}
+                       
+                        <div />
+
+                        {["1", "2", "3"].map((btn) => (
+                          <Button
+                            key={btn}
+                            variant="ghost"
+                            className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
+                            onClick={() => handleNumpadClick(btn)}
+                          >
+                            {btn}
+                          </Button>
+                        ))}
+                        <div />
+
+                        <Button
+                          variant="ghost"
+                          className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 col-span-2 active:scale-95 transition-all"
+                          onClick={() => handleNumpadClick("0")}
+                        >
+                          0
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
+                          onClick={() => handleNumpadClick("00")}
+                        >
+                          00
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-14 text-2xl font-bold bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
+                          onClick={() => handleNumpadClick(".")}
+                        >
+                          .
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -722,7 +840,7 @@ const PaymentStatusPage = ({
                   )}
                 </div>
 
-                {/* Order Summary List */}
+               
                 <div>
                   <div className="flex items-center justify-between mb-3 px-1">
                     <p className="text-xs font-bold text-zinc-400 uppercase">
@@ -765,7 +883,6 @@ const PaymentStatusPage = ({
               </div>
             </div>
 
-            {/* Sidebar Footer */}
             <div className="p-6 bg-white dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-800 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)]">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
