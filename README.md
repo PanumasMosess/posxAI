@@ -23,9 +23,9 @@ posxAI คือระบบจัดการสต็อกสินค้า�
 2. ติดตั้ง Dependencies
 - npm install
 3. ตั้งค่า Environment Variables
-- DATABASE_URL="mysql://root:@localhost:3306/posx_true"
+- DATABASE_URL="mysql://root:@localhost:3306/your_db"
 - NODE_ENV="development"
-- S3_BUCKET = 'tvposx'
+- S3_BUCKET = 'you'
 - NEXT_PUBLIC_S3_BUCKET_NAME = 'S3_NAME'
 - SECRET_KEY = 'S3_SECRET_KEY'
 - KEY = 'S3_KEY'
