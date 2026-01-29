@@ -6,7 +6,6 @@ import { Sheet, SheetTrigger } from "../ui/sheet";
 import { Button } from "../ui/button";
 import { PackageSearch, Utensils, Loader2 } from "lucide-react";
 import MenuFormPOS from "../forms/MenuFormPOS";
-import { useSession } from "next-auth/react";
 import MunuDetailForm from "../forms/MunuDetailForm";
 import { useRouter } from "next/navigation";
 import { Input } from "../ui/input";
@@ -32,7 +31,6 @@ const MenuPOSPage = ({
   id_user,
   organizationId,
 }: MenuPOSPageClientProps) => {
-  const session = useSession();
 
   const [menuItems, setOrderItems] = useState(initialItems);
 

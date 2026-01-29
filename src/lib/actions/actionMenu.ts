@@ -9,7 +9,7 @@ type CurrentState = { success: boolean; error: boolean };
 
 export const createMenu = async (
   currentState: CurrentState,
-  data: MenuSchema
+  data: MenuSchema,
 ) => {
   try {
     await prisma.menu.create({
@@ -60,7 +60,7 @@ export const createMenu = async (
 
 export const updateMenu = async (
   currentState: CurrentState,
-  data: MenuSchema
+  data: MenuSchema,
 ) => {
   try {
     const updatedStock = await prisma.menu.update({
@@ -250,7 +250,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
           },
         });
         const nextSequence = countToday + 1;
-        runningCode = `Q-${dateStr}-${nextSequence
+        runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
           .toString()
           .padStart(4, "0")}`;
 
@@ -271,7 +271,9 @@ export const createOrder = async (items: CartItemPayload[]) => {
       });
 
       const nextSequence = countToday + 1;
-      runningCode = `Q-${dateStr}-${nextSequence.toString().padStart(4, "0")}`;
+      runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
+        .toString()
+        .padStart(4, "0")}`;
 
       await prisma.orderrunning.create({
         data: {
@@ -317,7 +319,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
         prisma.table.update({
           where: { id: tableId },
           data: { status: "BUSY" },
-        })
+        }),
       );
     }
 
@@ -379,7 +381,7 @@ export const updateStatusOrder = async (idOrder: number, status: string) => {
 
 export const updateTableStatus = async (
   items: CartItemPayload[],
-  status: string
+  status: string,
 ) => {
   try {
     const tableIds = [...new Set(items.map((item) => item.tableId))];
