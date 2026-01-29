@@ -5,6 +5,8 @@ import { sendbase64toS3Data } from "../actions/actionIndex";
 
 const ai_gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model_version = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const model_version_img =
+  process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
 
 type BillItem = {
   productName: string;
@@ -16,12 +18,12 @@ type BillItem = {
 
 export const getPresignedUrltoAI = async (filelink: string) => {
   const pdfResp = await fetch(filelink).then((response) =>
-    response.arrayBuffer()
+    response.arrayBuffer(),
   );
 
- ;
   const response_mimeType = await fetch(filelink);
-  const mimeType_: string | null  = response_mimeType.headers.get("Content-Type");
+  const mimeType_: string | null =
+    response_mimeType.headers.get("Content-Type");
 
   const message_promt =
     "หน้าที่ของคุณ:" +
@@ -52,7 +54,7 @@ export const getPresignedUrltoAI = async (filelink: string) => {
 
 export const getSearchQueryFromJson = async (
   itemsToSearch: any[],
-  userQuery: string
+  userQuery: string,
 ): Promise<{ success: boolean; answer?: string; error?: string }> => {
   const prompt = `
     You are a helpful and friendly inventory assistant for a store in Thailand.
@@ -84,10 +86,10 @@ export const getSearchQueryFromJson = async (
 
 export const generationImage = async (userCommand: string) => {
   const prompt = `A photorealistic, professional product shot of "${userCommand}", bright even studio lighting, **on a solid plain white background, no shadows**, optimized for web.`;
- 
+
   try {
     const response = await ai_gemini.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: model_version_img,
       contents: prompt,
     });
 
@@ -101,7 +103,7 @@ export const generationImage = async (userCommand: string) => {
           imageData = part.inlineData?.data;
         }
       }
-     
+
       if (imageData) {
         url = await sendbase64toS3Data(imageData, "stock_img");
       }
@@ -124,10 +126,10 @@ export const generationImage = async (userCommand: string) => {
 
 export const generationImageMenu = async (userCommand: string) => {
   const prompt = `A photorealistic, professional product shot of "${userCommand}", bright even studio lighting, **on a solid plain white background, no shadows**, optimized for web.`;
- 
+
   try {
     const response = await ai_gemini.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: model_version_img,
       contents: prompt,
     });
 
@@ -141,7 +143,7 @@ export const generationImageMenu = async (userCommand: string) => {
           imageData = part.inlineData?.data;
         }
       }
-     
+
       if (imageData) {
         url = await sendbase64toS3Data(imageData, "menu_img");
       }
