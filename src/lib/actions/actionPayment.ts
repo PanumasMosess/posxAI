@@ -47,6 +47,7 @@ export const createPaymentOrder = async (data: any) => {
       data: {
         cashReceived: data.cashReceived,
         change: data.change,
+        discount: data.discount,
         totalAmount: data.totalAmount,
         paymentMethod: data.paymentMethod,
         updatedAt: new Date(),

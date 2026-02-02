@@ -247,6 +247,7 @@ model paymentorder {
   id            Int      @id @default(autoincrement())
   cashReceived  Float
   change        Float
+  discount      Float    @default(0)
   totalAmount   Float
   paymentMethod String
   createdAt     DateTime @default(now())
