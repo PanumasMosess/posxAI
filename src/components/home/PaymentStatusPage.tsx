@@ -6,7 +6,6 @@ import {
   Banknote,
   CreditCard,
   QrCode,
-  Receipt,
   Clock,
   ChevronRight,
   Utensils,
@@ -17,10 +16,10 @@ import {
   Printer,
   LayoutGrid,
   ChefHat,
-  Filter,
   Delete,
   X,
   CheckCircle2,
+  Percent, // เพิ่ม icon สำหรับส่วนลด
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -81,9 +80,10 @@ const PaymentStatusPage = ({
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
-    "CASH",
+    "CASH"
   );
   const [cashReceived, setCashReceived] = useState("0");
+  const [discount, setDiscount] = useState("0"); 
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -101,7 +101,15 @@ const PaymentStatusPage = ({
 
   useEffect(() => {
     setCashReceived("0");
+    setDiscount("0"); 
   }, [selectedOrder]);
+
+  const originalTotal = selectedOrder ? selectedOrder.total : 0;
+  const discountAmount = parseFloat(discount) || 0;
+  const finalTotal = Math.max(0, originalTotal - discountAmount);
+
+  const change = parseFloat(cashReceived || "0") - finalTotal;
+  const isCashSufficient = change >= 0;
 
   const handleNumpadClick = (value: string) => {
     if (value === "C") {
@@ -123,7 +131,7 @@ const PaymentStatusPage = ({
 
   const handleExactAmount = () => {
     if (selectedOrder) {
-      setCashReceived(selectedOrder.total.toString());
+      setCashReceived(finalTotal.toString()); 
     }
   };
 
@@ -226,12 +234,8 @@ const PaymentStatusPage = ({
     (order: any) =>
       order.table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.runningCode &&
-        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase())),
+        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  const totalAmount = selectedOrder ? selectedOrder.total : 0;
-  const change = parseFloat(cashReceived || "0") - totalAmount;
-  const isCashSufficient = change >= 0;
 
   const fetchPrinters = async () => {
     setIsLoadingPrinters(true);
@@ -289,7 +293,9 @@ const PaymentStatusPage = ({
           quantity: i.qty,
           price: i.price,
         })),
-        total: orderData.total,
+        total: finalTotal, // ✅ พิมพ์ยอดสุทธิ (หลังหักส่วนลด)
+        subTotal: originalTotal, // ส่งยอดเต็มไปด้วยเผื่อใช้แสดงในใบเสร็จ
+        discount: discountAmount, // ส่งยอดส่วนลด
         currency: orderData.currency,
         paymentMethod: paymentMethod,
         cashReceived:
@@ -300,7 +306,7 @@ const PaymentStatusPage = ({
       const result = await printReceiptQZ(
         receiptData,
         selectedPrinter,
-        organizationId,
+        organizationId
       );
 
       if (result.success) {
@@ -328,11 +334,12 @@ const PaymentStatusPage = ({
       table: selectedOrder.table,
       tableId: selectedOrder.tableId,
       paymentMethod: paymentMethod,
-      totalAmount: totalAmount,
+      totalAmount: finalTotal, 
+      discount: discountAmount, 
       createdById: id_user,
       organizationId: organizationId,
       cashReceived:
-        paymentMethod === "CASH" ? parseFloat(cashReceived) : totalAmount,
+        paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
       change: paymentMethod === "CASH" ? change : 0,
     };
 
@@ -353,6 +360,7 @@ const PaymentStatusPage = ({
 
   return (
     <div className="flex h-screen bg-zinc-50/50 dark:bg-zinc-950 w-full overflow-hidden">
+      {/* LEFT: Dashboard Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
@@ -562,7 +570,9 @@ const PaymentStatusPage = ({
                               </span>
                               <span
                                 className={`text-xs ml-1 ${
-                                  isSelected ? "text-zinc-500" : "text-zinc-400"
+                                  isSelected
+                                    ? "text-zinc-500"
+                                    : "text-zinc-400"
                                 }`}
                               >
                                 {order.currency}
@@ -583,6 +593,7 @@ const PaymentStatusPage = ({
         </main>
       </div>
 
+      {/* RIGHT: Payment Sidebar Drawer */}
       <AnimatePresence mode="wait">
         {selectedOrder && (
           <motion.div
@@ -641,13 +652,21 @@ const PaymentStatusPage = ({
                   <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-2">
                     Total Amount
                   </p>
-                  <div className="flex items-baseline justify-center gap-2 text-zinc-900 dark:text-white">
-                    <span className="text-5xl font-black tracking-tighter">
-                      {selectedOrder.total.toLocaleString()}
-                    </span>
-                    <span className="text-xl font-medium text-zinc-400">
-                      {selectedOrder.currency}
-                    </span>
+                  <div className="flex flex-col items-center justify-center gap-1 text-zinc-900 dark:text-white">
+                    {/* ✅ แสดงยอดเงินเดิมขีดฆ่า ถ้ามีส่วนลด */}
+                    {discountAmount > 0 && (
+                      <span className="text-lg text-zinc-400 line-through decoration-red-500">
+                        {originalTotal.toLocaleString()}
+                      </span>
+                    )}
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl font-black tracking-tighter">
+                        {finalTotal.toLocaleString()}
+                      </span>
+                      <span className="text-xl font-medium text-zinc-400">
+                        {selectedOrder.currency}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -690,6 +709,27 @@ const PaymentStatusPage = ({
 
                   {paymentMethod === "CASH" && (
                     <div className="space-y-4">
+                      {/* ✅ ช่องกรอกส่วนลด */}
+                      <div className="flex justify-between items-center bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                        <div className="flex items-center gap-2 text-zinc-500">
+                          <Percent className="h-4 w-4" />
+                          <span className="text-sm font-bold">ส่วนลด</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            className="w-32 text-right font-bold text-lg border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent"
+                            value={discount}
+                            onChange={(e) => setDiscount(e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                          />
+                          <span className="text-sm font-medium text-zinc-400">
+                            {selectedOrder.currency}
+                          </span>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <div className="flex justify-between items-center px-1">
                           <label className="text-xs font-bold text-zinc-400 uppercase">
@@ -724,7 +764,7 @@ const PaymentStatusPage = ({
                           onClick={handleExactAmount}
                         >
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          พอดี ({selectedOrder.total.toLocaleString()})
+                          พอดี ({finalTotal.toLocaleString()})
                         </Button>
                         <Button
                           variant="outline"
@@ -752,7 +792,7 @@ const PaymentStatusPage = ({
                             >
                               {amt.toLocaleString()}
                             </Button>
-                          ),
+                          )
                         )}
                         <div className="col-span-1" />
                       </div>
@@ -788,7 +828,7 @@ const PaymentStatusPage = ({
                             {btn}
                           </Button>
                         ))}
-                       
+
                         <div />
 
                         {["1", "2", "3"].map((btn) => (
@@ -840,7 +880,6 @@ const PaymentStatusPage = ({
                   )}
                 </div>
 
-               
                 <div>
                   <div className="flex items-center justify-between mb-3 px-1">
                     <p className="text-xs font-bold text-zinc-400 uppercase">
