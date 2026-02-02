@@ -16,6 +16,7 @@ import {
   Printer,
   Loader2,
   Settings,
+  X, 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusTableProps } from "@/lib/type";
@@ -34,6 +35,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -406,7 +418,10 @@ export default function OrderStatusPage({
               >
                 {status === "COOKING" && (
                   <Flame
-                    className={cn("h-3 w-3", isActive ? "text-orange-500" : "")}
+                    className={cn(
+                      "h-3 w-3",
+                      isActive ? "text-orange-500" : ""
+                    )}
                   />
                 )}
                 {status === "NEW" && (
@@ -539,14 +554,46 @@ export default function OrderStatusPage({
                             #{orderItem.order_running_code?.split("-").pop()}
                           </span>
                         </div>
-                        <div className="text-xs font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                          x{orderItem.quantity}
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded">
+                            x{orderItem.quantity}
+                          </span>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="text-zinc-400 hover:text-red-500"
+                                title="ยกเลิกเฉพาะรายการนี้"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  คุณแน่ใจหรือไม่?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  การกระทำนี้จะเปลี่ยนสถานะเป็น "ยกเลิกรายการ"
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    onStatusChange([orderItem.id], "CANCELLED")
+                                  }
+                                >
+                                  ยืนยันการลบ
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* ✅ --- FOOTER ACTIONS (UPDATED) --- */}
                   <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800">
                     {group.status === "NEW" ? (
                       <Button
