@@ -19,7 +19,8 @@ import {
   Delete,
   X,
   CheckCircle2,
-  Percent, // เพิ่ม icon สำหรับส่วนลด
+  Percent,
+  Trash2, // ✅ เพิ่มไอคอนสำหรับปุ่มยกเลิกบิล
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -80,10 +81,10 @@ const PaymentStatusPage = ({
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
-    "CASH"
+    "CASH",
   );
   const [cashReceived, setCashReceived] = useState("0");
-  const [discount, setDiscount] = useState("0"); 
+  const [discount, setDiscount] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -101,7 +102,7 @@ const PaymentStatusPage = ({
 
   useEffect(() => {
     setCashReceived("0");
-    setDiscount("0"); 
+    setDiscount("0");
   }, [selectedOrder]);
 
   const originalTotal = selectedOrder ? selectedOrder.total : 0;
@@ -131,7 +132,7 @@ const PaymentStatusPage = ({
 
   const handleExactAmount = () => {
     if (selectedOrder) {
-      setCashReceived(finalTotal.toString()); 
+      setCashReceived(finalTotal.toString());
     }
   };
 
@@ -234,7 +235,7 @@ const PaymentStatusPage = ({
     (order: any) =>
       order.table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.runningCode &&
-        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase()))
+        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const fetchPrinters = async () => {
@@ -293,9 +294,9 @@ const PaymentStatusPage = ({
           quantity: i.qty,
           price: i.price,
         })),
-        total: finalTotal, // ✅ พิมพ์ยอดสุทธิ (หลังหักส่วนลด)
-        subTotal: originalTotal, // ส่งยอดเต็มไปด้วยเผื่อใช้แสดงในใบเสร็จ
-        discount: discountAmount, // ส่งยอดส่วนลด
+        total: finalTotal,
+        subTotal: originalTotal,
+        discount: discountAmount,
         currency: orderData.currency,
         paymentMethod: paymentMethod,
         cashReceived:
@@ -306,7 +307,7 @@ const PaymentStatusPage = ({
       const result = await printReceiptQZ(
         receiptData,
         selectedPrinter,
-        organizationId
+        organizationId,
       );
 
       if (result.success) {
@@ -334,8 +335,8 @@ const PaymentStatusPage = ({
       table: selectedOrder.table,
       tableId: selectedOrder.tableId,
       paymentMethod: paymentMethod,
-      totalAmount: finalTotal, 
-      discount: discountAmount, 
+      totalAmount: finalTotal,
+      discount: discountAmount,
       createdById: id_user,
       organizationId: organizationId,
       cashReceived:
@@ -356,6 +357,28 @@ const PaymentStatusPage = ({
       toast.error("ไม่สามารถบันทึกข้อมูลได้");
     }
     setIsProcessing(false);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return;
+    setIsProcessing(true);
+    try {
+
+      for (const orderId of selectedOrder.allOrderIds) {
+        await updateStatusOrder(orderId, "CANCELLED");
+      }
+
+      await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+
+      toast.success("ยกเลิกบิลเรียบร้อยแล้ว");
+      setSelectedOrder(null);
+      router.refresh();
+    } catch (error) {
+      console.error("Cancel Order Error:", error);
+      toast.error("ไม่สามารถยกเลิกบิลได้");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -570,9 +593,7 @@ const PaymentStatusPage = ({
                               </span>
                               <span
                                 className={`text-xs ml-1 ${
-                                  isSelected
-                                    ? "text-zinc-500"
-                                    : "text-zinc-400"
+                                  isSelected ? "text-zinc-500" : "text-zinc-400"
                                 }`}
                               >
                                 {order.currency}
@@ -653,7 +674,6 @@ const PaymentStatusPage = ({
                     Total Amount
                   </p>
                   <div className="flex flex-col items-center justify-center gap-1 text-zinc-900 dark:text-white">
-                    {/* ✅ แสดงยอดเงินเดิมขีดฆ่า ถ้ามีส่วนลด */}
                     {discountAmount > 0 && (
                       <span className="text-lg text-zinc-400 line-through decoration-red-500">
                         {originalTotal.toLocaleString()}
@@ -709,7 +729,6 @@ const PaymentStatusPage = ({
 
                   {paymentMethod === "CASH" && (
                     <div className="space-y-4">
-                      {/* ✅ ช่องกรอกส่วนลด */}
                       <div className="flex justify-between items-center bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                         <div className="flex items-center gap-2 text-zinc-500">
                           <Percent className="h-4 w-4" />
@@ -792,7 +811,7 @@ const PaymentStatusPage = ({
                             >
                               {amt.toLocaleString()}
                             </Button>
-                          )
+                          ),
                         )}
                         <div className="col-span-1" />
                       </div>
@@ -922,34 +941,75 @@ const PaymentStatusPage = ({
               </div>
             </div>
 
+            {/* ✅ พื้นที่ปุ่มด้านล่าง (Footer) */}
             <div className="p-6 bg-white dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-800 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)]">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98]"
-                    size="lg"
-                    disabled={paymentMethod === "CASH" && !isCashSufficient}
-                  >
-                    <span>ยืนยันการชำระเงิน</span>
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>ยืนยันการชำระเงิน?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง"
-                      ทันที
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                    <AlertDialogAction onClick={handlePayment}>
-                      ยืนยัน
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex gap-3">
+                {/* ✅ ปุ่มยกเลิกบิล */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-14 h-14 shrink-0 rounded-2xl border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
+                      disabled={isProcessing}
+                      title="ยกเลิกบิลนี้"
+                    >
+                      <Trash2 className="h-6 w-6" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>ต้องการยกเลิกบิลนี้?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        การกระทำนี้จะเปลี่ยนสถานะรายการอาหารในบิลนี้เป็น{" "}
+                        <strong className="text-red-500">"ยกเลิก"</strong>{" "}
+                        ทั้งหมด และเปลี่ยนโต๊ะเป็นสถานะ <strong>"ว่าง"</strong>{" "}
+                        คุณไม่สามารถย้อนกลับได้
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ปิด</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={handleCancelOrder}
+                      >
+                        ยืนยันการยกเลิก
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {/* ปุ่มชำระเงินเดิม */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="flex-1 h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98]"
+                      size="lg"
+                      disabled={
+                        (paymentMethod === "CASH" && !isCashSufficient) ||
+                        isProcessing
+                      }
+                    >
+                      <span>ยืนยันการชำระเงิน</span>
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>ยืนยันการชำระเงิน?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง"
+                        ทันที
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                      <AlertDialogAction onClick={handlePayment}>
+                        ยืนยัน
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </motion.div>
         )}
