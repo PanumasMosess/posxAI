@@ -6,7 +6,7 @@ const page = async () => {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = session?.user.organizationId ?? 0;
-  
+
   const itemsData = await prisma.employees.findMany({
     where: {
       organizationId: organizationId,
@@ -34,7 +34,19 @@ const page = async () => {
     },
   });
 
-  const relatedData = { positions: itemsDataPosition };
+  const itemsDataMember = await prisma.member.findMany({
+    where: {
+      organizationId: organizationId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const relatedData = {
+    positions: itemsDataPosition,
+    members: itemsDataMember,
+  };
 
   return (
     <SettingEmployeePage

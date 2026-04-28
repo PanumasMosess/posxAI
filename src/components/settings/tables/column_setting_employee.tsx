@@ -86,7 +86,7 @@ const column_setting_employee = (
   onUpdateSurName: (id: number, newSurname: string) => void,
   onUpdatePosition: (id: number, newPositionId: number) => void,
   organizationId: number,
-  positions: PositionType[]
+  positions: PositionType[],
 ): ColumnDef<SettingEmployee>[] => [
   {
     id: "id",
@@ -161,50 +161,50 @@ const column_setting_employee = (
     header: "นามสกุล",
     cell: (props) => <EditableCell {...props} onUpdate={onUpdateSurName} />,
   },
-  {
-    accessorKey: "position_id",
-    header: ({ column }) => <div className="text-center">ตำแหน่ง</div>,
-    cell: ({ row }) => {
-      const currentPositionId = row.getValue("position_id");
-      const empId = row.original.id;
+  // {
+  //   accessorKey: "position_id",
+  //   header: ({ column }) => <div className="text-center">ตำแหน่ง</div>,
+  //   cell: ({ row }) => {
+  //     const currentPositionId = row.getValue("position_id");
+  //     const empId = row.original.id;
 
-      const selectValue =
-        currentPositionId != null ? String(currentPositionId) : "";
-      return (
-        <div className="flex justify-center items-center">
-          <select
-            className="border rounded-md px-2 py-1 text-sm 
-                       bg-white dark:bg-zinc-800 
-                       text-zinc-900 dark:text-zinc-100 
-                       border-zinc-300 dark:border-zinc-700 
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectValue}
-            onChange={(e) => {
-              const newPositionId = parseInt(e.target.value, 10);
-              if (onUpdatePosition) {
-                onUpdatePosition(empId, newPositionId);
-              }
-            }}
-          >
-            <option value="" disabled className="text-gray-400">
-              เลือกตำแหน่ง
-            </option>
-            {positions && positions.length > 0 ? (
-              positions.map((pos) => (
-                <option key={pos.id} value={String(pos.id)}>
-                  {pos.position_name}
-                </option>
-              ))
-            ) : (
-              <option value="" disabled>
-                กำลังโหลด...
-              </option>
-            )}
-          </select>
-        </div>
-      );
-    },
-  },
+  //     const selectValue =
+  //       currentPositionId != null ? String(currentPositionId) : "";
+  //     return (
+  //       <div className="flex justify-center items-center">
+  //         <select
+  //           className="border rounded-md px-2 py-1 text-sm
+  //                      bg-white dark:bg-zinc-800
+  //                      text-zinc-900 dark:text-zinc-100
+  //                      border-zinc-300 dark:border-zinc-700
+  //                      focus:outline-none focus:ring-2 focus:ring-blue-500"
+  //           value={selectValue}
+  //           onChange={(e) => {
+  //             const newPositionId = parseInt(e.target.value, 10);
+  //             if (onUpdatePosition) {
+  //               onUpdatePosition(empId, newPositionId);
+  //             }
+  //           }}
+  //         >
+  //           <option value="" disabled className="text-gray-400">
+  //             เลือกตำแหน่ง
+  //           </option>
+  //           {positions && positions.length > 0 ? (
+  //             positions.map((pos) => (
+  //               <option key={pos.id} value={String(pos.id)}>
+  //                 {pos.position_name}
+  //               </option>
+  //             ))
+  //           ) : (
+  //             <option value="" disabled>
+  //               กำลังโหลด...
+  //             </option>
+  //           )}
+  //         </select>
+  //       </div>
+  //     );
+  //   },
+  // },
   {
     accessorKey: "email",
     header: "อีเมล",
@@ -223,7 +223,7 @@ const column_setting_employee = (
       const empId = row.original.id;
 
       const statusMeta = employeeStatuses.find(
-        (s) => s.value === currentStatus
+        (s) => s.value === currentStatus,
       );
 
       return (

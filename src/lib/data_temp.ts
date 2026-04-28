@@ -86,6 +86,10 @@ const menuList = [
         title: "ประวัติชำระเงิน",
         url: "/history/payment",
       },
+       {
+        title: "ประวัติสมาชิก (Member)",
+        url: "/history/member",
+      },
     ],
   },
 ];

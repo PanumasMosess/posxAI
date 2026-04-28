@@ -1,6 +1,7 @@
 "use client";
 
-import SettingFormPosition from "@/components/forms/SettingFormPosition";
+// ✅ เปลี่ยนมานำเข้าฟอร์มของ Member แทน
+import SettingFormMember from "@/components/forms/SettingFormMember";
 import { DataTablePagination } from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Briefcase, Plus, Search } from "lucide-react";
+import { Users, Plus, Search } from "lucide-react"; // ✅ เปลี่ยนไอคอนเป็น Users
 import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
@@ -33,13 +34,14 @@ interface DataTableProps<TData, TValue> {
   organizationId: number;
 }
 
-export function Data_table_setting_position<TData, TValue>({
+export function Data_table_setting_member<TData, TValue>({
   columns,
   data,
   userId,
   organizationId,
 }: DataTableProps<TData, TValue>) {
-  const [openSheetInsertPosition, setOpenSheetInsertPosition] = useState(false);
+  // ✅ เปลี่ยนชื่อ State ให้ตรงกับบริบท Member
+  const [openSheetInsertMember, setOpenSheetInsertMember] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
@@ -71,15 +73,15 @@ export function Data_table_setting_position<TData, TValue>({
     <>
       <div className="flex flex-col sm:flex-row items-center justify-between py-6 gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
-            <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/50">
+            <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="flex flex-col">
             <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">
-              จัดการตำแหน่งงาน
+              จัดการสมาชิกลูกค้า
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              ตั้งค่าสถานะและตรวจสอบรายชื่อตำแหน่งงานทั้งหมด
+              เพิ่ม แก้ไข และตรวจสอบรายชื่อสมาชิกทั้งหมด
             </p>
           </div>
         </div>
@@ -88,7 +90,7 @@ export function Data_table_setting_position<TData, TValue>({
           <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="ค้นหาตำแหน่ง..."
+              placeholder="ค้นหา (ชื่อ, เบอร์โทร)..."
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
               className="pl-9 w-full sm:w-[250px]"
@@ -96,8 +98,8 @@ export function Data_table_setting_position<TData, TValue>({
             />
           </div>
           <Sheet
-            open={openSheetInsertPosition}
-            onOpenChange={setOpenSheetInsertPosition}
+            open={openSheetInsertMember}
+            onOpenChange={setOpenSheetInsertMember}
           >
             <SheetTrigger asChild>
               <Button
@@ -107,16 +109,15 @@ export function Data_table_setting_position<TData, TValue>({
                         dark:border-zinc-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                เพิ่มตำแหน่ง
+                เพิ่มสมาชิก
               </Button>
             </SheetTrigger>
 
-            <SettingFormPosition
+            <SettingFormMember
               type={"create"}
               currentUserId={userId}
               organizationId={organizationId ?? 1}
-              stateSheet={setOpenSheetInsertPosition}
-              stateForm={openSheetInsertPosition}
+              stateSheet={setOpenSheetInsertMember}
             />
           </Sheet>
         </div>
@@ -164,7 +165,7 @@ export function Data_table_setting_position<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  ไม่พบข้อมูลตำแหน่งงาน
+                  ไม่พบข้อมูลสมาชิก
                 </TableCell>
               </TableRow>
             )}

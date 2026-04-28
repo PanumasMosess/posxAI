@@ -43,41 +43,113 @@ export const updateStatusTable = async (idTable: number, status: string) => {
 
 export const createPaymentOrder = async (data: any) => {
   try {
-    await prisma.paymentorder.create({
-      data: {
-        cashReceived: data.cashReceived,
-        change: data.change,
-        discount: data.discount,
-        totalAmount: data.totalAmount,
-        paymentMethod: data.paymentMethod,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        creator: {
-          connect: {
-            id: data.createdById,
+    
+    await prisma.$transaction(async (tx) => {
+      await tx.paymentorder.create({
+        data: {
+          cashReceived: data.cashReceived,
+          change: data.change,
+          discount: data.discount,
+          totalAmount: data.totalAmount,
+          paymentMethod: data.paymentMethod,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          creator: {
+            connect: { id: data.createdById },
+          },
+          organization: {
+            connect: { id: data.organizationId },
+          },
+          table: {
+            connect: { id: data.tableId },
+          },
+          runningRef: {
+            connect: { runningCode: data.orderId },
           },
         },
-        organization: {
-          connect: {
-            id: data.organizationId,
+      });
+
+      if (data.paymentMethod === "MEMBER") {
+        if (!data.memberPhone) {
+          throw new Error("ไม่พบเบอร์โทรศัพท์สมาชิก");
+        }
+
+        const member = await tx.member.findUnique({
+          where: {
+            phone_organizationId: {
+              phone: data.memberPhone,
+              organizationId: data.organizationId,
+            },
           },
-        },
-        table: {
-          connect: {
-            id: data.tableId,
+        });
+
+        if (!member) {
+          throw new Error("ไม่พบข้อมูลสมาชิกระบบ");
+        }
+
+        if (Number(member.creditBalance) < Number(data.totalAmount)) {
+          throw new Error("เครดิตไม่เพียงพอ");
+        }
+
+        const updatedMember = await tx.member.update({
+          where: { id: member.id },
+          data: {
+            creditBalance: {
+              decrement: data.totalAmount,
+            },
           },
-        },
-        runningRef: {
-          connect: {
-            runningCode: data.orderId,
+        });
+
+        await tx.membertransaction.create({
+          data: {
+            memberId: member.id,
+            organizationId: data.organizationId,
+            type: "SPEND", 
+            walletType: "CREDIT", 
+            amount: -data.totalAmount,
+            balanceAfter: updatedMember.creditBalance, 
+            note: `ชำระค่าอาหาร (บิล: ${data.orderId})`,
+            createdById: data.createdById,
           },
-        },
-      },
+        });
+      }
     });
 
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.error("Payment Transaction Error: ", err);
+    return {
+      success: false,
+      error: true,
+      message: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+};
+
+export const getMemberByPhone = async (
+  phone: string,
+  organizationId: number,
+) => {
+  try {
+    const member = await prisma.member.findUnique({
+      where: {
+        phone_organizationId: {
+          phone: phone,
+          organizationId: organizationId,
+        },
+      },
+      include: {
+        tier: true,
+      },
+    });
+
+    if (!member) {
+      return { success: false, message: "ไม่พบข้อมูลสมาชิก" };
+    }
+
+    return { success: true, data: member };
+  } catch (error) {
+    console.error("Get Member Error:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล" };
   }
 };

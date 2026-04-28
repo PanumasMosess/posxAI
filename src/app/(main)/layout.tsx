@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import "../globals.css";
 import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
-import "react-toastify/dist/ReactToastify.css";
 import { SessionProvider } from "next-auth/react";
 import IdleTimeoutHandler from "@/components/IdleTimeoutHandler";
+import { PositionProvider } from "@/components/providers/PositionContext";
 
 export const metadata: Metadata = {
   title: "POSX",
@@ -26,23 +25,25 @@ export default async function MainLayout({
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
     <SessionProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <SidebarProvider defaultOpen={defaultOpen}>
-          <AppSidebar />
-          <main className="w-full">
-            <Navbar />
-            <div className="px-4">
-              {children}
-              <IdleTimeoutHandler />
-            </div>
-          </main>
-        </SidebarProvider>
-      </ThemeProvider>
+      <PositionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SidebarProvider defaultOpen={defaultOpen}>
+            <AppSidebar />
+            <main className="w-full">
+              <Navbar />
+              <div className="px-4">
+                {children}
+                <IdleTimeoutHandler />
+              </div>
+            </main>
+          </SidebarProvider>
+        </ThemeProvider>
+      </PositionProvider>
     </SessionProvider>
   );
 }

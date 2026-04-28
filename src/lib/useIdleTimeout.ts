@@ -1,41 +1,51 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { signOut } from 'next-auth/react';
+import { useEffect, useState, useCallback, useRef } from "react";
 
 export function useIdleTimeout(timeout: number) {
-  const [idle, setIdle] = useState(false);
+  const [isLocked, setIsLocked] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSignOut = useCallback(() => {
-    signOut({ callbackUrl: '/' });
+  const lockScreen = useCallback(() => {
+    setIsLocked(true);
   }, []);
 
+  const resetTimer = useCallback(() => {
+    if (isLocked) return; // ถ้าล็อกอยู่แล้ว ไม่ต้องรีเซ็ตเวลา
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(lockScreen, timeout);
+  }, [isLocked, lockScreen, timeout]);
+
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
-
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(handleSignOut, timeout);
-    };
+    const events = [
+      "mousemove",
+      "keydown",
+      "mousedown",
+      "touchstart",
+      "scroll",
+    ];
 
     // ตั้งค่า event listeners
-    events.forEach(event => {
+    events.forEach((event) => {
       window.addEventListener(event, resetTimer);
     });
 
     // เริ่ม timer ครั้งแรก
     resetTimer();
 
-    // Cleanup function: จะทำงานเมื่อ component unmount
+    // Cleanup function
     return () => {
-      clearTimeout(timer);
-      events.forEach(event => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      events.forEach((event) => {
         window.removeEventListener(event, resetTimer);
       });
     };
-  }, [timeout, handleSignOut]);
+  }, [resetTimer]);
 
-  return idle;
+  // คืนค่า isLocked, ฟังก์ชันปลดล็อก และฟังก์ชันรีเซ็ตเวลา
+  return { isLocked, setIsLocked, resetTimer };
 }

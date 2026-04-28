@@ -14,7 +14,7 @@ type CurrentState = { success: boolean; error: boolean };
 
 export const createTable = async (
   currentState: CurrentState,
-  data: TableSchema
+  data: TableSchema,
 ) => {
   try {
     await prisma.table.create({
@@ -79,7 +79,7 @@ export const updateNameTable = async (id: number, tableName: string) => {
 
 export const createPrinter = async (
   currentState: CurrentState,
-  data: PrinterSchema
+  data: PrinterSchema,
 ) => {
   try {
     await prisma.printer.create({
@@ -144,7 +144,7 @@ export const updateNamePrinter = async (id: number, printerName: string) => {
 
 export const crearteModifierGroup = async (
   currentState: CurrentState,
-  data: ModifierGroupSchema
+  data: ModifierGroupSchema,
 ) => {
   try {
     await prisma.modifiergroup.create({
@@ -171,7 +171,7 @@ export const crearteModifierGroup = async (
 
 export const updateModifierGroup = async (
   currentState: CurrentState,
-  data: ModifierGroupSchema
+  data: ModifierGroupSchema,
 ) => {
   try {
     const updatedCategory = await prisma.modifiergroup.update({
@@ -216,7 +216,7 @@ export const deleteModifierGroup = async (data: any) => {
 
 export const crearteModifierItem = async (
   currentState: CurrentState,
-  data: ModifierItemSchema
+  data: ModifierItemSchema,
 ) => {
   try {
     await prisma.modifieritem.create({
@@ -246,7 +246,7 @@ export const crearteModifierItem = async (
 
 export const updateModifierItem = async (
   currentState: CurrentState,
-  data: ModifierItemSchema
+  data: ModifierItemSchema,
 ) => {
   try {
     const updatedCategory = await prisma.modifieritem.update({
@@ -287,12 +287,40 @@ export const deleteModifierItem = async (data: any) => {
 
 export const createPosition = async (
   currentState: CurrentState,
-  data: PositionSchema
+  data: PositionSchema,
 ) => {
   try {
+    let hashedPin = null;
+
+    if (data.pin && data.pin.trim() !== "") {
+      const existingPositions = await prisma.posiotion.findMany({
+        where: {
+          organizationId: data.organizationId,
+          pin: { not: null },
+        },
+        select: { pin: true, position_name: true },
+      });
+
+      for (const pos of existingPositions) {
+        const isMatch = await bcrypt.compare(data.pin, pos.pin!);
+
+        if (isMatch) {
+          return {
+            success: false,
+            error: true,
+            message: `รหัส PIN นี้ถูกใช้งานแล้วโดยตำแหน่ง: ${pos.position_name}`,
+          };
+        }
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      hashedPin = await bcrypt.hash(data.pin, salt);
+    }
+
     await prisma.posiotion.create({
       data: {
         position_name: data.position_name,
+        pin: hashedPin,
         status: "ACTIVE",
         creator: {
           connect: {
@@ -310,7 +338,7 @@ export const createPosition = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: "เกิดข้อผิดพลาดของระบบ" };
   }
 };
 
@@ -350,10 +378,61 @@ export const updateNamePosition = async (id: number, positionName: string) => {
   }
 };
 
+export const updatePinPosition = async (id: number, newPin: string) => {
+  try {
+    let hashedPin = null;
+
+    if (newPin && newPin.trim() !== "") {
+      const currentPosition = await prisma.posiotion.findUnique({
+        where: { id },
+        select: { organizationId: true },
+      });
+
+      if (!currentPosition || !currentPosition.organizationId) {
+        return { success: false, error: true, message: "ไม่พบข้อมูลตำแหน่ง" };
+      }
+
+      const existingPositions = await prisma.posiotion.findMany({
+        where: {
+          organizationId: currentPosition.organizationId,
+          id: { not: id },
+          pin: { not: null },
+        },
+        select: { pin: true, position_name: true },
+      });
+
+      for (const pos of existingPositions) {
+        const isMatch = await bcrypt.compare(newPin, pos.pin!);
+
+        if (isMatch) {
+          return {
+            success: false,
+            error: true,
+            message: `รหัส PIN นี้ถูกใช้งานแล้วโดยตำแหน่ง: ${pos.position_name}`,
+          };
+        }
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      hashedPin = await bcrypt.hash(newPin, salt);
+    }
+
+    await prisma.posiotion.update({
+      where: { id },
+      data: { pin: hashedPin },
+    });
+
+    return { success: true, error: false };
+  } catch (error) {
+    console.error("Update PIN Error:", error);
+    return { success: false, error: true, message: "เกิดข้อผิดพลาดของระบบ" };
+  }
+};
+
 export const moveTableFunction = async (
   fromTableId: number,
   toTableId: number,
-  activeOrderIds: number[]
+  activeOrderIds: number[],
 ) => {
   try {
     if (!activeOrderIds || activeOrderIds.length === 0) {
@@ -406,23 +485,23 @@ export const moveTableFunction = async (
 
 export const createEmployee = async (
   currentState: CurrentState,
-  data: EmployeeSchema
+  data: EmployeeSchema,
 ) => {
   try {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     await prisma.employees.create({
       data: {
         username: data.username,
-        password: hashedPassword, 
+        password: hashedPassword,
         name: data.name,
         surname: data.surname,
-        email: data.email,     
-        img: data.img,        
-        status: "ACTIVE",      
-        position_id: data.position_id,
+        email: data.email,
+        img: data.img,
+        status: "ACTIVE",
+        position_id: 0,
         login_fail: data.login_fail || 0,
         birthday: data.birthday || new Date(),
-        created_by: data.created_by?.toString(),       
+        created_by: data.created_by?.toString(),
         organization: {
           connect: {
             id: data.organizationId,
@@ -507,5 +586,82 @@ export const updatePositionEmp = async (id: number, status: number) => {
     return { success: true, error: false, data: updatedStatus };
   } catch (err) {
     return { success: false, error: true, data: err };
+  }
+};
+
+export const createMember = async (prevState: any, formData: any) => {
+  try {
+    // 1. ตรวจสอบว่าเบอร์โทรศัพท์นี้ ถูกใช้สมัครสมาชิกในร้าน (organization) นี้ไปแล้วหรือยัง
+    const existingMember = await prisma.member.findUnique({
+      where: {
+        phone_organizationId: {
+          phone: formData.phone,
+          organizationId: formData.organizationId,
+        },
+      },
+    });
+
+    if (existingMember) {
+      // ถ้ามีแล้ว ให้ส่ง error กลับไปให้ Form แสดงแจ้งเตือน
+      return {
+        success: false,
+        error: true,
+        message: "เบอร์โทรศัพท์นี้ถูกลงทะเบียนเป็นสมาชิกแล้ว",
+      };
+    }
+
+    // 2. บันทึกข้อมูลสมาชิกใหม่ลงฐานข้อมูล
+    await prisma.member.create({
+      data: {
+        phone: formData.phone,
+        firstName: formData.firstName,
+        lastName: formData.lastName || "", // ถ้านามสกุลไม่มีให้ใส่เป็นค่าว่าง
+        organizationId: formData.organizationId,
+        points: formData.points,
+        creditBalance: formData.creditBalance, // เครดิตเริ่มต้น
+        status: "ACTIVE", // สถานะพร้อมใช้งาน
+      },
+    });
+
+    // บันทึกสำเร็จ
+    return { success: true, error: false };
+  } catch (error) {
+    console.error("Create Member Error:", error);
+    return {
+      success: false,
+      error: true,
+      message: "เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล",
+    };
+  }
+};
+
+export const updateMemberStatus = async (id: number, status: string) => {
+  try {
+    await prisma.member.update({
+      where: { id },
+      data: { status },
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false };
+  }
+};
+
+// อัปเดตชื่อ/นามสกุล สมาชิกจากตาราง
+export const updateMemberField = async (
+  id: number,
+  field: string,
+  newValue: string,
+) => {
+  try {
+    await prisma.member.update({
+      where: { id },
+      data: {
+        [field]: newValue, // field จะเป็น "firstName" หรือ "lastName"
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false };
   }
 };
