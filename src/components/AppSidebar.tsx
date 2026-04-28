@@ -63,6 +63,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { usePosition } from "./providers/PositionContext";
 
 const items = menuList.menuList;
 const settingList = menuList.settingsMenu;
@@ -77,6 +78,11 @@ const AppSidebar = () => {
   const [certFile, setCertFile] = useState<File | null>(null);
   const [keyFile, setKeyFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { positionName } = usePosition();
+  const canAccessSettings = ["admin", "spadmin"].includes(
+    positionName?.toLowerCase() || "",
+  );
 
   const handleUploadFiles = async (e: FormEvent) => {
     e.preventDefault();
@@ -287,47 +293,49 @@ const AppSidebar = () => {
 
         <SidebarFooter>
           <SidebarMenu>
-            {isCollapsed ? (
-              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton className="justify-center py-3">
-                      <settingList.icon className="h-[1.2rem] w-[1.2rem]" />
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side="right"
-                    align="start"
-                    className="w-48"
-                  >
-                    {settingList.subItems.map((subItem) =>
-                      renderSubMenuItem(subItem),
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuItem>
-            ) : (
-              <Collapsible className="group/collapsible">
+            {/* ✅ ครอบเงื่อนไขตรงนี้ ถ้าเป็น Admin หรือ Spadmin ถึงจะโชว์เมนูตั้งค่า */}
+            {canAccessSettings &&
+              (isCollapsed ? (
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton className="w-full justify-between py-3 text-base">
-                      <div className="flex items-center">
-                        <settingList.icon className="mr-3 h-[1.2rem] w-[1.2rem]" />
-                        <span>{settingList.title}</span>
-                      </div>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="flex flex-col gap-1 pl-9 py-1">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton className="justify-center py-3">
+                        <settingList.icon className="h-[1.2rem] w-[1.2rem]" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      side="right"
+                      align="start"
+                      className="w-48"
+                    >
                       {settingList.subItems.map((subItem) =>
                         renderSubMenuItem(subItem),
                       )}
-                    </div>
-                  </CollapsibleContent>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </SidebarMenuItem>
-              </Collapsible>
-            )}
+              ) : (
+                <Collapsible className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="w-full justify-between py-3 text-base">
+                        <div className="flex items-center">
+                          <settingList.icon className="mr-3 h-[1.2rem] w-[1.2rem]" />
+                          <span>{settingList.title}</span>
+                        </div>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="flex flex-col gap-1 pl-9 py-1">
+                        {settingList.subItems.map((subItem) =>
+                          renderSubMenuItem(subItem),
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ))}
 
             <SidebarMenuItem key={"logout"}>
               <AlertDialog>

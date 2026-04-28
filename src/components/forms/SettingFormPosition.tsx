@@ -1,4 +1,4 @@
-import { PositionSchema, PositionSchema_ } from "@/lib/formValidationSchemas"; 
+import { PositionSchema, PositionSchema_ } from "@/lib/formValidationSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dispatch,
@@ -22,12 +22,13 @@ import {
   FormMessage,
   FormLabel,
   Form,
+  FormDescription,
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { createPosition } from "@/lib/actions/actionSettings"; 
+import { createPosition } from "@/lib/actions/actionSettings";
 
 const SettingFormPosition = ({
   type,
@@ -45,7 +46,8 @@ const SettingFormPosition = ({
   const formAddPosition = useForm<PositionSchema>({
     resolver: zodResolver(PositionSchema_),
     defaultValues: {
-      position_name: "", 
+      position_name: "",
+      pin: "",
       createdById: currentUserId,
       organizationId: organizationId,
     },
@@ -55,21 +57,23 @@ const SettingFormPosition = ({
 
   const [isPending, startTransition] = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [state, formAction] = useActionState(createPosition, {
     success: false,
     error: false,
+    message: "",
   });
 
   const onSubmit = async (dataForm: PositionSchema) => {
     try {
       setIsSubmitting(true);
       const finalData = { ...dataForm };
-      startTransition(async () => {
+      startTransition(() => {
         formAction(finalData);
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "เกิดข้อผิดพลาด");
+      setIsSubmitting(false);
     }
   };
 
@@ -80,6 +84,9 @@ const SettingFormPosition = ({
       formAddPosition.reset();
       router.refresh();
       stateSheet(false);
+    } else if (state.error) {
+      toast.error(state.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      setIsSubmitting(false);
     }
   }, [state, type, setIsSubmitting, formAddPosition, router, stateSheet]);
 
@@ -107,8 +114,40 @@ const SettingFormPosition = ({
                 <FormItem>
                   <FormLabel>ชื่อตำแหน่ง</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="ระบุชื่อตำแหน่ง (เช่น ผู้จัดการ, พนักงานเสิร์ฟ)" />
+                    <Input
+                      {...field}
+                      placeholder="ระบุชื่อตำแหน่ง (เช่น ผู้จัดการ, พนักงานเสิร์ฟ)"
+                      autoComplete="off"
+                    />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={formAddPosition.control}
+              name="pin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>รหัส PIN ควบคุม (4 หลัก)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="password"
+                      placeholder="ตั้งรหัส PIN"
+                      maxLength={4}
+                      autoComplete="off"
+                      value={field.value || ""} 
+                      onChange={(e) => {
+                        const onlyNums = e.target.value.replace(/[^0-9]/g, "");
+                        field.onChange(onlyNums);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    ใช้สำหรับยืนยันตัวตนก่อนทำรายการสำคัญ (เช่น ลบบิล, คิดเงิน)
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -125,8 +164,8 @@ const SettingFormPosition = ({
               {isSubmitting
                 ? "กำลังบันทึก..."
                 : type === "create"
-                ? "ยืนยัน"
-                : "แก้ไข"}
+                  ? "ยืนยัน"
+                  : "แก้ไข"}
             </Button>
           </form>
         </Form>

@@ -41,3 +41,26 @@ export const userSignIn = async ({
     return null;
   }
 };
+
+export const verifyPositionPin = async (
+  rawPin: string,
+  organizationId: number,
+) => {
+  const positions = await prisma.posiotion.findMany({
+    where: { organizationId: organizationId, pin: { not: null } },
+  });
+
+  for (const pos of positions) {
+    const isMatch = await bcrypt.compare(rawPin, pos.pin!);
+
+    if (isMatch) {
+      return {
+        success: true,
+        positionId: pos.id,
+        positionName: pos.position_name,
+      };
+    }
+  }
+
+  return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
+};

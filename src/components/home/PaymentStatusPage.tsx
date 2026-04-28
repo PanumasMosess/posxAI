@@ -3,9 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   ArrowLeft,
-  Banknote,
-  CreditCard,
-  QrCode,
   Clock,
   ChevronRight,
   Utensils,
@@ -16,11 +13,16 @@ import {
   Printer,
   LayoutGrid,
   ChefHat,
-  Delete,
-  X,
-  CheckCircle2,
+  Trash2,
+  Banknote,
+  CreditCard,
+  QrCode,
+  Users,
   Percent,
-  Trash2, // ✅ เพิ่มไอคอนสำหรับปุ่มยกเลิกบิล
+  CheckCircle2,
+  X,
+  Delete,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,6 +36,7 @@ import PaymentOption from "@/components/payments/PaymentOption";
 import { toast } from "react-toastify";
 import {
   createPaymentOrder,
+  getMemberByPhone,
   updateStatusOrder,
   updateStatusTable,
 } from "@/lib/actions/actionPayment";
@@ -71,6 +74,7 @@ import {
   getCertContentFromS3,
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
+import PaymentMethodsPanel from "../payments/PaymentMethodsPanel";
 
 const PaymentStatusPage = ({
   initialItems,
@@ -80,11 +84,15 @@ const PaymentStatusPage = ({
   const router = useRouter();
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
-    "CASH",
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "QR" | "CASH" | "CARD" | "MEMBER"
+  >("CASH");
+  const [qrType, setQrType] = useState<"THAI" | "LAO">("LAO");
   const [cashReceived, setCashReceived] = useState("0");
   const [discount, setDiscount] = useState("0");
+  const [memberPhone, setMemberPhone] = useState("");
+  const [memberData, setMemberData] = useState<any>(null);
+  const [isLoadingMember, setIsLoadingMember] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -103,14 +111,36 @@ const PaymentStatusPage = ({
   useEffect(() => {
     setCashReceived("0");
     setDiscount("0");
-  }, [selectedOrder]);
+    setMemberPhone("");
+    setMemberData(null);
+  }, [selectedOrder, paymentMethod]);
 
+  // ✅ คำนวณยอดเงินที่หายไป
   const originalTotal = selectedOrder ? selectedOrder.total : 0;
   const discountAmount = parseFloat(discount) || 0;
   const finalTotal = Math.max(0, originalTotal - discountAmount);
 
   const change = parseFloat(cashReceived || "0") - finalTotal;
   const isCashSufficient = change >= 0;
+
+  const handleCheckMember = async () => {
+    if (memberPhone.length < 9) {
+      toast.warn("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง");
+      return;
+    }
+
+    setIsLoadingMember(true);
+    const result = await getMemberByPhone(memberPhone, organizationId);
+
+    if (result && result.success) {
+      setMemberData(result.data);
+      toast.success("พบข้อมูลสมาชิก");
+    } else {
+      setMemberData(null);
+      toast.error(result?.message || "ไม่พบข้อมูลสมาชิก");
+    }
+    setIsLoadingMember(false);
+  };
 
   const handleNumpadClick = (value: string) => {
     if (value === "C") {
@@ -242,6 +272,7 @@ const PaymentStatusPage = ({
     setIsLoadingPrinters(true);
     try {
       initQZSecurity();
+
       if (!qz.websocket.isActive()) {
         try {
           await qz.websocket.connect();
@@ -252,8 +283,10 @@ const PaymentStatusPage = ({
           await qz.websocket.connect();
         }
       }
+
       const printers = await qz.printers.find();
       setPrinterList(printers);
+
       if (!selectedPrinter && printers.length > 0) {
         try {
           const def = await qz.printers.getDefault();
@@ -282,6 +315,7 @@ const PaymentStatusPage = ({
       fetchPrinters();
       return;
     }
+
     setIsProcessing(true);
     try {
       initQZSecurity();
@@ -325,9 +359,21 @@ const PaymentStatusPage = ({
 
   const handlePayment = async () => {
     if (!selectedOrder) return;
+
     if (paymentMethod === "CASH" && !isCashSufficient) {
       toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
       return;
+    }
+
+    if (paymentMethod === "MEMBER") {
+      if (!memberData) {
+        toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
+        return;
+      }
+      if (memberData.creditBalance < finalTotal) {
+        toast.error("เครดิตร้านค้าของสมาชิกไม่เพียงพอ");
+        return;
+      }
     }
 
     const paymentPayload = {
@@ -342,6 +388,7 @@ const PaymentStatusPage = ({
       cashReceived:
         paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
       change: paymentMethod === "CASH" ? change : 0,
+      memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
     };
 
     setIsProcessing(true);
@@ -350,7 +397,9 @@ const PaymentStatusPage = ({
     if (create_status.success) {
       await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
       await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+
       toast.success("ชำระเงินเรียบร้อย!");
+
       setSelectedOrder(null);
       router.refresh();
     } else {
@@ -363,7 +412,6 @@ const PaymentStatusPage = ({
     if (!selectedOrder) return;
     setIsProcessing(true);
     try {
-
       for (const orderId of selectedOrder.allOrderIds) {
         await updateStatusOrder(orderId, "CANCELLED");
       }
@@ -382,6 +430,7 @@ const PaymentStatusPage = ({
   };
 
   return (
+    // ✅ จุดแก้ไข CSS Layout ให้เหมือนต้นฉบับ Dark Theme
     <div className="flex h-screen bg-zinc-50/50 dark:bg-zinc-950 w-full overflow-hidden">
       {/* LEFT: Dashboard Area */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -623,6 +672,7 @@ const PaymentStatusPage = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            // ✅ จุดที่แก้ CSS เพื่อให้เป็น Drawer ซ้อนทับด้านขวา
             className="
               fixed inset-y-0 right-0 z-50 w-full sm:w-[500px]
               bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl
@@ -666,256 +716,72 @@ const PaymentStatusPage = ({
               </div>
             </div>
 
+            {/* ✅ พื้นที่เนื้อหา ปรับลด Padding ให้กระชับขึ้น จะได้เห็น Numpad เต็มๆ */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <div className="p-6 space-y-6">
-                <div className="text-center relative py-6">
+              <div className="p-5 space-y-5 pb-10">
+                <div className="text-center relative pt-2 pb-4">
                   <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-900 rounded-3xl -z-10 transform -skew-y-2" />
-                  <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-2">
+                  <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-1">
                     Total Amount
                   </p>
                   <div className="flex flex-col items-center justify-center gap-1 text-zinc-900 dark:text-white">
                     {discountAmount > 0 && (
-                      <span className="text-lg text-zinc-400 line-through decoration-red-500">
+                      <span className="text-sm text-zinc-400 line-through decoration-red-500">
                         {originalTotal.toLocaleString()}
                       </span>
                     )}
                     <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-black tracking-tighter">
+                      <span className="text-4xl font-black tracking-tighter">
                         {finalTotal.toLocaleString()}
                       </span>
-                      <span className="text-xl font-medium text-zinc-400">
+                      <span className="text-lg font-medium text-zinc-400">
                         {selectedOrder.currency}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <PaymentOption
-                    icon={QrCode}
-                    label="QR Code"
-                    active={paymentMethod === "QR"}
-                    onClick={() => setPaymentMethod("QR")}
-                    disabled={true}
-                  />
-                  <PaymentOption
-                    icon={Banknote}
-                    label="เงินสด"
-                    active={paymentMethod === "CASH"}
-                    onClick={() => setPaymentMethod("CASH")}
-                  />
-                  <PaymentOption
-                    icon={CreditCard}
-                    label="บัตรเครดิต"
-                    active={paymentMethod === "CARD"}
-                    onClick={() => setPaymentMethod("CARD")}
-                    disabled={true}
-                  />
-                </div>
-
-                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-800">
-                  {paymentMethod === "QR" && (
-                    <div className="flex flex-col items-center justify-center space-y-4 py-4">
-                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
-                        <div className="w-48 h-48 bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-300">
-                          <QrCode className="h-12 w-12 opacity-20" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-zinc-500 font-medium">
-                        สแกน QR Code เพื่อชำระเงิน
-                      </p>
-                    </div>
-                  )}
-
-                  {paymentMethod === "CASH" && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <div className="flex items-center gap-2 text-zinc-500">
-                          <Percent className="h-4 w-4" />
-                          <span className="text-sm font-bold">ส่วนลด</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            className="w-32 text-right font-bold text-lg border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent"
-                            value={discount}
-                            onChange={(e) => setDiscount(e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                          />
-                          <span className="text-sm font-medium text-zinc-400">
-                            {selectedOrder.currency}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center px-1">
-                          <label className="text-xs font-bold text-zinc-400 uppercase">
-                            รับเงินมา
-                          </label>
-                          {change >= 0 && (
-                            <span className="text-xs font-bold text-emerald-600">
-                              เงินทอน: {change.toLocaleString()}
-                            </span>
-                          )}
-                          {change < 0 && (
-                            <span className="text-xs font-bold text-red-500">
-                              ขาดอีก: {Math.abs(change).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="relative group">
-                          <Input
-                            type="text"
-                            readOnly
-                            className="text-right text-3xl h-16 pr-4 font-black bg-white dark:bg-zinc-950 border-zinc-200 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all rounded-xl shadow-sm tracking-tight"
-                            value={parseFloat(cashReceived).toLocaleString()}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-2">
-                        <Button
-                          variant="outline"
-                          className="h-10 col-span-2 text-xs font-bold bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 hover:border-primary rounded-xl transition-all"
-                          onClick={handleExactAmount}
-                        >
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          พอดี ({finalTotal.toLocaleString()})
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="h-10 col-span-2 text-xs font-bold text-red-500 bg-red-50 border-red-100 hover:bg-red-100 hover:border-red-200 hover:text-red-600 rounded-xl transition-all"
-                          onClick={() => setCashReceived("0")}
-                        >
-                          <X className="h-3 w-3 mr-1" />
-                          เคลียร์
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-2">
-                        {[50000, 100000, 200000, 500000, 1000000].map(
-                          (amt, i) => (
-                            <Button
-                              key={amt}
-                              variant="outline"
-                              className="h-10 text-xs font-medium bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-primary/50 hover:bg-primary/5 hover:text-primary rounded-xl transition-all shadow-sm"
-                              style={
-                                i >= 3
-                                  ? { gridColumn: "span 2" }
-                                  : { gridColumn: "span 2" }
-                              }
-                              onClick={() => handleQuickAmount(amt)}
-                            >
-                              {amt.toLocaleString()}
-                            </Button>
-                          ),
-                        )}
-                        <div className="col-span-1" />
-                      </div>
-
-                      <Separator className="bg-zinc-200/50 dark:bg-zinc-700/50" />
-
-                      <div className="grid grid-cols-4 gap-2">
-                        {["7", "8", "9"].map((btn) => (
-                          <Button
-                            key={btn}
-                            variant="ghost"
-                            className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
-                            onClick={() => handleNumpadClick(btn)}
-                          >
-                            {btn}
-                          </Button>
-                        ))}
-                        <Button
-                          variant="ghost"
-                          className="h-14 text-xl font-bold bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-2xl active:scale-95 transition-all"
-                          onClick={() => handleNumpadClick("BACKSPACE")}
-                        >
-                          <Delete className="w-6 h-6" />
-                        </Button>
-
-                        {["4", "5", "6"].map((btn) => (
-                          <Button
-                            key={btn}
-                            variant="ghost"
-                            className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
-                            onClick={() => handleNumpadClick(btn)}
-                          >
-                            {btn}
-                          </Button>
-                        ))}
-
-                        <div />
-
-                        {["1", "2", "3"].map((btn) => (
-                          <Button
-                            key={btn}
-                            variant="ghost"
-                            className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
-                            onClick={() => handleNumpadClick(btn)}
-                          >
-                            {btn}
-                          </Button>
-                        ))}
-                        <div />
-
-                        <Button
-                          variant="ghost"
-                          className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 col-span-2 active:scale-95 transition-all"
-                          onClick={() => handleNumpadClick("0")}
-                        >
-                          0
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-14 text-2xl font-medium bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
-                          onClick={() => handleNumpadClick("00")}
-                        >
-                          00
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-14 text-2xl font-bold bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-2xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 active:scale-95 transition-all"
-                          onClick={() => handleNumpadClick(".")}
-                        >
-                          .
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {paymentMethod === "CARD" && (
-                    <div className="flex flex-col items-center justify-center py-10 text-zinc-400 space-y-3">
-                      <div className="h-16 w-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
-                        <CreditCard className="h-8 w-8 opacity-50" />
-                      </div>
-                      <p className="text-sm font-medium">
-                        กรุณาเสียบบัตรที่เครื่อง EDC
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* ✅ ส่ง Props ที่เพิ่มมาไปให้ Component ลูก */}
+                <PaymentMethodsPanel
+                  paymentMethod={paymentMethod}
+                  setPaymentMethod={setPaymentMethod}
+                  qrType={qrType}
+                  setQrType={setQrType}
+                  finalTotal={finalTotal}
+                  change={change}
+                  cashReceived={cashReceived}
+                  setCashReceived={setCashReceived}
+                  discount={discount}
+                  setDiscount={setDiscount}
+                  memberPhone={memberPhone}
+                  setMemberPhone={setMemberPhone}
+                  currency={selectedOrder.currency}
+                  handleNumpadClick={handleNumpadClick}
+                  handleExactAmount={handleExactAmount}
+                  handleQuickAmount={handleQuickAmount}
+                  memberData={memberData}
+                  setMemberData={setMemberData}
+                  isLoadingMember={isLoadingMember}
+                  handleCheckMember={handleCheckMember}
+                />
 
                 <div>
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <p className="text-xs font-bold text-zinc-400 uppercase">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase">
                       รายการอาหาร
                     </p>
-                    <Badge variant="secondary" className="text-[10px] h-5">
+                    <Badge variant="secondary" className="text-[9px] h-4">
                       {selectedOrder.items.length} รายการ
                     </Badge>
                   </div>
-                  <div className="space-y-1 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-1 max-h-32 overflow-y-auto pr-2 custom-scrollbar border rounded-xl p-2">
                     {selectedOrder.items.map((item: any, idx: number) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-center p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors group"
+                        className="flex justify-between items-center p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
                       >
-                        <div className="flex gap-3 items-center">
-                          <Avatar className="h-10 w-10 rounded-lg border border-zinc-100 shadow-sm">
+                        <div className="flex gap-2 items-center">
+                          <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm">
                             <AvatarImage
                               src={item.img || "/placeholder.png"}
                               className="object-cover"
@@ -923,15 +789,15 @@ const PaymentStatusPage = ({
                             <AvatarFallback>IMG</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-primary transition-colors">
+                            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                               {item.name}
                             </p>
-                            <p className="text-xs text-zinc-400">
-                              จำนวน: {item.qty}
+                            <p className="text-[10px] text-zinc-400">
+                              x{item.qty}
                             </p>
                           </div>
                         </div>
-                        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                        <span className="text-xs font-medium text-zinc-900 dark:text-white">
                           {item.price.toLocaleString()}
                         </span>
                       </div>
@@ -941,19 +807,17 @@ const PaymentStatusPage = ({
               </div>
             </div>
 
-            {/* ✅ พื้นที่ปุ่มด้านล่าง (Footer) */}
-            <div className="p-6 bg-white dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-800 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)]">
-              <div className="flex gap-3">
-                {/* ✅ ปุ่มยกเลิกบิล */}
+            <div className="p-5 bg-white dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-800 shrink-0 z-10">
+              <div className="flex gap-2">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-14 h-14 shrink-0 rounded-2xl border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
+                      className="w-12 h-12 shrink-0 rounded-xl border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
                       disabled={isProcessing}
                       title="ยกเลิกบิลนี้"
                     >
-                      <Trash2 className="h-6 w-6" />
+                      <Trash2 className="h-5 w-5" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -978,19 +842,20 @@ const PaymentStatusPage = ({
                   </AlertDialogContent>
                 </AlertDialog>
 
-                {/* ปุ่มชำระเงินเดิม */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
-                      className="flex-1 h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98]"
-                      size="lg"
+                      className="flex-1 h-12 text-base font-bold rounded-xl shadow-lg shadow-zinc-900/10"
                       disabled={
                         (paymentMethod === "CASH" && !isCashSufficient) ||
-                        isProcessing
+                        isProcessing ||
+                        (paymentMethod === "MEMBER" &&
+                          (!memberData ||
+                            memberData.creditBalance < finalTotal))
                       }
                     >
-                      <span>ยืนยันการชำระเงิน</span>
-                      <ChevronRight className="ml-2 h-5 w-5" />
+                      ยืนยันการชำระเงิน
+                      <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -1015,17 +880,12 @@ const PaymentStatusPage = ({
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {selectedOrder && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedOrder(null)}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 sm:hidden"
-          />
-        )}
-      </AnimatePresence>
+      {!selectedOrder && (
+        <div className="hidden lg:flex w-[500px] border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 items-center justify-center flex-col text-zinc-400">
+          <Receipt className="h-16 w-16 mb-4 opacity-20" />
+          <p>เลือกรายการทางซ้ายเพื่อชำระเงิน</p>
+        </div>
+      )}
     </div>
   );
 };

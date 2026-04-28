@@ -38,10 +38,11 @@ model employees {
   paymentorders  paymentorder[]
   printers       printer[]
 
-  organizationId Int?
-  organization   organization? @relation(fields: [organizationId], references: [id])
-  stations       station[]
-  posiotions     posiotion[]
+  organizationId     Int?
+  organization       organization?       @relation(fields: [organizationId], references: [id])
+  stations           station[]
+  posiotions         posiotion[]
+  membertransactions membertransaction[]
 }
 
 model categorystock {
@@ -176,14 +177,15 @@ model order {
   updatedAt      DateTime @updatedAt
 
   menuId             Int
-  menu               menu          @relation(fields: [menuId], references: [id])
+  menu               menu                @relation(fields: [menuId], references: [id])
   tableId            Int
-  table              table         @relation(fields: [tableId], references: [id])
+  table              table               @relation(fields: [tableId], references: [id])
   organizationId     Int?
-  organization       organization? @relation(fields: [organizationId], references: [id])
+  organization       organization?       @relation(fields: [organizationId], references: [id])
   order_running_code String?
-  runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
+  runningRef         orderrunning?       @relation(fields: [order_running_code], references: [runningCode])
   orderitems         orderitem[]
+  membertransactions membertransaction[]
 }
 
 model unitprice {
@@ -386,6 +388,7 @@ model ordermodifier {
 model posiotion {
   id            Int      @id @default(autoincrement())
   position_name String
+  pin           String?
   status        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
@@ -394,4 +397,80 @@ model posiotion {
   creator        employees     @relation(fields: [createdById], references: [id])
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
+}
+
+// ------------------------------------------------------
+// ระบบสมาชิก (Member System)
+// ------------------------------------------------------
+
+model member {
+  id             Int     @id @default(autoincrement())
+  organizationId Int // ผูกกับสาขาหรือร้านค้า (รองรับ Multi-branch)
+  phone          String // เบอร์โทรศัพท์ (ใช้ค้นหา/ล็อกอิน)
+  firstName      String // ชื่อ
+  lastName       String? // นามสกุล (มีหรือไม่มีก็ได้)
+
+  // ยอดคงเหลือต่างๆ
+  points        Int   @default(0) // แต้มสะสม
+  creditBalance Float @default(0.0) // เครดิตร้านค้า (เงินที่เติมไว้)
+
+  // สถานะและระดับ
+  tierId Int? // ระดับสมาชิก (เช่น Bronze, Silver, Gold)
+  status String @default("ACTIVE") // ACTIVE, INACTIVE, BANNED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ความสัมพันธ์ (Relations)
+  tier         membertier?         @relation(fields: [tierId], references: [id])
+  transactions membertransaction[] // ประวัติการได้/ใช้แต้มและเครดิต
+  // orders      Order[]             // (ออปชัน) ถ้าคุณอยากผูกบิลเข้ากับสมาชิก ให้ไปเพิ่ม memberId ใน model Order ด้วย
+
+  // ป้องกันเบอร์โทรซ้ำในร้านเดียวกัน
+  @@unique([phone, organizationId])
+}
+
+model membertier {
+  id              Int    @id @default(autoincrement())
+  organizationId  Int
+  name            String // ชื่อระดับ (เช่น "Gold Member")
+  minSpending     Float  @default(0) // ยอดใช้จ่ายขั้นต่ำเพื่อเลื่อนระดับ
+  pointMultiplier Float  @default(1.0) // ตัวคูณแต้ม (เช่น จ่าย 100 ได้ 1 แต้ม ถ้า x2 ก็ได้ 2 แต้ม)
+  discountPercent Float  @default(0.0) // ส่วนลดพื้นฐานของระดับนี้ (%)
+
+  members member[]
+}
+
+// ตารางบันทึกประวัติ (Audit Log) สำคัญมากสำหรับระบบเงินๆ ทองๆ
+model membertransaction {
+  id             Int             @id @default(autoincrement())
+  organizationId Int
+  type           transactiontype // ประเภท: EARN, REDEEM, TOPUP, SPEND
+  walletType     wallettype // กระเป๋าที่ได้รับผลกระทบ: POINT, CREDIT
+  amount         Float // จำนวน (ถ้าติดลบคือใช้ไป, ถ้าบวกคือได้รับ)
+  balanceAfter   Float // ยอดคงเหลือหลังทำรายการ (ช่วยตรวจสอบความถูกต้องเวลาข้อมูลพัง)
+  note           String? // หมายเหตุ (เช่น "แลกแต้มเป็นส่วนลด", "เติมเงิน") 
+  createdAt      DateTime        @default(now())
+
+  memberId Int
+  member   member @relation(fields: [memberId], references: [id])
+
+  orderId Int? // ผูกกับบิลไหน (ถ้ามี)
+  order   order? @relation(fields: [orderId], references: [id])
+
+  createdById Int? // พนักงานคนที่ทำรายการ
+  employee    employees? @relation(fields: [createdById], references: [id])
+}
+
+enum transactiontype {
+  EARN // ได้รับ (เช่น ซื้อของได้แต้ม)
+  REDEEM // แลกใช้ (เช่น เอาแต้มไปแลกส่วนลด)
+  TOPUP // เติมเงิน (เช่น เติมเครดิตร้าน)
+  SPEND // จ่ายเงิน (เช่น ใช้เครดิตร้านจ่ายค่าอาหาร)
+  REFUND // คืนเงิน/คืนแต้ม
+}
+
+enum wallettype {
+  POINT // แต้มสะสม
+  CREDIT // เครดิตร้านค้า (เงินสด)
 }

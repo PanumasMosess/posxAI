@@ -134,6 +134,7 @@ export type ModifierItemSchema = z.infer<typeof modifierItemSchema_>;
 export const PositionSchema_ = z.object({
   id: z.number().optional(),
   position_name: z.string().min(1, { message: "กรุณากรอกชื่อ" }).max(50),
+  pin: z.string().optional(),
   createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
 });
@@ -147,10 +148,21 @@ export const EmployeeSchema_ = z.object({
   surname: z.string().min(1, { message: "กรุณากรอกชื่อ" }).max(50),
   email: z.string().optional(),
   img: z.any().optional(),
-  position_id: z.coerce.number().min(1, "ต้องมี ID ต่ำแหน่ง"),
+  position_id: z.number().optional(),
   login_fail: z.number().optional(),
   birthday: z.coerce.date().optional(),
   created_by: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
 });
 export type EmployeeSchema = z.infer<typeof EmployeeSchema_>;
+
+export const MemberSchema_ = z.object({
+  phone: z.string().min(9, { message: "เบอร์โทรศัพท์ต้องมีอย่างน้อย 9 หลัก" }),
+  firstName: z.string().min(1, { message: "กรุณาระบุชื่อจริง" }),
+  lastName: z.string().optional(),
+  organizationId: z.number(),
+  points: z.coerce.number().min(0),
+  creditBalance: z.coerce.number().min(0),
+});
+
+export type MemberSchema = z.infer<typeof MemberSchema_>;

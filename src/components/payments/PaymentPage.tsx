@@ -3,9 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   ArrowLeft,
-  Banknote,
-  CreditCard,
-  QrCode,
   Receipt,
   Clock,
   ChevronRight,
@@ -15,19 +12,19 @@ import {
   Settings,
   RefreshCcw,
   Printer,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KitchecOrderList } from "@/lib/type";
-import PaymentOption from "./PaymentOption";
 import { toast } from "react-toastify";
 import {
   createPaymentOrder,
+  getMemberByPhone,
   updateStatusOrder,
   updateStatusTable,
 } from "@/lib/actions/actionPayment";
@@ -60,12 +57,13 @@ import {
 import { Label } from "@/components/ui/label";
 
 import qz from "qz-tray";
-import { ReceiptPage } from "./ReceiptPage";
 import { printReceiptQZ } from "@/lib/printers/qz-service-receipt";
 import {
   getCertContentFromS3,
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
+import PaymentMethodsPanel from "./PaymentMethodsPanel";
+
 
 const PaymentPage = ({
   initialItems,
@@ -75,12 +73,18 @@ const PaymentPage = ({
   const router = useRouter();
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"QR" | "CASH" | "CARD">(
-    "CASH"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "QR" | "CASH" | "CARD" | "MEMBER"
+  >("CASH");
+  const [qrType, setQrType] = useState<"THAI" | "LAO">("LAO");
+  const [discount, setDiscount] = useState("0");
   const [cashReceived, setCashReceived] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const [memberPhone, setMemberPhone] = useState("");
+  const [memberData, setMemberData] = useState<any>(null);
+  const [isLoadingMember, setIsLoadingMember] = useState(false);
 
   const [printerList, setPrinterList] = useState<string[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
@@ -96,7 +100,100 @@ const PaymentPage = ({
 
   useEffect(() => {
     setCashReceived("0");
-  }, [selectedOrder]);
+    setDiscount("0");
+    setMemberPhone("");
+    setMemberData(null);
+  }, [selectedOrder, paymentMethod]);
+
+  const originalTotal = selectedOrder ? selectedOrder.total : 0;
+  const discountAmount = parseFloat(discount) || 0;
+  const finalTotal = Math.max(0, originalTotal - discountAmount);
+
+  const change = parseFloat(cashReceived || "0") - finalTotal;
+  const isCashSufficient = change >= 0;
+
+  const handleCheckMember = async () => {
+    if (memberPhone.length < 9) {
+      toast.warn("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง");
+      return;
+    }
+
+    setIsLoadingMember(true);
+    const result = await getMemberByPhone(memberPhone, organizationId);
+
+    if (result.success) {
+      setMemberData(result.data);
+      toast.success("พบข้อมูลสมาชิก");
+    } else {
+      setMemberData(null);
+      toast.error(result.message);
+    }
+    setIsLoadingMember(false);
+  };
+
+  const handleNumpadClick = (value: string) => {
+    if (value === "C") {
+      setCashReceived("0");
+    } else if (value === "BACKSPACE") {
+      setCashReceived((prev) => (prev.length > 1 ? prev.slice(0, -1) : "0"));
+    } else if (value === ".") {
+      if (!cashReceived.includes(".")) {
+        setCashReceived((prev) => prev + ".");
+      }
+    } else {
+      setCashReceived((prev) => (prev === "0" ? value : prev + value));
+    }
+  };
+
+  const handleQuickAmount = (amount: number) => {
+    setCashReceived(amount.toString());
+  };
+
+  const handleExactAmount = () => {
+    if (selectedOrder) {
+      setCashReceived(finalTotal.toString());
+    }
+  };
+
+  const fetchPrinters = async () => {
+    setIsLoadingPrinters(true);
+    try {
+      initQZSecurity();
+
+      if (!qz.websocket.isActive()) {
+        try {
+          await qz.websocket.connect();
+        } catch (e) {
+          try {
+            await qz.websocket.disconnect();
+          } catch (err) {}
+          await qz.websocket.connect();
+        }
+      }
+
+      const printers = await qz.printers.find();
+      setPrinterList(printers);
+
+      if (!selectedPrinter && printers.length > 0) {
+        try {
+          const def = await qz.printers.getDefault();
+          handlePrinterChange(def);
+        } catch {
+          handlePrinterChange(printers[0]);
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("ไม่สามารถดึงรายชื่อเครื่องพิมพ์ได้");
+    } finally {
+      setIsLoadingPrinters(false);
+    }
+  };
+
+  const handlePrinterChange = (value: string) => {
+    setSelectedPrinter(value);
+    localStorage.setItem("receipt_preferred_printer", value);
+  };
 
   const initQZSecurity = () => {
     qz.security.setCertificatePromise((resolve: any, reject: any) => {
@@ -159,9 +256,7 @@ const PaymentPage = ({
           const modifiersText = item.selectedModifiers
             ?.map((m: any) => {
               const price = m.price || 0;
-
               modifiersTotal += price;
-
               if (price > 0) {
                 return `${m.modifierItem.name} (+${price})`;
               }
@@ -174,9 +269,7 @@ const PaymentPage = ({
             : item.menu.menuName;
 
           const basePrice = item.menu.price_sale || 0;
-
           const finalUnitPrice = basePrice + modifiersTotal;
-
           const totalPriceForItem = finalUnitPrice * item.quantity;
 
           groups[key].items.push({
@@ -197,52 +290,8 @@ const PaymentPage = ({
     (order: any) =>
       order.table.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.runningCode &&
-        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase()))
+        order.runningCode.toLowerCase().includes(searchTerm.toLowerCase())),
   );
-
-  const totalAmount = selectedOrder ? selectedOrder.total : 0;
-  const change = parseFloat(cashReceived || "0") - totalAmount;
-  const isCashSufficient = change >= 0;
-
-  const fetchPrinters = async () => {
-    setIsLoadingPrinters(true);
-    try {
-      initQZSecurity();
-
-      if (!qz.websocket.isActive()) {
-        try {
-          await qz.websocket.connect();
-        } catch (e) {
-          try {
-            await qz.websocket.disconnect();
-          } catch (err) {}
-          await qz.websocket.connect();
-        }
-      }
-
-      const printers = await qz.printers.find();
-      setPrinterList(printers);
-
-      if (!selectedPrinter && printers.length > 0) {
-        try {
-          const def = await qz.printers.getDefault();
-          handlePrinterChange(def);
-        } catch {
-          handlePrinterChange(printers[0]);
-        }
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error("ไม่สามารถดึงรายชื่อเครื่องพิมพ์ได้");
-    } finally {
-      setIsLoadingPrinters(false);
-    }
-  };
-
-  const handlePrinterChange = (value: string) => {
-    setSelectedPrinter(value);
-    localStorage.setItem("receipt_preferred_printer", value);
-  };
 
   const handlePrintReceipt = async (orderData: any = selectedOrder) => {
     if (!selectedPrinter) {
@@ -264,7 +313,9 @@ const PaymentPage = ({
           quantity: i.qty,
           price: i.price,
         })),
-        total: orderData.total,
+        total: finalTotal,
+        subTotal: originalTotal,
+        discount: discountAmount,
         currency: orderData.currency,
         paymentMethod: paymentMethod,
         cashReceived:
@@ -275,7 +326,7 @@ const PaymentPage = ({
       const result = await printReceiptQZ(
         receiptData,
         selectedPrinter,
-        organizationId
+        organizationId,
       );
 
       if (result.success) {
@@ -299,19 +350,31 @@ const PaymentPage = ({
       return;
     }
 
-    const currentOrder = { ...selectedOrder };
+    // ✅ ดักจับเงื่อนไขก่อนชำระด้วย MEMBER
+    if (paymentMethod === "MEMBER") {
+      if (!memberData) {
+        toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
+        return;
+      }
+      if (memberData.creditBalance < finalTotal) {
+        toast.error("เครดิตร้านค้าของสมาชิกไม่เพียงพอ");
+        return;
+      }
+    }
 
     const paymentPayload = {
       orderId: selectedOrder.id,
       table: selectedOrder.table,
       tableId: selectedOrder.tableId,
       paymentMethod: paymentMethod,
-      totalAmount: totalAmount,
+      totalAmount: finalTotal,
+      discount: discountAmount,
       createdById: id_user,
       organizationId: organizationId,
       cashReceived:
-        paymentMethod === "CASH" ? parseFloat(cashReceived) : totalAmount,
+        paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
       change: paymentMethod === "CASH" ? change : 0,
+      memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
     };
 
     setIsProcessing(true);
@@ -323,15 +386,31 @@ const PaymentPage = ({
 
       toast.success("ชำระเงินเรียบร้อย!");
 
-      //  สั่งพิมพ์ใบเสร็จอัตโนมัติหลังชำระเงินสำเร็จ (Optional)
-      // await handlePrintReceipt(currentOrder);
-
       setSelectedOrder(null);
       router.refresh();
     } else {
       toast.error("ไม่สามารถบันทึกข้อมูลได้");
     }
     setIsProcessing(false);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return;
+    setIsProcessing(true);
+    try {
+      for (const orderId of selectedOrder.allOrderIds) {
+        await updateStatusOrder(orderId, "CANCELLED");
+      }
+      await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+      toast.success("ยกเลิกบิลเรียบร้อยแล้ว");
+      setSelectedOrder(null);
+      router.refresh();
+    } catch (error) {
+      console.error("Cancel Order Error:", error);
+      toast.error("ไม่สามารถยกเลิกบิลได้");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -401,7 +480,6 @@ const PaymentPage = ({
                           ))}
                         </SelectContent>
                       </Select>
-
                       <Button
                         variant="outline"
                         size="icon"
@@ -509,7 +587,7 @@ const PaymentPage = ({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="
               fixed inset-0 z-50 w-full h-full bg-white dark:bg-zinc-900 
-              lg:static lg:w-[420px] lg:h-full lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:shadow-2xl
+              lg:static lg:w-[450px] lg:h-full lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:shadow-2xl
               flex flex-col
             "
           >
@@ -545,110 +623,61 @@ const PaymentPage = ({
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
               <div className="p-4 md:p-6 space-y-6 pb-24">
                 <div className="text-center py-4">
                   <p className="text-sm text-zinc-500 font-medium mb-1">
                     ยอดสุทธิ
                   </p>
                   <div className="text-4xl font-extrabold text-zinc-900 dark:text-white">
-                    {selectedOrder.total.toLocaleString()}{" "}
+                    {finalTotal.toLocaleString()}{" "}
                     <span className="text-lg text-zinc-400">
                       {selectedOrder.currency}
                     </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <PaymentOption
-                    icon={QrCode}
-                    label="QR"
-                    active={paymentMethod === "QR"}
-                    onClick={() => setPaymentMethod("QR")}
-                    disabled={true}
-                  />
-                  <PaymentOption
-                    icon={Banknote}
-                    label="เงินสด"
-                    active={paymentMethod === "CASH"}
-                    onClick={() => setPaymentMethod("CASH")}
-                  />
-                  <PaymentOption
-                    icon={CreditCard}
-                    label="บัตร"
-                    active={paymentMethod === "CARD"}
-                    onClick={() => setPaymentMethod("CARD")}
-                    disabled={true}
-                  />
-                </div>
-
-                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800 transition-all duration-300">
-                  {paymentMethod === "QR" && (
-                    <div className="flex flex-col items-center justify-center space-y-4 py-2">
-                      <div className="bg-white p-3 rounded-xl shadow-sm border">
-                        <div className="w-40 h-40 bg-zinc-200 rounded-lg animate-pulse flex items-center justify-center text-zinc-400 text-xs">
-                          QR Code
-                        </div>
-                      </div>
-                      <p className="text-sm text-zinc-500">สแกนเพื่อชำระเงิน</p>
-                    </div>
-                  )}
-
-                  {paymentMethod === "CASH" && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium pl-1 text-zinc-600 dark:text-zinc-400">
-                          รับเงินมา
-                        </label>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            className="text-right text-xl h-12 pr-12 font-bold bg-white dark:bg-zinc-950"
-                            value={cashReceived}
-                            onChange={(e) => setCashReceived(e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                            autoFocus
-                          />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">
-                            {selectedOrder.currency}
-                          </span>
-                        </div>
-                      </div>
-                      <Separator className="bg-zinc-200 dark:bg-zinc-700" />
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-sm text-zinc-500">เงินทอน</span>
-                        <span
-                          className={`text-xl font-bold ${
-                            change < 0 ? "text-red-500" : "text-emerald-600"
-                          }`}
-                        >
-                          {change >= 0 ? `${change.toLocaleString()}` : "-"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {paymentMethod === "CARD" && (
-                    <div className="flex flex-col items-center justify-center py-8 text-zinc-400 space-y-2">
-                      <CreditCard className="h-10 w-10 opacity-50" />
-                      <p className="text-sm">เสียบบัตรที่เครื่อง EDC</p>
-                    </div>
-                  )}
-                </div>
+                {/* ✅ ส่ง Props ที่เพิ่มมาไปให้ Component ลูก */}
+                <PaymentMethodsPanel
+                  paymentMethod={paymentMethod}
+                  setPaymentMethod={setPaymentMethod}
+                  qrType={qrType}
+                  setQrType={setQrType}
+                  finalTotal={finalTotal}
+                  change={change}
+                  cashReceived={cashReceived}
+                  setCashReceived={setCashReceived}
+                  discount={discount}
+                  setDiscount={setDiscount}
+                  memberPhone={memberPhone}
+                  setMemberPhone={setMemberPhone}
+                  currency={selectedOrder.currency}
+                  handleNumpadClick={handleNumpadClick}
+                  handleExactAmount={handleExactAmount}
+                  handleQuickAmount={handleQuickAmount}
+                  memberData={memberData}
+                  setMemberData={setMemberData}
+                  isLoadingMember={isLoadingMember}
+                  handleCheckMember={handleCheckMember}
+                />
 
                 <div>
-                  <p className="text-xs font-bold text-zinc-400 uppercase mb-3">
-                    รายการอาหาร
-                  </p>
-                  <div className="space-y-3 border rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <p className="text-xs font-bold text-zinc-400 uppercase">
+                      รายการอาหาร
+                    </p>
+                    <Badge variant="secondary" className="text-[10px] h-5">
+                      {selectedOrder.items.length} รายการ
+                    </Badge>
+                  </div>
+                  <div className="space-y-1 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {selectedOrder.items.map((item: any, idx: number) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-start text-sm"
+                        className="flex justify-between items-center p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors group"
                       >
-                        <div className="flex gap-3">
-                          <Avatar className="h-10 w-10 rounded-md border border-zinc-100">
+                        <div className="flex gap-3 items-center">
+                          <Avatar className="h-10 w-10 rounded-lg border border-zinc-100 shadow-sm">
                             <AvatarImage
                               src={item.img || "/placeholder.png"}
                               className="object-cover"
@@ -656,13 +685,15 @@ const PaymentPage = ({
                             <AvatarFallback>IMG</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold text-zinc-800 dark:text-zinc-200">
+                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-primary transition-colors">
                               {item.name}
                             </p>
-                            <p className="text-xs text-zinc-400">x{item.qty}</p>
+                            <p className="text-xs text-zinc-400">
+                              จำนวน: {item.qty}
+                            </p>
                           </div>
                         </div>
-                        <span className="font-medium text-zinc-900 dark:text-white">
+                        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
                           {item.price.toLocaleString()}
                         </span>
                       </div>
@@ -671,33 +702,77 @@ const PaymentPage = ({
                 </div>
               </div>
             </div>
+
+            {/* Footer Button Area */}
             <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe shrink-0 z-10">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
-                    disabled={paymentMethod === "CASH" && !isCashSufficient}
-                  >
-                    ยืนยันการชำระเงิน
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      การกระทำนี้ไม่สามารถย้อนกลับได้ มันจะเปลี่ยนสถานะเป็น
-                      "ชำระเงินแล้ว" อย่างถาวร
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                    <AlertDialogAction onClick={handlePayment}>
-                      ยืนยัน
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex gap-3">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-14 h-12 shrink-0 rounded-xl border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
+                      disabled={isProcessing}
+                      title="ยกเลิกบิลนี้"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>ต้องการยกเลิกบิลนี้?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        การกระทำนี้จะเปลี่ยนสถานะรายการอาหารในบิลนี้เป็น{" "}
+                        <strong className="text-red-500">"ยกเลิก"</strong>{" "}
+                        ทั้งหมด และเปลี่ยนโต๊ะเป็นสถานะ <strong>"ว่าง"</strong>{" "}
+                        คุณไม่สามารถย้อนกลับได้
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ปิด</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={handleCancelOrder}
+                      >
+                        ยืนยันการยกเลิก
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {/* ✅ ล็อกปุ่มยืนยัน ถ้ายอดไม่พอ หรือตรวจสอบสมาชิกไม่ผ่าน */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="flex-1 h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
+                      disabled={
+                        (paymentMethod === "CASH" && !isCashSufficient) ||
+                        isProcessing ||
+                        (paymentMethod === "MEMBER" &&
+                          (!memberData ||
+                            memberData.creditBalance < finalTotal))
+                      }
+                    >
+                      ยืนยันการชำระเงิน
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>ยืนยันการชำระเงิน?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง"
+                        ทันที
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                      <AlertDialogAction onClick={handlePayment}>
+                        ยืนยัน
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </motion.div>
         )}

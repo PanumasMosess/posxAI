@@ -227,7 +227,7 @@ export interface MenuOrderHeaderProps {
     cartId: number,
     menuId: number,
     newQuantity: number,
-    priceSum: number
+    priceSum: number,
   ) => void;
   onRemoveItem: (cartId: number, menuId: number) => void;
   onConfirmOrder: () => void;
@@ -284,7 +284,7 @@ export interface OrderCartProps {
     cartId: number,
     menuId: number,
     newQuantity: number,
-    priceSum: number
+    priceSum: number,
   ) => void;
   onRemoveItem: (cartId: number, menuId: number) => void;
   onConfirmOrder: () => void;
@@ -649,6 +649,7 @@ export interface SettingEmployeeProps {
     positions: {
       id: number;
       position_name: string;
+      pin: string | null;
       status: string | null;
       creator: {
         id: number;
@@ -668,6 +669,7 @@ export type PositionType = {
 export type SettingPositions = {
   id: number;
   position_name: string;
+  pin: string | null;
   status: string | null;
   creator: {
     id: number;
@@ -757,4 +759,41 @@ export interface MoveTableDialogProps {
   currentTable: TableItem;
   allTables: TableItem[];
   onConfirm: (fromId: number, toId: number) => void;
+}
+
+export interface PositionState {
+  positionId: number | null;
+  positionName: string | null;
+}
+
+export interface PositionContextType extends PositionState {
+  setPosition: (id: number | null, name: string | null) => void;
+  clearPosition: () => void;
+}
+
+export interface PaymentMethodsPanelProps {
+  paymentMethod: "QR" | "CASH" | "CARD" | "MEMBER";
+  setPaymentMethod: (method: "QR" | "CASH" | "CARD" | "MEMBER") => void;
+  qrType: "THAI" | "LAO";
+  setQrType: (type: "THAI" | "LAO") => void;
+  finalTotal: number;
+  change: number;
+  cashReceived: string;
+  setCashReceived: (val: string) => void;
+  discount: string;
+  setDiscount: (val: string) => void;
+  memberPhone: string;
+  setMemberPhone: (val: string) => void;
+  currency: string;
+  handleNumpadClick: (val: string) => void;
+  handleExactAmount: () => void;
+  handleQuickAmount: (amt: number) => void;
+  memberData: any;
+  setMemberData: (data: any) => void;
+  isLoadingMember: boolean;
+  handleCheckMember: () => void;
+}
+
+export interface MemberTransactionProps {
+  data: any[];
 }

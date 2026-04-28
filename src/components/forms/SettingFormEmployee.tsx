@@ -63,7 +63,7 @@ const SettingFormEmployee = ({
       surname: "",
       email: "",
       img: "",
-      position_id: undefined,
+      position_id: 0,
       created_by: currentUserId,
       organizationId: organizationId,
     },
@@ -222,7 +222,7 @@ const SettingFormEmployee = ({
               )}
             />
 
-            <FormField
+            {/* <FormField
               control={formAddEmployee.control}
               name="position_id"
               render={({ field }) => (
@@ -248,7 +248,7 @@ const SettingFormEmployee = ({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
             <FormFieldImageUpload
               control={formAddEmployee.control}
