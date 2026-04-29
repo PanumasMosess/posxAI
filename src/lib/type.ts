@@ -649,7 +649,6 @@ export interface SettingEmployeeProps {
     positions: {
       id: number;
       position_name: string;
-      pin: string | null;
       status: string | null;
       creator: {
         id: number;
