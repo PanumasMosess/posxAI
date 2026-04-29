@@ -294,7 +294,7 @@ const AppSidebar = () => {
         <SidebarFooter>
           <SidebarMenu>
             {/* ✅ ครอบเงื่อนไขตรงนี้ ถ้าเป็น Admin หรือ Spadmin ถึงจะโชว์เมนูตั้งค่า */}
-            {canAccessSettings &&
+            {/* {canAccessSettings && */}
               (isCollapsed ? (
                 <SidebarMenuItem>
                   <DropdownMenu>
@@ -335,7 +335,8 @@ const AppSidebar = () => {
                     </CollapsibleContent>
                   </SidebarMenuItem>
                 </Collapsible>
-              ))}
+              ))
+              {/* } */}
 
             <SidebarMenuItem key={"logout"}>
               <AlertDialog>
