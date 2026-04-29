@@ -58,9 +58,9 @@ export default function IdleTimeoutHandler() {
         setPin("");
         resetTimer();
 
-        setPosition(result.positionId ?? null, result.positionName ?? null);
+        // setPosition(result.positionId ?? null, result.positionName ?? null);
 
-        toast.success(`ปลดล็อกสำเร็จ (ตำแหน่ง: ${result.positionName})`);
+        // toast.success(`ปลดล็อกสำเร็จ (ตำแหน่ง: ${result.positionName})`);
       } else {
         toast.error(result.message || "รหัส PIN ไม่ถูกต้อง");
         setPin("");
