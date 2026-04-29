@@ -38,7 +38,7 @@ export default async function MainLayout({
               <Navbar />
               <div className="px-4">
                 {children}
-                <IdleTimeoutHandler />
+                {/* <IdleTimeoutHandler /> */}
               </div>
             </main>
           </SidebarProvider>

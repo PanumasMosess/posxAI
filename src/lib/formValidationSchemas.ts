@@ -134,7 +134,6 @@ export type ModifierItemSchema = z.infer<typeof modifierItemSchema_>;
 export const PositionSchema_ = z.object({
   id: z.number().optional(),
   position_name: z.string().min(1, { message: "กรุณากรอกชื่อ" }).max(50),
-  pin: z.string().optional(),
   createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
 });

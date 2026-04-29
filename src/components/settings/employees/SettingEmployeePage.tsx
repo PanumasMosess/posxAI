@@ -10,7 +10,6 @@ import {
   updateStausEmp,
   updateStusPosition,
   updateSurNameEmp,
-  updatePinPosition,
   updateMemberStatus,
   updateMemberField,
 } from "@/lib/actions/actionSettings";
@@ -45,14 +44,6 @@ const SettingEmployeePage = ({
     }
   };
 
-  const onUpdatePin = async (id: number, newPin: string) => {
-    const result = await updatePinPosition(id, newPin);
-    if (result.success) {
-      router.refresh();
-    } else {
-      toast.error(result.message || "เกิดข้อผิดพลาดในการตั้งค่า PIN");
-    }
-  };
 
   // --- Handlers for Employee ---
   const handleStatusChangeEmp = async (id: number, status: string) => {
@@ -117,7 +108,6 @@ const SettingEmployeePage = ({
     handleStatusChange,
     onUpdateName,
     organizationId ?? 0,
-    onUpdatePin,
   );
 
   const column_employee = column_setting_employee(
@@ -131,7 +121,7 @@ const SettingEmployeePage = ({
 
   const column_member = column_setting_member(
     handleStatusChangeMember,
-    handleUpdateFieldMember, // ✅ ส่งฟังก์ชันนี้ลงไปทำงานคู่กับ Column อย่างปลอดภัย
+    handleUpdateFieldMember, 
     organizationId ?? 0,
   );
 

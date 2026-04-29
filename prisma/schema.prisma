@@ -388,7 +388,6 @@ model ordermodifier {
 model posiotion {
   id            Int      @id @default(autoincrement())
   position_name String
-  pin           String?
   status        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
