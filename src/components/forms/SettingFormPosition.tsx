@@ -22,7 +22,6 @@ import {
   FormMessage,
   FormLabel,
   Form,
-  FormDescription,
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -47,7 +46,6 @@ const SettingFormPosition = ({
     resolver: zodResolver(PositionSchema_),
     defaultValues: {
       position_name: "",
-      pin: "",
       createdById: currentUserId,
       organizationId: organizationId,
     },
@@ -125,43 +123,13 @@ const SettingFormPosition = ({
               )}
             />
 
-            <FormField
-              control={formAddPosition.control}
-              name="pin"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>รหัส PIN ควบคุม (4 หลัก)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder="ตั้งรหัส PIN"
-                      maxLength={4}
-                      autoComplete="off"
-                      value={field.value || ""} 
-                      onChange={(e) => {
-                        const onlyNums = e.target.value.replace(/[^0-9]/g, "");
-                        field.onChange(onlyNums);
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    ใช้สำหรับยืนยันตัวตนก่อนทำรายการสำคัญ (เช่น ลบบิล, คิดเงิน)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* ส่วน Select Station ถูกลบออกเนื่องจาก Position ไม่น่าจะต้องผูกกับ Station */}
-
             <Button
               type="submit"
               form="formAddPosition"
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isPending}
             >
-              {isSubmitting
+              {isSubmitting || isPending
                 ? "กำลังบันทึก..."
                 : type === "create"
                   ? "ยืนยัน"

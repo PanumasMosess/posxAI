@@ -290,37 +290,9 @@ export const createPosition = async (
   data: PositionSchema,
 ) => {
   try {
-    let hashedPin = null;
-
-    if (data.pin && data.pin.trim() !== "") {
-      const existingPositions = await prisma.posiotion.findMany({
-        where: {
-          organizationId: data.organizationId,
-          pin: { not: null },
-        },
-        select: { pin: true, position_name: true },
-      });
-
-      for (const pos of existingPositions) {
-        const isMatch = await bcrypt.compare(data.pin, pos.pin!);
-
-        if (isMatch) {
-          return {
-            success: false,
-            error: true,
-            message: `รหัส PIN นี้ถูกใช้งานแล้วโดยตำแหน่ง: ${pos.position_name}`,
-          };
-        }
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      hashedPin = await bcrypt.hash(data.pin, salt);
-    }
-
     await prisma.posiotion.create({
       data: {
         position_name: data.position_name,
-        pin: hashedPin,
         status: "ACTIVE",
         creator: {
           connect: {
@@ -375,57 +347,6 @@ export const updateNamePosition = async (id: number, positionName: string) => {
     return { success: true, error: false, data: updatedPositionName };
   } catch (err) {
     return { success: false, error: true, data: err };
-  }
-};
-
-export const updatePinPosition = async (id: number, newPin: string) => {
-  try {
-    let hashedPin = null;
-
-    if (newPin && newPin.trim() !== "") {
-      const currentPosition = await prisma.posiotion.findUnique({
-        where: { id },
-        select: { organizationId: true },
-      });
-
-      if (!currentPosition || !currentPosition.organizationId) {
-        return { success: false, error: true, message: "ไม่พบข้อมูลตำแหน่ง" };
-      }
-
-      const existingPositions = await prisma.posiotion.findMany({
-        where: {
-          organizationId: currentPosition.organizationId,
-          id: { not: id },
-          pin: { not: null },
-        },
-        select: { pin: true, position_name: true },
-      });
-
-      for (const pos of existingPositions) {
-        const isMatch = await bcrypt.compare(newPin, pos.pin!);
-
-        if (isMatch) {
-          return {
-            success: false,
-            error: true,
-            message: `รหัส PIN นี้ถูกใช้งานแล้วโดยตำแหน่ง: ${pos.position_name}`,
-          };
-        }
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      hashedPin = await bcrypt.hash(newPin, salt);
-    }
-
-    await prisma.posiotion.update({
-      where: { id },
-      data: { pin: hashedPin },
-    });
-
-    return { success: true, error: false };
-  } catch (error) {
-    console.error("Update PIN Error:", error);
-    return { success: false, error: true, message: "เกิดข้อผิดพลาดของระบบ" };
   }
 };
 
@@ -647,7 +568,6 @@ export const updateMemberStatus = async (id: number, status: string) => {
   }
 };
 
-// อัปเดตชื่อ/นามสกุล สมาชิกจากตาราง
 export const updateMemberField = async (
   id: number,
   field: string,
