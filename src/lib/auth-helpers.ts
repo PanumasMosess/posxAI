@@ -42,45 +42,6 @@ export const userSignIn = async ({
   }
 };
 
-// export const verifyPositionPin = async (
-//   rawPin: string,
-//   organizationId: number,
-// ) => {
-//   try {
-//     const employees = await prisma.employeepin.findMany({
-//       where: {
-//         organizationId: organizationId,
-//       },
-//     });
-
-//     for (const emp of employees) {
-//       if (!emp.pin) continue;
-
-//       const isMatch = await bcrypt.compare(rawPin, emp.pin);
-
-//       if (isMatch) {
-//         const positionData = await prisma.posiotion.findUnique({
-//           where: { id: emp.position_id },
-//           select: { position_name: true },
-//         });
-
-//         return {
-//           success: true,
-//           employeeId: emp.id,
-//           employeeName: `${emp.name} ${emp.surname}`,
-//           positionId: emp.position_id,
-//           positionName: positionData?.position_name || "ไม่มีตำแหน่ง",
-//         };
-//       }
-//     }
-
-//     return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
-//   } catch (error) {
-//     console.error("Error verifyPositionPin:", error);
-//     return { success: false, message: "เกิดข้อผิดพลาดในการตรวจสอบรหัส PIN" };
-//   }
-// };
-
 export const verifyPositionPin = async (
   rawPin: string,
   organizationId: number,
@@ -92,7 +53,6 @@ export const verifyPositionPin = async (
       },
     });
 
-    // ถ้าดึงมาแล้วไม่เจอพนักงานในสาขานี้เลย ให้แจ้งกลับไปเลย
     if (employees.length === 0) {
       return {
         success: false,
@@ -105,7 +65,7 @@ export const verifyPositionPin = async (
     for (const emp of employees) {
       if (!emp.pin) continue;
 
-      checkedCount++; // นับจำนวนพนักงานที่มี PIN ให้ตรวจ
+      checkedCount++;
       const isMatch = await bcrypt.compare(rawPin, emp.pin);
 
       if (isMatch) {
@@ -124,7 +84,6 @@ export const verifyPositionPin = async (
       }
     }
 
-    // ถ้ารหัสไม่ตรงกับใครเลย ให้แนบ log จำนวนที่ตรวจไปด้วย
     return {
       success: false,
       message: `รหัส PIN ไม่ถูกต้อง (ตรวจสอบพนักงานแล้ว ${checkedCount}/${employees.length} คน)`,
@@ -132,7 +91,6 @@ export const verifyPositionPin = async (
   } catch (error: any) {
     console.error("Error verifyPositionPin:", error);
 
-    // ดึงเอาข้อความ Error จริงๆ ของระบบ แนบใส่ message กลับไปด้วย
     return {
       success: false,
       message: `เกิดข้อผิดพลาดของระบบ: ${error?.message || String(error)}`,

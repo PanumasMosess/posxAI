@@ -87,7 +87,7 @@ export default function IdleTimeoutHandler() {
           setIsError(false);
         }, 1000);
 
-        console.log(result.message);
+        // console.log(result.message);
       }
     } catch (error) {
       toast.error("ระบบขัดข้อง โปรดลองอีกครั้ง");
