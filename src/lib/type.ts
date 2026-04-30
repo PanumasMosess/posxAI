@@ -760,14 +760,22 @@ export interface MoveTableDialogProps {
   onConfirm: (fromId: number, toId: number) => void;
 }
 
-export interface PositionState {
+
+export interface UserState {
+  employeeId: number | null;
+  employeeName: string | null;
   positionId: number | null;
   positionName: string | null;
 }
 
-export interface PositionContextType extends PositionState {
-  setPosition: (id: number | null, name: string | null) => void;
-  clearPosition: () => void;
+export interface UserContextType extends UserState {
+  setUser: (
+    empId: number | null,
+    empName: string | null,
+    posId: number | null,
+    posName: string | null,
+  ) => void;
+  clearUser: () => void;
 }
 
 export interface PaymentMethodsPanelProps {

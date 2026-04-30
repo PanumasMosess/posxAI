@@ -2,18 +2,20 @@
 import { HistoryOrderProps } from "@/lib/type";
 import HistoryOrderComple from "./HistoryOrderComple";
 import HistoryOrderCancel from "./HistoryOrderCancel";
+import { useUser } from "../providers/PositionContext";
 
 const HistoryOrderPage = ({
   initialItems,
   id_user,
   organizationId,
 }: HistoryOrderProps) => {
+  const { employeeId } = useUser();
   const inActiveOrders = initialItems.filter((item) =>
-    ["CANCELLED"].includes(item.status)
+    ["CANCELLED"].includes(item.status),
   );
 
   const inActiveOrdersFinish = initialItems.filter((item) =>
-    ["COMPLETED", "PAY_COMPLETED"].includes(item.status)
+    ["COMPLETED", "PAY_COMPLETED"].includes(item.status),
   );
 
   return (
@@ -32,14 +34,14 @@ const HistoryOrderPage = ({
         <div className="w-full bg-primary-foreground p-2">
           <HistoryOrderComple
             initialItems={inActiveOrdersFinish}
-            id_user={id_user}
+            id_user={Number(employeeId)}
             organizationId={organizationId}
           />
         </div>
         <div className="w-full bg-primary-foreground p-2">
           <HistoryOrderCancel
             initialItems={inActiveOrders}
-            id_user={id_user}
+            id_user={Number(employeeId)}
             organizationId={organizationId}
           />
         </div>

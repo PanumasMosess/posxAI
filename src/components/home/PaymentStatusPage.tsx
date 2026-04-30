@@ -14,14 +14,6 @@ import {
   LayoutGrid,
   ChefHat,
   Trash2,
-  Banknote,
-  CreditCard,
-  QrCode,
-  Users,
-  Percent,
-  CheckCircle2,
-  X,
-  Delete,
   Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KitchecOrderList } from "@/lib/type";
-import PaymentOption from "@/components/payments/PaymentOption";
 import { toast } from "react-toastify";
 import {
   createPaymentOrder,
@@ -75,6 +66,7 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "../payments/PaymentMethodsPanel";
+import { useUser } from "../providers/PositionContext";
 
 const PaymentStatusPage = ({
   initialItems,
@@ -82,6 +74,7 @@ const PaymentStatusPage = ({
   organizationId,
 }: KitchecOrderList) => {
   const router = useRouter();
+  const { employeeId } = useUser();
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<
@@ -383,7 +376,7 @@ const PaymentStatusPage = ({
       paymentMethod: paymentMethod,
       totalAmount: finalTotal,
       discount: discountAmount,
-      createdById: id_user,
+      createdById: employeeId,
       organizationId: organizationId,
       cashReceived:
         paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,

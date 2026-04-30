@@ -63,7 +63,7 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "./PaymentMethodsPanel";
-
+import { useUser } from "../providers/PositionContext";
 
 const PaymentPage = ({
   initialItems,
@@ -71,6 +71,7 @@ const PaymentPage = ({
   organizationId,
 }: KitchecOrderList) => {
   const router = useRouter();
+  const { employeeId } = useUser();
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<
@@ -369,7 +370,7 @@ const PaymentPage = ({
       paymentMethod: paymentMethod,
       totalAmount: finalTotal,
       discount: discountAmount,
-      createdById: id_user,
+      createdById: Number(employeeId),
       organizationId: organizationId,
       cashReceived:
         paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,

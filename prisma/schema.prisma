@@ -14,35 +14,23 @@ datasource db {
 }
 
 model employees {
-  id          Int      @id @default(autoincrement())
-  username    String
-  password    String
-  name        String
-  surname     String
-  email       String?
-  img         String?
-  status      String   @default("ON")
-  position_id Int
-  login_fail  Int
-  created_by  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  birthday    DateTime
-  id_google   String?  @unique
-
-  stocks         stock[]
-  categoryStocks categorystock[]
-  suppliers      supplier[]
-  menu           menu[]
-  table          table[]
-  paymentorders  paymentorder[]
-  printers       printer[]
-
-  organizationId     Int?
-  organization       organization?       @relation(fields: [organizationId], references: [id])
-  stations           station[]
-  posiotions         posiotion[]
-  membertransactions membertransaction[]
+  id             Int           @id @default(autoincrement())
+  username       String
+  password       String
+  name           String
+  surname        String
+  email          String?
+  img            String?
+  status         String        @default("ON")
+  position_id    Int
+  login_fail     Int
+  created_by     String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  birthday       DateTime
+  id_google      String?       @unique
+  organizationId Int?
+  organization   organization? @relation(fields: [organizationId], references: [id])
 }
 
 model categorystock {
@@ -52,7 +40,7 @@ model categorystock {
   updatedAt    DateTime @updatedAt
 
   createdById Int
-  creator     employees @relation(fields: [createdById], references: [id])
+  creator     employeepin @relation(fields: [createdById], references: [id])
 
   stocks         stock[]
   menu           menu[]
@@ -69,7 +57,7 @@ model supplier {
   updatedAt    DateTime @updatedAt
 
   createdById Int
-  creator     employees @relation(fields: [createdById], references: [id])
+  creator     employeepin @relation(fields: [createdById], references: [id])
 
   stocks         stock[]
   organizationId Int?
@@ -91,7 +79,7 @@ model stock {
   updatedAt   DateTime @updatedAt
 
   createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
+  creator        employeepin   @relation(fields: [createdById], references: [id])
   categoryId     Int
   category       categorystock @relation(fields: [categoryId], references: [id])
   supplierId     Int
@@ -117,7 +105,7 @@ model menu {
   updatedAt   DateTime @updatedAt
 
   createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
+  creator        employeepin   @relation(fields: [createdById], references: [id])
   categoryMenuId Int
   category       categorystock @relation(fields: [categoryMenuId], references: [id])
   unitPriceId    Int           @default(1)
@@ -157,7 +145,7 @@ model table {
   updatedAt      DateTime @updatedAt
 
   closeById Int
-  creator   employees @relation(fields: [closeById], references: [id])
+  creator   employeepin @relation(fields: [closeById], references: [id])
 
   order          order[]
   carts          cart[]
@@ -256,7 +244,7 @@ model paymentorder {
   updatedAt     DateTime @default(now())
 
   createdById        Int
-  creator            employees     @relation(fields: [createdById], references: [id])
+  creator            employeepin   @relation(fields: [createdById], references: [id])
   organizationId     Int?
   organization       organization? @relation(fields: [organizationId], references: [id])
   tableId            Int?
@@ -292,6 +280,7 @@ model organization {
   orderitems     orderitem[]
   ordermodifiers ordermodifier[]
   posiotions     posiotion[]
+  employeepins   employeepin[]
 }
 
 model printer {
@@ -306,7 +295,7 @@ model printer {
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
   createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
+  creator        employeepin   @relation(fields: [createdById], references: [id])
 }
 
 model station {
@@ -318,7 +307,7 @@ model station {
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
   createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
+  creator        employeepin   @relation(fields: [createdById], references: [id])
 }
 
 model modifiergroup {
@@ -393,7 +382,7 @@ model posiotion {
   updatedAt     DateTime @default(now())
 
   createdById    Int
-  creator        employees     @relation(fields: [createdById], references: [id])
+  creator        employeepin   @relation(fields: [createdById], references: [id])
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
 }
@@ -458,7 +447,7 @@ model membertransaction {
   order   order? @relation(fields: [orderId], references: [id])
 
   createdById Int? // พนักงานคนที่ทำรายการ
-  employee    employees? @relation(fields: [createdById], references: [id])
+  employee    employeepin? @relation(fields: [createdById], references: [id])
 }
 
 enum transactiontype {
@@ -472,4 +461,33 @@ enum transactiontype {
 enum wallettype {
   POINT // แต้มสะสม
   CREDIT // เครดิตร้านค้า (เงินสด)
+}
+
+model employeepin {
+  id          Int      @id @default(autoincrement())
+  pin         String
+  name        String
+  surname     String
+  email       String?
+  img         String?
+  status      String   @default("ON")
+  position_id Int
+  login_fail  Int
+  created_by  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  birthday    DateTime
+
+  organizationId     Int?
+  organization       organization?       @relation(fields: [organizationId], references: [id])
+  categorystocks     categorystock[]
+  suppliers          supplier[]
+  stocks             stock[]
+  menus              menu[]
+  tables             table[]
+  paymentorders      paymentorder[]
+  printers           printer[]
+  stations           station[]
+  posiotions         posiotion[]
+  membertransactions membertransaction[]
 }

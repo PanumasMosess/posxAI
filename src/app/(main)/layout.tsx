@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { SessionProvider } from "next-auth/react";
 import IdleTimeoutHandler from "@/components/IdleTimeoutHandler";
-import { PositionProvider } from "@/components/providers/PositionContext";
+import { UserProvider } from "@/components/providers/PositionContext";
 
 export const metadata: Metadata = {
   title: "POSX",
@@ -25,7 +25,7 @@ export default async function MainLayout({
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
     <SessionProvider>
-      <PositionProvider>
+      <UserProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -38,12 +38,12 @@ export default async function MainLayout({
               <Navbar />
               <div className="px-4">
                 {children}
-                {/* <IdleTimeoutHandler /> */}
+                <IdleTimeoutHandler />
               </div>
             </main>
           </SidebarProvider>
         </ThemeProvider>
-      </PositionProvider>
+      </UserProvider>
     </SessionProvider>
   );
 }

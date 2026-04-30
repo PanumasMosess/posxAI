@@ -7,6 +7,7 @@ import {
   updateNamePrinter,
   updateStationUse,
 } from "@/lib/actions/actionSettings";
+import { useUser } from "@/components/providers/PositionContext";
 
 const SettingPrinterPage = ({
   initialItems,
@@ -15,7 +16,7 @@ const SettingPrinterPage = ({
   organizationId,
 }: PrinterProps) => {
   const router = useRouter();
-
+  const { employeeId } = useUser();
   const onUpdateStationUse = async (id: number, stationName: string) => {
     const result = await updateStationUse(id, stationName);
     if (result.success) {
@@ -34,7 +35,7 @@ const SettingPrinterPage = ({
     onUpdatePrinterName,
     onUpdateStationUse,
     organizationId ?? 0,
-    reationData
+    reationData,
   );
   return (
     <div className="w-full space-y-4">
@@ -54,7 +55,7 @@ const SettingPrinterPage = ({
             <Data_table_setting_printers
               columns={columns}
               data={initialItems}
-              userId={id_user}
+              userId={Number(employeeId)}
               organizationId={organizationId ?? 0}
               reationdata={reationData}
             />
