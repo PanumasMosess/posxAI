@@ -46,21 +46,37 @@ export const verifyPositionPin = async (
   rawPin: string,
   organizationId: number,
 ) => {
-  // const positions = await prisma.posiotion.findMany({
-  //   where: { organizationId: organizationId, pin: { not: null } },
-  // });
+  try {
+    const employees = await prisma.employeepin.findMany({
+      where: {
+        organizationId: organizationId,
+      },
+    });
 
-  // for (const pos of positions) {
-  //   const isMatch = await bcrypt.compare(rawPin, pos.pin!);
+    for (const emp of employees) {
+      if (!emp.pin) continue;
 
-  //   if (isMatch) {
-  //     return {
-  //       success: true,
-  //       positionId: pos.id,
-  //       positionName: pos.position_name,
-  //     };
-  //   }
-  // }
+      const isMatch = await bcrypt.compare(rawPin, emp.pin);
 
-  return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
+      if (isMatch) {
+        const positionData = await prisma.posiotion.findUnique({
+          where: { id: emp.position_id },
+          select: { position_name: true },
+        });
+
+        return {
+          success: true,
+          employeeId: emp.id,
+          employeeName: `${emp.name} ${emp.surname}`,
+          positionId: emp.position_id,
+          positionName: positionData?.position_name || "ไม่มีตำแหน่ง", 
+        };
+      }
+    }
+
+    return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
+  } catch (error) {
+    console.error("Error verifyPositionPin:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการตรวจสอบรหัส PIN" };
+  }
 };

@@ -43,6 +43,7 @@ import {
   ModifierItem,
   ModifierItemColumns,
 } from "./tables/column_modifieritem";
+import { useUser } from "../providers/PositionContext";
 
 const StockPageFormular = ({
   initialItems,
@@ -68,6 +69,7 @@ const StockPageFormular = ({
   const [openSheetItemUpdate, setOpenSheetItemUpdate] = useState(false);
   const [editingItemItem, setEditingItemItem] = useState<any | null>(null);
   const [deleteItemItem, setDeleteItemItem] = useState<any | null>(null);
+  const {  employeeId } = useUser();
 
   const router = useRouter();
 
@@ -208,7 +210,7 @@ const StockPageFormular = ({
                 <StockFormCategories
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetCata}
                   stateForm={openSheetCata}
@@ -223,7 +225,7 @@ const StockPageFormular = ({
                 <StockFormSupplier
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetSupply}
                   stateForm={openSheetSupply}
@@ -259,7 +261,7 @@ const StockPageFormular = ({
               <StockFormCategories
                 type={"update"}
                 relatedData={relatedData}
-                currentUserId={id_user}
+                currentUserId={Number(employeeId)}
                 organizationId={organizationId ?? 0}
                 data={editingItemCat}
                 stateSheet={setOpenSheetCataUpdate}
@@ -312,7 +314,7 @@ const StockPageFormular = ({
                 type={"update"}
                 relatedData={relatedData}
                 data={editingItemSup}
-                currentUserId={id_user}
+                currentUserId={Number(employeeId)}
                 organizationId={organizationId ?? 0}
                 stateSheet={setOpenSheetSupplyUpdate}
                 stateForm={openSheetSupplyUpdate}
@@ -371,7 +373,7 @@ const StockPageFormular = ({
                 </SheetTrigger>
                 <ModifierGroupForm
                   type={"create"}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenGroupSheet}
                   stateForm={openGroupSheet}
@@ -387,7 +389,7 @@ const StockPageFormular = ({
                 <ModifierItemForm
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenItemSheet}
                   stateForm={openItemSheet}
@@ -423,7 +425,7 @@ const StockPageFormular = ({
               <ModifierGroupForm
                 type={"update"}
                 data={editingItemGroup}
-                currentUserId={id_user}
+                currentUserId={Number(employeeId)}
                 organizationId={organizationId ?? 0}
                 stateSheet={setOpenSheetGroupUpdate}
                 stateForm={openSheetGroupUpdate}
@@ -477,7 +479,7 @@ const StockPageFormular = ({
                 type={"update"}
                 data={editingItemItem}
                 relatedData={relatedData}
-                currentUserId={id_user}
+                currentUserId={Number(employeeId)}
                 organizationId={organizationId ?? 0}
                 stateSheet={setOpenSheetItemUpdate}
                 stateForm={openSheetItemUpdate}
@@ -507,7 +509,7 @@ const StockPageFormular = ({
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 bg-primary-foreground p-4 rounded-lg">
         <StockFormularManament
           relatedData={relatedData}
-          currentUserId={id_user}
+          currentUserId={Number(employeeId)}
           organizationId={organizationId ?? 1}
         />
       </div>

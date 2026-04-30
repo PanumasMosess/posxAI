@@ -12,8 +12,6 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
       items,
       total,
       currency,
-      cashReceived,
-      change,
       paymentMethod,
     },
     ref

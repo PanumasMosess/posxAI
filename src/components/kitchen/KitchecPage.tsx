@@ -6,17 +6,19 @@ import { useRouter } from "next/navigation";
 import { updateStatusOrder } from "@/lib/actions/actionMenu";
 import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
+import { useUser } from "../providers/PositionContext";
 
 const KitchecPage = ({
   initialItems,
   id_user,
   organizationId,
 }: KitchecOrderList) => {
+  const { employeeId } = useUser();
   const router = useRouter();
 
   const activeOrders = initialItems.filter(
     (order) =>
-      !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status)
+      !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status),
   );
 
   const prevOrderCountRef = useRef(activeOrders.length);
@@ -94,7 +96,7 @@ const KitchecPage = ({
   const playSound = () => {
     try {
       const audio = new Audio(
-        "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3"
+        "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3",
       );
 
       audio.play().catch((error) => {
@@ -140,7 +142,7 @@ const KitchecPage = ({
               initialItems={group}
               onStatusChange={onStatusChange}
               isGrouped={true}
-              id_user={id_user}
+              id_user={Number(employeeId)}
               organizationId={organizationId}
             />
           ))

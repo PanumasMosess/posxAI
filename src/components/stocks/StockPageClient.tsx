@@ -58,15 +58,17 @@ import { deleteFileS3 } from "@/lib/actions/actionIndex";
 import { StockPageClientProps } from "@/lib/type";
 
 import InfiniteScroll from "react-infinite-scroll-component";
+import { useUser } from "../providers/PositionContext";
 
 const StockPageClient = ({
   initialItems,
   relatedData,
   id_user,
-  organizationId
+  organizationId,
 }: StockPageClientProps) => {
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
   const router = useRouter();
+  const {  employeeId } = useUser();
 
   const [openSheet, setOpenSheet] = useState(false);
   const [openSheetBill, setOpenSheetBill] = useState(false);
@@ -81,7 +83,7 @@ const StockPageClient = ({
   const itemsPerPage = 15;
   const [page, setPage] = useState(1);
   const [currentItems, setCurrentItems] = useState(
-    displayItems.slice(0, itemsPerPage)
+    displayItems.slice(0, itemsPerPage),
   );
   const [hasMore, setHasMore] = useState(displayItems.length > itemsPerPage);
 
@@ -89,7 +91,7 @@ const StockPageClient = ({
     description: string,
     stock_id: number,
     create_id: number,
-    img_link: string | null
+    img_link: string | null,
   ) => {
     setLoadingItemId(stock_id);
 
@@ -117,8 +119,8 @@ const StockPageClient = ({
           toast.success("สร้างและอัปเดตรูปภาพสำเร็จ!");
           setDisplayItems((prevItems) =>
             prevItems.map((item) =>
-              item.id === stock_id ? update_status.data : item
-            )
+              item.id === stock_id ? update_status.data : item,
+            ),
           );
         } else {
           throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
@@ -136,7 +138,7 @@ const StockPageClient = ({
   const handleDeleteStockItem = async (
     id: number,
     img_link: string | null,
-    create_id: number
+    create_id: number,
   ) => {
     if (img_link) {
       const bucketName = "tvposx";
@@ -178,7 +180,7 @@ const StockPageClient = ({
       setDisplayItems(initialItems);
     } else {
       const filtered = initialItems.filter(
-        (item) => item.category.categoryName === filterCategory
+        (item) => item.category.categoryName === filterCategory,
       );
       setDisplayItems(filtered);
     }
@@ -267,7 +269,7 @@ const StockPageClient = ({
                 <StockForm
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
@@ -282,7 +284,7 @@ const StockPageClient = ({
                 <StockFormBill
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 1}
                   stateSheet={setOpenSheetBill}
                   stateForm={openSheetBill}
@@ -364,8 +366,8 @@ const StockPageClient = ({
                                     handleGenerateImage(
                                       item.description,
                                       item.id,
-                                      id_user,
-                                      item.img
+                                      Number(employeeId),
+                                      item.img,
                                     )
                                   }
                                 >
@@ -393,7 +395,7 @@ const StockPageClient = ({
                                     handleDeleteStockItem(
                                       item.id,
                                       item.img,
-                                      item.createdById
+                                      item.createdById,
                                     )
                                   }
                                 >
@@ -439,7 +441,7 @@ const StockPageClient = ({
           <StockForm
             type={"update"}
             relatedData={relatedData}
-            currentUserId={id_user}
+            currentUserId={Number(employeeId)}
             organizationId={organizationId ?? 1}
             data={editingItem}
             stateSheet={setOpenSheetUpdate}

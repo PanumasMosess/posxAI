@@ -63,7 +63,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { usePosition } from "./providers/PositionContext";
+import { useUser } from "./providers/PositionContext";
 
 const items = menuList.menuList;
 const settingList = menuList.settingsMenu;
@@ -79,10 +79,7 @@ const AppSidebar = () => {
   const [keyFile, setKeyFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const { positionName } = usePosition();
-  const canAccessSettings = ["admin", "spadmin"].includes(
-    positionName?.toLowerCase() || "",
-  );
+  const { employeeId, employeeName } = useUser();
 
   const handleUploadFiles = async (e: FormEvent) => {
     e.preventDefault();

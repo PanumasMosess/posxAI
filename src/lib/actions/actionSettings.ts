@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  EmployeePinSchema,
   EmployeeSchema,
   ModifierGroupSchema,
   ModifierItemSchema,
@@ -438,6 +439,60 @@ export const createEmployee = async (
   }
 };
 
+export const createEmployeePin = async (
+  currentState: any,
+  data: EmployeePinSchema,
+) => {
+  try {
+
+    const existingEmployees = await prisma.employeepin.findMany({
+      where: { organizationId: data.organizationId },
+      select: { pin: true, name: true }, 
+    });
+
+    for (const emp of existingEmployees) {
+      if (emp.pin) {
+        const isMatch = await bcrypt.compare(data.pin, emp.pin);
+        if (isMatch) {
+          return {
+            success: false,
+            error: true,
+            message: `รหัส PIN นี้ถูกใช้งานแล้วโดยพนักงานชื่อ: ${emp.name}`,
+          };
+        }
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPin = await bcrypt.hash(data.pin, salt);
+
+    await prisma.employeepin.create({
+      data: {
+        pin: hashedPin,
+        name: data.name,
+        surname: data.surname,
+        email: data.email,
+        birthday: new Date(data.birthday).toISOString(),
+        img: data.img,
+        position_id: data.position_id,
+        created_by: data.created_by || "SYSTEM",
+        organizationId: data.organizationId,
+        login_fail: 0,
+        status: "ACTIVE",
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error create employeepin:", err);
+    return {
+      success: false,
+      error: true,
+      message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+    };
+  }
+};
+
 export const updateStausEmp = async (id: number, status: string) => {
   try {
     const updatedStatus = await prisma.employees.update({
@@ -507,6 +562,107 @@ export const updatePositionEmp = async (id: number, status: number) => {
     return { success: true, error: false, data: updatedStatus };
   } catch (err) {
     return { success: false, error: true, data: err };
+  }
+};
+
+export const updateStatusEmpPin = async (id: number, status: string) => {
+  try {
+    await prisma.employeepin.update({
+      where: { id },
+      data: { status },
+    });
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error updateStatusEmpPin:", err);
+    return { success: false, error: true, message: "อัปเดตสถานะไม่สำเร็จ" };
+  }
+};
+
+export const updateNameEmpPin = async (id: number, newName: string) => {
+  try {
+    await prisma.employeepin.update({
+      where: { id },
+      data: { name: newName },
+    });
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error updateNameEmpPin:", err);
+    return { success: false, error: true, message: "อัปเดตชื่อไม่สำเร็จ" };
+  }
+};
+
+export const updateSurNameEmpPin = async (id: number, newSurName: string) => {
+  try {
+    await prisma.employeepin.update({
+      where: { id },
+      data: { surname: newSurName },
+    });
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error updateSurNameEmpPin:", err);
+    return { success: false, error: true, message: "อัปเดตนามสกุลไม่สำเร็จ" };
+  }
+};
+
+export const updatePositionEmpPin = async (
+  id: number,
+  newPositionId: number,
+) => {
+  try {
+    await prisma.employeepin.update({
+      where: { id },
+      data: { position_id: newPositionId },
+    });
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error updatePositionEmpPin:", err);
+    return { success: false, error: true, message: "อัปเดตตำแหน่งไม่สำเร็จ" };
+  }
+};
+
+export const updatePinEmpPin = async (id: number, newPin: string) => {
+  try {
+    const currentEmp = await prisma.employeepin.findUnique({
+      where: { id },
+      select: { organizationId: true },
+    });
+
+    if (!currentEmp || !currentEmp.organizationId) {
+      return { success: false, error: true, message: "ไม่พบข้อมูลพนักงาน" };
+    }
+
+    const otherEmployees = await prisma.employeepin.findMany({
+      where: {
+        organizationId: currentEmp.organizationId,
+        id: { not: id }, 
+      },
+      select: { pin: true, name: true },
+    });
+
+    for (const emp of otherEmployees) {
+      if (emp.pin) {
+        const isMatch = await bcrypt.compare(newPin, emp.pin);
+        if (isMatch) {
+          return {
+            success: false,
+            error: true,
+            message: `รหัส PIN นี้ถูกใช้งานแล้วโดย: ${emp.name}`,
+          };
+        }
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPin = await bcrypt.hash(newPin, salt);
+
+    await prisma.employeepin.update({
+      where: { id },
+      data: { pin: hashedPin },
+    });
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error updatePinEmpPin:", err);
+    return { success: false, error: true, message: "อัปเดต PIN ไม่สำเร็จ" };
   }
 };
 

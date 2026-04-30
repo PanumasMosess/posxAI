@@ -11,6 +11,7 @@ import TableStatusPage from "./TableStatusPage";
 import { useState } from "react";
 import OrderStatusPage from "./OrderStatusPage";
 import PaymentStatusPage from "./PaymentStatusPage";
+import { useUser } from "../providers/PositionContext";
 
 const MainPageComponentsHome = ({
   initialItems,
@@ -18,6 +19,7 @@ const MainPageComponentsHome = ({
   organizationId,
   relatedData,
 }: StatusTableProps) => {
+  const { employeeId } = useUser();
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [selectedTableToMove, setSelectedTableToMove] =
     useState<StatusTable | null>(null);
@@ -35,7 +37,7 @@ const MainPageComponentsHome = ({
 
   const onMoveTable = async (table: StatusTable) => {
     const activeOrders = table.order.filter(
-      (o) => !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(o.status)
+      (o) => !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(o.status),
     );
     const ids = activeOrders.map((o) => o.id);
     setActiveOrderIds(ids);
@@ -46,14 +48,14 @@ const MainPageComponentsHome = ({
   const columns = column_status_table(
     handleStatusChange,
     onMoveTable,
-    organizationId ?? 0
+    organizationId ?? 0,
   );
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
       <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
         <OrderStatusPage
           initialItems={initialItems}
-          userId={userId}
+          userId={Number(employeeId)}
           organizationId={organizationId ?? 1}
           relatedData={relatedData}
         />
@@ -62,7 +64,7 @@ const MainPageComponentsHome = ({
         <Data_table_status_table
           columns={columns}
           data={initialItems}
-          userId={userId}
+          userId={Number(employeeId)}
           organizationId={organizationId ?? 0}
         />
 
@@ -84,7 +86,7 @@ const MainPageComponentsHome = ({
               const result = await moveTableFunction(
                 fromTableId,
                 toTableId,
-                activeOrderIds
+                activeOrderIds,
               );
 
               if (result.success) {
@@ -99,7 +101,7 @@ const MainPageComponentsHome = ({
       <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-4 xl:col-span-1 2xl:col-span-4">
         <PaymentStatusPage
           initialItems={relatedData.orderRunning}
-          id_user={userId}
+          id_user={Number(employeeId)}
           organizationId={organizationId ?? 0}
         />
       </div>

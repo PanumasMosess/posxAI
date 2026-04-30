@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PositionType, SettingEmployee } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil } from "lucide-react";
+import { ArrowUpDown, Pencil, Lock } from "lucide-react";
 import status from "@/lib/data_temp";
 import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,14 +80,87 @@ const EditableCell = ({
   );
 };
 
-const column_setting_employee = (
+// ✅ เพิ่ม EditablePinCell สำหรับแก้ไขรหัส PIN ในตาราง
+const EditablePinCell = ({
+  getValue,
+  row,
+  onUpdate,
+}: {
+  getValue: () => any;
+  row: any;
+  onUpdate?: (id: number, newPin: string) => void;
+}) => {
+  const initialValue = getValue();
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    setIsEditing(false);
+    if (value.length >= 4 && onUpdate) {
+      onUpdate(row.original.id, value);
+    }
+    setValue("");
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setValue("");
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <Input
+        ref={inputRef}
+        type="password"
+        maxLength={4}
+        placeholder="รหัส 4 หลัก"
+        value={value}
+        onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
+        onBlur={handleSave}
+        onKeyDown={onKeyDown}
+        className="h-8 text-center font-bold text-sm tracking-[0.3em] w-28 mx-auto"
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setIsEditing(true)}
+      className="cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded p-1 flex items-center justify-center gap-2 group w-fit mx-auto"
+      title="คลิกเพื่อเปลี่ยน PIN"
+    >
+      {initialValue ? (
+        <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-300 font-medium text-sm tracking-widest">
+          <Lock className="w-3 h-3 text-emerald-500" /> ******
+        </span>
+      ) : (
+        <span className="text-zinc-400 text-xs">ยังไม่ตั้งค่า</span>
+      )}
+      <Pencil className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+};
+
+const column_setting_employee_pin = (
   onUpdateStatus: (id: number, newStatus: string) => void,
   onUpdateName: (id: number, newName: string) => void,
   onUpdateSurName: (id: number, newSurname: string) => void,
   onUpdatePosition: (id: number, newPositionId: number) => void,
+  onUpdatePin: (id: number, newPin: string) => void, // ✅ เพิ่ม Parameter สำหรับอัปเดต PIN
   organizationId: number,
   positions: PositionType[],
-): ColumnDef<SettingEmployee>[] => [
+): ColumnDef<any>[] => [
   {
     id: "id",
     header: ({ column }) => (
@@ -124,22 +197,11 @@ const column_setting_employee = (
       );
     },
   },
+  // ❌ นำ block ของ username ออกแล้ว
   {
-    accessorKey: "username",
-    header: ({ column }) => (
-      <div className="text-center">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          ชื่อผู้ใช้
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="text-center text-sm">{row.getValue("username")}</div>
-    ),
+    accessorKey: "pin",
+    header: () => <div className="text-center">รหัส PIN</div>,
+    cell: (props) => <EditablePinCell {...props} onUpdate={onUpdatePin} />,
   },
   {
     accessorKey: "name",
@@ -163,7 +225,7 @@ const column_setting_employee = (
   },
   {
     accessorKey: "position_id",
-    header: ({ column }) => <div className="text-center">ตำแหน่ง</div>,
+    header: () => <div className="text-center">ตำแหน่ง</div>,
     cell: ({ row }) => {
       const currentPositionId = row.getValue("position_id");
       const empId = row.original.id;
@@ -277,4 +339,4 @@ const column_setting_employee = (
   },
 ];
 
-export default column_setting_employee;
+export default column_setting_employee_pin;

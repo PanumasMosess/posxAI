@@ -43,9 +43,19 @@ const page = async () => {
     },
   });
 
+  const itemsDataEmployeePin = await prisma.employeepin.findMany({
+    where: {
+      organizationId: organizationId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
   const relatedData = {
     positions: itemsDataPosition,
     members: itemsDataMember,
+    employeePins: itemsDataEmployeePin, 
   };
 
   return (

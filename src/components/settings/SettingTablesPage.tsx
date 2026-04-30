@@ -7,6 +7,7 @@ import {
   updateNameTable,
   updateStatusTable,
 } from "@/lib/actions/actionSettings";
+import {  useUser } from "../providers/PositionContext";
 
 const SettingTablesPage = ({
   initialItems,
@@ -14,6 +15,7 @@ const SettingTablesPage = ({
   organizationId,
 }: SettingTableProps) => {
   const router = useRouter();
+  const { employeeId } = useUser();
   const handleStatusChange = async (id: number, status: string) => {
     const result = await updateStatusTable(id, status);
 
@@ -53,7 +55,7 @@ const SettingTablesPage = ({
             <Data_table_setting_tables
               columns={columns}
               data={initialItems}
-              userId={userId}
+              userId={Number(employeeId)}
               organizationId={organizationId ?? 0}
             />
           </div>

@@ -1,42 +1,52 @@
 "use client";
 
-import { PositionContextType, PositionState } from "@/lib/type";
+import { UserContextType, UserState } from "@/lib/type";
 import { createContext, useContext, useState, ReactNode } from "react";
 
-// สร้าง Context
-const PositionContext = createContext<PositionContextType | undefined>(
-  undefined,
-);
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// สร้าง Provider ไว้คลุม Layout
-export const PositionProvider = ({ children }: { children: ReactNode }) => {
-  const [position, setPositionState] = useState<PositionState>({
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUserState] = useState<UserState>({
+    employeeId: null,
+    employeeName: null, 
     positionId: null,
     positionName: null,
   });
 
-  const setPosition = (id: number | null, name: string | null) => {
-    setPositionState({ positionId: id, positionName: name });
+  const setUser = (
+    empId: number | null,
+    empName: string | null,
+    posId: number | null,
+    posName: string | null,
+  ) => {
+    setUserState({
+      employeeId: empId,
+      employeeName: empName,
+      positionId: posId,
+      positionName: posName,
+    });
   };
 
-  const clearPosition = () => {
-    setPositionState({ positionId: null, positionName: null });
+  const clearUser = () => {
+    setUserState({
+      employeeId: null,
+      employeeName: null,
+      positionId: null,
+      positionName: null,
+    });
   };
 
   return (
-    <PositionContext.Provider
-      value={{ ...position, setPosition, clearPosition }}
-    >
+    <UserContext.Provider value={{ ...user, setUser, clearUser }}>
       {children}
-    </PositionContext.Provider>
+    </UserContext.Provider>
   );
 };
 
-// สร้าง Hook ไว้เรียกใช้งานง่ายๆ
-export const usePosition = () => {
-  const context = useContext(PositionContext);
+export const useUser = () => {
+  const context = useContext(UserContext);
   if (!context) {
-    throw new Error("usePosition ต้องถูกเรียกใช้ภายใต้ PositionProvider");
+    throw new Error("useUser ต้องถูกเรียกใช้ภายใต้ UserProvider");
   }
   return context;
 };

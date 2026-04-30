@@ -7,12 +7,12 @@ import { Lock, Delete, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 import { verifyPositionPin } from "@/lib/auth-helpers";
-import { usePosition } from "./providers/PositionContext";
+import { useUser } from "./providers/PositionContext";
 
 export default function IdleTimeoutHandler() {
   const { isLocked, setIsLocked, resetTimer } = useIdleTimeout(1800000);
   // const { isLocked, setIsLocked, resetTimer } = useIdleTimeout(1800);
-  const { setPosition, clearPosition } = usePosition();
+  const { setUser, clearUser } = useUser();
 
   const { data: session } = useSession();
 
@@ -20,24 +20,35 @@ export default function IdleTimeoutHandler() {
 
   const [pin, setPin] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    if (pin.length === 4 && !isVerifying) {
+    if (pin.length === 4 && !isVerifying && !isError) {
       handleUnlock();
     }
   }, [pin]);
 
   useEffect(() => {
     if (isLocked) {
-      clearPosition();
+      clearUser();
     }
   }, [isLocked]);
 
   const handleNumpad = (num: string) => {
+    if (isError) {
+      setPin(num);
+      setIsError(false);
+      return;
+    }
     if (pin.length < 4) setPin((prev) => prev + num);
   };
 
   const handleBackspace = () => {
+    if (isError) {
+      setPin("");
+      setIsError(false);
+      return;
+    }
     setPin((prev) => prev.slice(0, -1));
   };
 
@@ -50,6 +61,8 @@ export default function IdleTimeoutHandler() {
     }
 
     setIsVerifying(true);
+    setIsError(false);
+
     try {
       const result = await verifyPositionPin(pin, Number(organizationId));
 
@@ -58,12 +71,21 @@ export default function IdleTimeoutHandler() {
         setPin("");
         resetTimer();
 
-        // setPosition(result.positionId ?? null, result.positionName ?? null);
+        // ✅ แก้ไขให้ส่งค่าเข้าไปใน Context ครบทั้ง 4 ตัว
+        setUser(
+          result.employeeId ?? null,
+          result.employeeName ?? null,
+          result.positionId ?? null,
+          result.positionName ?? null,
+        );
 
-        // toast.success(`ปลดล็อกสำเร็จ (ตำแหน่ง: ${result.positionName})`);
+        toast.success(`ปลดล็อกสำเร็จ (พนักงาน: ${result.employeeName})`);
       } else {
-        toast.error(result.message || "รหัส PIN ไม่ถูกต้อง");
-        setPin("");
+        setIsError(true);
+        setTimeout(() => {
+          setPin("");
+          setIsError(false);
+        }, 1000);
       }
     } catch (error) {
       toast.error("ระบบขัดข้อง โปรดลองอีกครั้ง");
@@ -76,13 +98,15 @@ export default function IdleTimeoutHandler() {
   useEffect(() => {
     if (!isLocked) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isVerifying) return;
+
       if (e.key === "Enter" && pin.length === 4) handleUnlock();
       else if (e.key === "Backspace") handleBackspace();
       else if (!isNaN(Number(e.key)) && e.key !== " ") handleNumpad(e.key);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLocked, pin]);
+  }, [isLocked, pin, isVerifying, isError]);
 
   if (!isLocked) return null;
 
@@ -96,20 +120,32 @@ export default function IdleTimeoutHandler() {
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
           หน้าจอถูกล็อก
         </h2>
-        <p className="text-sm text-zinc-500 mb-6 text-center">
-          กรุณากรอกรหัส PIN ตำแหน่งของคุณ <br />
-          เพื่อเข้าสู่ระบบทำรายการ
+
+        <p
+          className={`text-sm mb-6 text-center transition-colors duration-300 ${
+            isError ? "text-red-500 font-semibold" : "text-zinc-500"
+          }`}
+        >
+          {isError ? (
+            "รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่"
+          ) : (
+            <>
+              กรุณากรอกรหัส PIN ตำแหน่งของคุณ <br />
+              เพื่อเข้าสู่ระบบทำรายการ
+            </>
+          )}
         </p>
 
-        {/* จุดวงกลมแสดง PIN 4 จุด */}
         <div className="flex gap-4 mb-8">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className={`h-5 w-5 rounded-full border-2 transition-all ${
-                i < pin.length
-                  ? "bg-primary border-primary scale-110"
-                  : "bg-transparent border-zinc-300 dark:border-zinc-700"
+              className={`h-5 w-5 rounded-full border-2 transition-all duration-200 ${
+                isError && i < pin.length
+                  ? "bg-red-500 border-red-500 scale-110"
+                  : i < pin.length
+                    ? "bg-primary border-primary scale-110"
+                    : "bg-transparent border-zinc-300 dark:border-zinc-700"
               }`}
             />
           ))}
@@ -143,7 +179,6 @@ export default function IdleTimeoutHandler() {
           </Button>
         </div>
 
-        {/* ซ่อนปุ่มปลดล็อกไว้เพราะเราใช้ Auto Submit แล้ว (หรือจะคงไว้เผื่อคลิกก็ได้) */}
         <Button
           className="w-full h-14 text-lg rounded-2xl font-bold"
           onClick={handleUnlock}

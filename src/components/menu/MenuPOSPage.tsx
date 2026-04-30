@@ -24,6 +24,7 @@ import { generationImageMenu } from "@/lib/ai/geminiAI";
 import { deleteFileS3 } from "@/lib/actions/actionIndex";
 
 import InfiniteScroll from "react-infinite-scroll-component";
+import { useUser } from "../providers/PositionContext";
 
 const MenuPOSPage = ({
   initialItems,
@@ -31,7 +32,7 @@ const MenuPOSPage = ({
   id_user,
   organizationId,
 }: MenuPOSPageClientProps) => {
-
+  const { employeeId } = useUser();
   const [menuItems, setOrderItems] = useState(initialItems);
 
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
@@ -51,7 +52,7 @@ const MenuPOSPage = ({
   const itemsPerPage = 15;
   const [page, setPage] = useState(1);
   const [currentItems, setCurrentItems] = useState(
-    displayItems.slice(0, itemsPerPage)
+    displayItems.slice(0, itemsPerPage),
   );
   const [hasMore, setHasMore] = useState(displayItems.length > itemsPerPage);
 
@@ -59,7 +60,7 @@ const MenuPOSPage = ({
     menuName: string,
     id: number,
     createdById: number,
-    img: string | null
+    img: string | null,
   ) => {
     setLoadingItemId(id);
     try {
@@ -102,7 +103,7 @@ const MenuPOSPage = ({
       setDisplayItems(initialItems);
     } else {
       const filtered = initialItems.filter(
-        (item) => item.category.categoryName === filterCategory
+        (item) => item.category.categoryName === filterCategory,
       );
       setDisplayItems(filtered);
     }
@@ -123,7 +124,7 @@ const MenuPOSPage = ({
   useEffect(() => {
     if (detailMenu) {
       const updatedItemData = initialItems.find(
-        (item) => item.id === detailMenu.id
+        (item) => item.id === detailMenu.id,
       );
       if (updatedItemData) {
         setDetailMenu(updatedItemData);
@@ -197,7 +198,7 @@ const MenuPOSPage = ({
                 <MenuFormPOS
                   type={"create"}
                   relatedData={relatedData}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheet}
                   stateForm={openSheet}
@@ -208,7 +209,7 @@ const MenuPOSPage = ({
                   type={"update"}
                   relatedData={relatedData}
                   data={itemDetail}
-                  currentUserId={id_user}
+                  currentUserId={Number(employeeId)}
                   organizationId={organizationId ?? 0}
                   stateSheet={setOpenSheetUpdate}
                   stateForm={openSheetUpdate}
@@ -256,8 +257,8 @@ const MenuPOSPage = ({
                           handleGenerateImage(
                             item.menuName,
                             item.id ?? 0,
-                            id_user,
-                            item.img
+                            Number(employeeId),
+                            item.img,
                           )
                         }
                         isLoading={isLoading}
