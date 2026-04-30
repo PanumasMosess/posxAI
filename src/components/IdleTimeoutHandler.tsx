@@ -85,7 +85,9 @@ export default function IdleTimeoutHandler() {
         setTimeout(() => {
           setPin("");
           setIsError(false);
-        }, 1000);       
+        }, 1000);
+
+        console.log(result.message);
       }
     } catch (error) {
       toast.error("ระบบขัดข้อง โปรดลองอีกครั้ง");

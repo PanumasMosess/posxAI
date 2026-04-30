@@ -86,26 +86,29 @@ export const verifyPositionPin = async (
   organizationId: number,
 ) => {
   try {
-    console.log(`[verifyPin] เริ่มตรวจสอบ PIN สาขาที่: ${organizationId}`);
-
     const employees = await prisma.employeepin.findMany({
       where: {
         organizationId: organizationId,
       },
     });
 
-    console.log(`[verifyPin] ดึงข้อมูลพนักงานได้: ${employees.length} คน`);
+    // ถ้าดึงมาแล้วไม่เจอพนักงานในสาขานี้เลย ให้แจ้งกลับไปเลย
+    if (employees.length === 0) {
+      return {
+        success: false,
+        message: `ไม่พบข้อมูลพนักงานในระบบ (สาขา ID: ${organizationId})`,
+      };
+    }
+
+    let checkedCount = 0;
 
     for (const emp of employees) {
       if (!emp.pin) continue;
 
+      checkedCount++; // นับจำนวนพนักงานที่มี PIN ให้ตรวจ
       const isMatch = await bcrypt.compare(rawPin, emp.pin);
 
       if (isMatch) {
-        console.log(
-          `[verifyPin] ✅ รหัสตรงกับพนักงาน ID: ${emp.id} (${emp.name})`,
-        );
-
         const positionData = await prisma.posiotion.findUnique({
           where: { id: emp.position_id },
           select: { position_name: true },
@@ -121,10 +124,18 @@ export const verifyPositionPin = async (
       }
     }
 
-    console.log(`[verifyPin] ❌ รหัส PIN ไม่ตรงกับใครเลย`);
-    return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
-  } catch (error) {
-    console.error("[verifyPin] 🔥 Error verifyPositionPin:", error);
-    return { success: false, message: "เกิดข้อผิดพลาดในการตรวจสอบรหัส PIN" };
+    // ถ้ารหัสไม่ตรงกับใครเลย ให้แนบ log จำนวนที่ตรวจไปด้วย
+    return {
+      success: false,
+      message: `รหัส PIN ไม่ถูกต้อง (ตรวจสอบพนักงานแล้ว ${checkedCount}/${employees.length} คน)`,
+    };
+  } catch (error: any) {
+    console.error("Error verifyPositionPin:", error);
+
+    // ดึงเอาข้อความ Error จริงๆ ของระบบ แนบใส่ message กลับไปด้วย
+    return {
+      success: false,
+      message: `เกิดข้อผิดพลาดของระบบ: ${error?.message || String(error)}`,
+    };
   }
 };
