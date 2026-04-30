@@ -42,16 +42,59 @@ export const userSignIn = async ({
   }
 };
 
+// export const verifyPositionPin = async (
+//   rawPin: string,
+//   organizationId: number,
+// ) => {
+//   try {
+//     const employees = await prisma.employeepin.findMany({
+//       where: {
+//         organizationId: organizationId,
+//       },
+//     });
+
+//     for (const emp of employees) {
+//       if (!emp.pin) continue;
+
+//       const isMatch = await bcrypt.compare(rawPin, emp.pin);
+
+//       if (isMatch) {
+//         const positionData = await prisma.posiotion.findUnique({
+//           where: { id: emp.position_id },
+//           select: { position_name: true },
+//         });
+
+//         return {
+//           success: true,
+//           employeeId: emp.id,
+//           employeeName: `${emp.name} ${emp.surname}`,
+//           positionId: emp.position_id,
+//           positionName: positionData?.position_name || "ไม่มีตำแหน่ง",
+//         };
+//       }
+//     }
+
+//     return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
+//   } catch (error) {
+//     console.error("Error verifyPositionPin:", error);
+//     return { success: false, message: "เกิดข้อผิดพลาดในการตรวจสอบรหัส PIN" };
+//   }
+// };
+
 export const verifyPositionPin = async (
   rawPin: string,
   organizationId: number,
 ) => {
   try {
+    console.log(`[verifyPin] เริ่มตรวจสอบ PIN สาขาที่: ${organizationId}`);
+
     const employees = await prisma.employeepin.findMany({
       where: {
         organizationId: organizationId,
       },
     });
+
+    console.log(`[verifyPin] ดึงข้อมูลพนักงานได้: ${employees.length} คน`);
 
     for (const emp of employees) {
       if (!emp.pin) continue;
@@ -59,6 +102,10 @@ export const verifyPositionPin = async (
       const isMatch = await bcrypt.compare(rawPin, emp.pin);
 
       if (isMatch) {
+        console.log(
+          `[verifyPin] ✅ รหัสตรงกับพนักงาน ID: ${emp.id} (${emp.name})`,
+        );
+
         const positionData = await prisma.posiotion.findUnique({
           where: { id: emp.position_id },
           select: { position_name: true },
@@ -69,14 +116,15 @@ export const verifyPositionPin = async (
           employeeId: emp.id,
           employeeName: `${emp.name} ${emp.surname}`,
           positionId: emp.position_id,
-          positionName: positionData?.position_name || "ไม่มีตำแหน่ง", 
+          positionName: positionData?.position_name || "ไม่มีตำแหน่ง",
         };
       }
     }
 
+    console.log(`[verifyPin] ❌ รหัส PIN ไม่ตรงกับใครเลย`);
     return { success: false, message: "รหัส PIN ไม่ถูกต้อง" };
   } catch (error) {
-    console.error("Error verifyPositionPin:", error);
+    console.error("[verifyPin] 🔥 Error verifyPositionPin:", error);
     return { success: false, message: "เกิดข้อผิดพลาดในการตรวจสอบรหัส PIN" };
   }
 };
