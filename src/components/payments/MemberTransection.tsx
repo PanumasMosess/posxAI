@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, CalendarDays, Wallet, Star } from "lucide-react";
+import { Search, CalendarDays, Wallet, Star, ArrowDownUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { DataTablePagination } from "@/components/TablePagination";
-import { column_member_transaction } from "./tables/column_member_transaction"; 
+import { column_member_transaction } from "./tables/column_member_transaction";
 import { MemberTransactionProps } from "@/lib/type";
 
 const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
@@ -27,7 +27,6 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // ✅ กรองข้อมูลแบบเรียลไทม์
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       const memberPhone = item.member?.phone || "";
@@ -52,21 +51,49 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
     });
   }, [data, phoneSearch, startDate, endDate]);
 
-  // ✅ คำนวณสรุปยอดความเคลื่อนไหว (จากข้อมูลที่ถูกค้นหาเท่านั้น)
   const summary = useMemo(() => {
     let netCredit = 0;
     let netPoint = 0;
 
-    filteredData.forEach((item) => {
-      const amt = Number(item.amount) || 0;
+    // ตัวแปรสำหรับเก็บ Transaction ล่าสุด เพื่อดึงยอดคงเหลือ
+    let latestCreditTx: any = null;
+    let latestPointTx: any = null;
+
+    // เราต้องเรียงข้อมูลตามวันที่จากเก่าไปใหม่ก่อน เพื่อให้ตัวแปร latest เก็บค่าล่าสุดจริงๆ
+    // (หากข้อมูลคุณเรียงจากใหม่ไปเก่าอยู่แล้วจาก Database ก็ใช้วิธีหาตัวแรกสุดแทนได้)
+    const sortedData = [...filteredData].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+
+    sortedData.forEach((item) => {
+      const amt = Math.abs(Number(item.amount) || 0);
+      const isOutflow = item.type === "SPEND" || item.type === "REDEEM";
+      const actualAmount = isOutflow ? -amt : amt;
+
       if (item.walletType === "CREDIT") {
-        netCredit += amt;
+        netCredit += actualAmount;
+        latestCreditTx = item; // อัปเดตรายการล่าสุดของเครดิต
       } else if (item.walletType === "POINT") {
-        netPoint += amt;
+        netPoint += actualAmount;
+        latestPointTx = item; // อัปเดตรายการล่าสุดของแต้ม
       }
     });
 
-    return { netCredit, netPoint };
+    // ดึงยอดคงเหลือจาก Transaction ล่าสุด (ถ้าไม่มีให้เป็น 0)
+    const currentCreditBalance = latestCreditTx
+      ? Number(latestCreditTx.balanceAfter)
+      : 0;
+    const currentPointBalance = latestPointTx
+      ? Number(latestPointTx.balanceAfter)
+      : 0;
+
+    return {
+      netCredit,
+      netPoint,
+      currentCreditBalance,
+      currentPointBalance,
+    };
   }, [filteredData]);
 
   const table = useReactTable({
@@ -84,7 +111,6 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
 
   return (
     <div className="space-y-4 w-full">
-      {/* 🔍 ส่วนค้นหาและกรองข้อมูล */}
       <div className="flex flex-col xl:flex-row gap-3 bg-white dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm items-center">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -124,8 +150,6 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
           </div>
         </div>
       </div>
-
-      {/* 📊 ตารางแสดงผล */}
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/50 shadow-sm">
         <Table>
           <TableHeader className="bg-zinc-50 dark:bg-zinc-800/50">
@@ -180,61 +204,119 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
           </TableBody>
         </Table>
 
-        {/* Pagination */}
         <div className="p-2 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50">
           <DataTablePagination table={table} />
         </div>
       </div>
 
-      {/* 💰 กล่องสรุปยอด (อัปเดตอัตโนมัติตามการค้นหา) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-        <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 flex justify-between items-center shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-800/50 rounded-lg text-blue-600 dark:text-blue-400">
-              <Wallet className="w-5 h-5" />
+        {/* กล่องสรุปเครดิต */}
+        <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-xl border border-blue-100 dark:border-blue-800/30 shadow-sm flex flex-col gap-4">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-800/50 rounded-lg text-blue-600 dark:text-blue-400">
+                <Wallet className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wider">
+                  กระเป๋าเครดิต
+                </p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  ข้อมูลจากผลการค้นหา
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
-                ยอดรวมเครดิต
+
+            {/* ยอดคงเหลือล่าสุด */}
+            <div className="text-right">
+              <p className="text-xs text-zinc-500 font-medium mb-1">
+                ยอดคงเหลือล่าสุด
               </p>
-              <p className="text-[10px] text-zinc-500">ความเคลื่อนไหวสุทธิ</p>
+              <p className="text-2xl font-black text-blue-700 dark:text-blue-400">
+                {summary.currentCreditBalance.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                <span className="text-sm font-medium text-blue-600/70">฿</span>
+              </p>
             </div>
           </div>
-          <p
-            className={`text-2xl font-black ${
-              summary.netCredit >= 0 ? "text-emerald-600" : "text-red-500"
-            }`}
-          >
-            {summary.netCredit > 0 ? "+" : ""}
-            {summary.netCredit.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{" "}
-            <span className="text-sm font-medium text-zinc-500">฿</span>
-          </p>
+
+          <div className="h-px w-full bg-blue-200/50 dark:bg-blue-800/30"></div>
+
+          {/* ความเคลื่อนไหว */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-1.5 text-zinc-500">
+              <ArrowDownUp className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">ความเคลื่อนไหวสุทธิ</span>
+            </div>
+            <p
+              className={`text-sm font-bold ${
+                summary.netCredit >= 0
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-500"
+              }`}
+            >
+              {summary.netCredit > 0 ? "+" : ""}
+              {summary.netCredit.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              ฿
+            </p>
+          </div>
         </div>
 
-        <div className="bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/30 flex justify-between items-center shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-800/50 rounded-lg text-emerald-600 dark:text-emerald-400">
-              <Star className="w-5 h-5" />
+        {/* กล่องสรุปแต้ม */}
+        <div className="bg-emerald-50 dark:bg-emerald-900/10 p-5 rounded-xl border border-emerald-100 dark:border-emerald-800/30 shadow-sm flex flex-col gap-4">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-emerald-100 dark:bg-emerald-800/50 rounded-lg text-emerald-600 dark:text-emerald-400">
+                <Star className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-wider">
+                  กระเป๋าแต้มสะสม
+                </p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  ข้อมูลจากผลการค้นหา
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
-                ยอดรวมแต้มสะสม
+
+            {/* ยอดคงเหลือล่าสุด */}
+            <div className="text-right">
+              <p className="text-xs text-zinc-500 font-medium mb-1">
+                ยอดแต้มคงเหลือ
               </p>
-              <p className="text-[10px] text-zinc-500">ความเคลื่อนไหวสุทธิ</p>
+              <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                {summary.currentPointBalance.toLocaleString()}{" "}
+                <span className="text-sm font-medium text-emerald-600/70">
+                  Pts
+                </span>
+              </p>
             </div>
           </div>
-          <p
-            className={`text-2xl font-black ${
-              summary.netPoint >= 0 ? "text-emerald-600" : "text-red-500"
-            }`}
-          >
-            {summary.netPoint > 0 ? "+" : ""}
-            {summary.netPoint.toLocaleString()}{" "}
-            <span className="text-sm font-medium text-zinc-500">Pts</span>
-          </p>
+
+          <div className="h-px w-full bg-emerald-200/50 dark:bg-emerald-800/30"></div>
+
+          {/* ความเคลื่อนไหว */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-1.5 text-zinc-500">
+              <ArrowDownUp className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">ความเคลื่อนไหวสุทธิ</span>
+            </div>
+            <p
+              className={`text-sm font-bold ${
+                summary.netPoint >= 0
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-500"
+              }`}
+            >
+              {summary.netPoint > 0 ? "+" : ""}
+              {summary.netPoint.toLocaleString()} Pts
+            </p>
+          </div>
         </div>
       </div>
     </div>

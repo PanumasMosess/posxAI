@@ -741,3 +741,44 @@ export const updateMemberField = async (
     return { success: false };
   }
 };
+
+
+export const payMemberCredit = async (
+  memberId: number,
+  amount: number,
+  employeeId: number,
+  organizationId: number, 
+  note: string = "ชำระเครดิต" 
+) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updatedMember = await tx.member.update({
+        where: { id: memberId },
+        data: {
+          creditBalance: {
+            increment: amount, 
+          },
+        },
+      });
+
+      await tx.membertransaction.create({
+        data: {
+          memberId: memberId,
+          organizationId: organizationId,
+          type: "TOPUP",
+          walletType: "CREDIT", 
+          amount: amount,
+          balanceAfter: updatedMember.creditBalance, 
+          note: note, 
+          createdById: employeeId, 
+        },
+      });
+      
+    });
+
+    return { success: true, message: "ชำระเครดิตและบันทึกประวัติสำเร็จ" };
+  } catch (error) {
+    console.error("Error payMemberCredit:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการชำระเครดิต" };
+  }
+};

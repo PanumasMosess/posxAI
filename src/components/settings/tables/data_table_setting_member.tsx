@@ -24,7 +24,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Users, Plus, Search } from "lucide-react"; // ✅ เปลี่ยนไอคอนเป็น Users
+import { Users, Plus, Search } from "lucide-react"; 
 import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
@@ -40,7 +40,7 @@ export function Data_table_setting_member<TData, TValue>({
   userId,
   organizationId,
 }: DataTableProps<TData, TValue>) {
-  // ✅ เปลี่ยนชื่อ State ให้ตรงกับบริบท Member
+  
   const [openSheetInsertMember, setOpenSheetInsertMember] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
