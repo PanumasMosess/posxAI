@@ -25,7 +25,13 @@ const page = async () => {
           },
         },
       },
-      creator: true,
+      creator: {
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+        },
+      },
     },
     orderBy: {
       updatedAt: "desc",
