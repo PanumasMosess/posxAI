@@ -17,6 +17,7 @@ import {
   updateSurNameEmpPin,
   updatePositionEmpPin,
   updatePinEmpPin,
+  payMemberCredit,
 } from "@/lib/actions/actionSettings";
 import { Data_table_setting_employee } from "../tables/data-table-setting-employee";
 import column_setting_employee from "../tables/column_setting_employee";
@@ -36,7 +37,7 @@ const SettingEmployeePage = ({
   organizationId,
 }: SettingEmployeeProps) => {
   const router = useRouter();
-  const {  employeeId } = useUser();
+  const { employeeId } = useUser();
   // --- Handlers for Position ---
   const handleStatusChange = async (id: number, status: string) => {
     const result = await updateStusPosition(id, status);
@@ -141,6 +142,27 @@ const SettingEmployeePage = ({
     else toast.error("อัปเดต PIN ไม่สำเร็จ");
   };
 
+  const handlePayCredit = async (memberId: number, amount: number) => {
+    if (!employeeId) {
+      toast.error("ไม่พบข้อมูลพนักงานผู้ทำรายการ");
+      return;
+    }
+
+    const result = await payMemberCredit(
+      memberId,
+      amount,
+      Number(employeeId),
+      organizationId ?? 0,
+    );
+
+    if (result.success) {
+      toast.success("บันทึกการชำระเครดิตสำเร็จ");
+      router.refresh();
+    } else {
+      toast.error(result.message || "เกิดข้อผิดพลาด");
+    }
+  };
+
   // --- Column Definitions ---
   const columns = column_setting_position(
     handleStatusChange,
@@ -160,10 +182,10 @@ const SettingEmployeePage = ({
   const column_member = column_setting_member(
     handleStatusChangeMember,
     handleUpdateFieldMember,
+    handlePayCredit,
     organizationId ?? 0,
   );
 
-  // ✅ สร้าง Column สำหรับ Employee PIN
   const column_employee_pin = column_setting_employee_pin(
     handleStatusChangeEmpPin,
     onUpdateNameEmpPin,

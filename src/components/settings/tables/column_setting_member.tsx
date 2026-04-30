@@ -1,7 +1,8 @@
+import FormPayCredit from "@/components/forms/FormPayCredit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil } from "lucide-react";
+import { ArrowUpDown, CreditCard, Pencil } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const memberStatuses = [
@@ -111,6 +112,7 @@ const EditableCell = ({
 const column_setting_member = (
   onUpdateStatus: (id: number, newStatus: string) => void,
   onUpdateField: (id: number, field: string, newValue: string) => void,
+  handlePayCredit: (memberId: number, amount: number) => Promise<void>,
   organizationId: number,
 ): ColumnDef<any>[] => [
   {
@@ -253,6 +255,19 @@ const column_setting_member = (
               </option>
             ))}
           </select>
+        </div>
+      );
+    },
+  },
+  {
+    id: "pay_credit",
+    header: "ชำระเครดิต",
+    cell: ({ row }) => {
+      const member = row.original;
+
+      return (
+        <div className="flex justify-center">
+          <FormPayCredit member={member} onPay={handlePayCredit} />
         </div>
       );
     },
