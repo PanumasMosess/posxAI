@@ -457,8 +457,9 @@ export type HistoryPayment = {
   paymentMethod: string;
   createdAt: Date;
   creator: {
-    username: string;
-  };
+    name: string;
+    surname: string;
+  } | null;
   runningRef: {
     runningCode: string;
     order: {
@@ -759,7 +760,6 @@ export interface MoveTableDialogProps {
   allTables: TableItem[];
   onConfirm: (fromId: number, toId: number) => void;
 }
-
 
 export interface UserState {
   employeeId: number | null;
