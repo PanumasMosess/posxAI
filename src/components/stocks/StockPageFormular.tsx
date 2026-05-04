@@ -43,7 +43,7 @@ import {
   ModifierItem,
   ModifierItemColumns,
 } from "./tables/column_modifieritem";
-import { useUser } from "../providers/PositionContext";
+import { useUser } from "../providers/UserContext";
 
 const StockPageFormular = ({
   initialItems,

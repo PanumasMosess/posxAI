@@ -11,7 +11,7 @@ import TableStatusPage from "./TableStatusPage";
 import { useState } from "react";
 import OrderStatusPage from "./OrderStatusPage";
 import PaymentStatusPage from "./PaymentStatusPage";
-import { useUser } from "../providers/PositionContext";
+import { useUser } from "../providers/UserContext";
 
 const MainPageComponentsHome = ({
   initialItems,

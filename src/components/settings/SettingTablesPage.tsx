@@ -7,7 +7,7 @@ import {
   updateNameTable,
   updateStatusTable,
 } from "@/lib/actions/actionSettings";
-import {  useUser } from "../providers/PositionContext";
+import {  useUser } from "../providers/UserContext";
 
 const SettingTablesPage = ({
   initialItems,

@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { SessionProvider } from "next-auth/react";
 import IdleTimeoutHandler from "@/components/IdleTimeoutHandler";
-import { UserProvider } from "@/components/providers/PositionContext";
+import { UserProvider } from "@/components/providers/UserContext";
 
 export const metadata: Metadata = {
   title: "POSX",

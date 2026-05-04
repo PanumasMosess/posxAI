@@ -766,14 +766,15 @@ export interface UserState {
   employeeName: string | null;
   positionId: number | null;
   positionName: string | null;
+  img: string | null;
 }
-
 export interface UserContextType extends UserState {
   setUser: (
     empId: number | null,
     empName: string | null,
     posId: number | null,
     posName: string | null,
+    imgStr: string | null,
   ) => void;
   clearUser: () => void;
 }

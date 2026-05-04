@@ -7,7 +7,7 @@ import {
   updateNamePrinter,
   updateStationUse,
 } from "@/lib/actions/actionSettings";
-import { useUser } from "@/components/providers/PositionContext";
+import { useUser } from "@/components/providers/UserContext";
 
 const SettingPrinterPage = ({
   initialItems,

@@ -24,7 +24,7 @@ import { generationImageMenu } from "@/lib/ai/geminiAI";
 import { deleteFileS3 } from "@/lib/actions/actionIndex";
 
 import InfiniteScroll from "react-infinite-scroll-component";
-import { useUser } from "../providers/PositionContext";
+import { useUser } from "../providers/UserContext";
 
 const MenuPOSPage = ({
   initialItems,
