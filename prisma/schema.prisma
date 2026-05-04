@@ -105,13 +105,15 @@ model menu {
   updatedAt   DateTime @updatedAt
 
   createdById    Int
-  creator        employeepin   @relation(fields: [createdById], references: [id])
+  creator        employeepin   @relation("MenuCreator", fields: [createdById], references: [id])
   categoryMenuId Int
   category       categorystock @relation(fields: [categoryMenuId], references: [id])
   unitPriceId    Int           @default(1)
   unitPrice      unitprice     @relation(fields: [unitPriceId], references: [id])
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
+  mcEmployeeId   Int?
+  mcEmployee     employeepin?  @relation("MenuMC", fields: [mcEmployeeId], references: [id])
 
   formularstock formularstock[]
   order         order[]
@@ -464,30 +466,32 @@ enum wallettype {
 }
 
 model employeepin {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   pin         String
   name        String
   surname     String
   email       String?
   img         String?
-  status      String   @default("ON")
+  tel         Int?
+  status      String    @default("ON")
   position_id Int
   login_fail  Int
   created_by  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  birthday    DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  birthday    DateTime?
 
   organizationId     Int?
   organization       organization?       @relation(fields: [organizationId], references: [id])
   categorystocks     categorystock[]
   suppliers          supplier[]
   stocks             stock[]
-  menus              menu[]
+  menus              menu[]              @relation("MenuCreator") // เมนูที่พนักงานคนนี้เป็นคนกดสร้าง
   tables             table[]
   paymentorders      paymentorder[]
   printers           printer[]
   stations           station[]
   posiotions         posiotion[]
   membertransactions membertransaction[]
+  mcMenus            menu[]              @relation("MenuMC") // เมนูที่พนักงานคนนี้เป็น MC
 }

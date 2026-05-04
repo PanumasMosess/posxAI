@@ -51,7 +51,7 @@ const MenuOrderDetailDialog = ({
     groupId: number,
     itemId: number,
     maxSelect: number,
-    isRadio: boolean
+    isRadio: boolean,
   ) => {
     setSelections((prev) => {
       const currentSelection = prev[groupId] || [];
@@ -156,6 +156,8 @@ const MenuOrderDetailDialog = ({
 
   if (!menuDetail) return null;
 
+  const isEntertainer = menuDetail?.category?.categoryName === "Entertainer";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 50, scale: 0.95 }}
@@ -166,7 +168,6 @@ const MenuOrderDetailDialog = ({
       onClick={onClose}
     >
       <div
-        // 1. Parent: ต้องมี flex-col และ max-h เพื่อกำหนดกรอบ
         className="relative w-full max-w-sm rounded-xl shadow-2xl bg-background text-foreground overflow-hidden md:max-w-md lg:max-w-lg max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -233,7 +234,7 @@ const MenuOrderDetailDialog = ({
                               group.id,
                               parseInt(val),
                               group.maxSelect,
-                              true
+                              true,
                             )
                           }
                           className="gap-3"
@@ -247,7 +248,7 @@ const MenuOrderDetailDialog = ({
                                   group.id,
                                   item.id,
                                   group.maxSelect,
-                                  true
+                                  true,
                                 )
                               }
                             >
@@ -275,7 +276,7 @@ const MenuOrderDetailDialog = ({
                         <div className="grid gap-3">
                           {group.items.map((item: any) => {
                             const isChecked = selections[group.id]?.includes(
-                              item.id
+                              item.id,
                             );
                             return (
                               <div
@@ -286,7 +287,7 @@ const MenuOrderDetailDialog = ({
                                     group.id,
                                     item.id,
                                     group.maxSelect,
-                                    false
+                                    false,
                                   )
                                 }
                               >
@@ -299,7 +300,7 @@ const MenuOrderDetailDialog = ({
                                         group.id,
                                         item.id,
                                         group.maxSelect,
-                                        false
+                                        false,
                                       )
                                     }
                                   />
@@ -357,26 +358,38 @@ const MenuOrderDetailDialog = ({
               </Select>
             )}
 
-            <div className="flex items-center gap-3 bg-muted rounded-lg p-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-md bg-background shadow-sm hover:bg-background/90"
-                onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="text-lg font-bold w-6 text-center text-foreground">
-                {quantity}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => setQuantity((prev) => prev + 1)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-col items-center">
+              {/* ✅ แสดงเฉพาะเมื่อเป็น Entertainer */}
+              {isEntertainer && (
+                <span className="text-xs text-muted-foreground font-medium mb-1">
+                  ระบุจำนวนชั่วโมง
+                </span>
+              )}
+              <div className="flex items-center gap-3 bg-muted rounded-lg p-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-md bg-background shadow-sm hover:bg-background/90"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="text-lg font-bold min-w-[32px] text-center text-foreground flex items-center justify-center gap-1">
+                  {quantity}
+                  {/* ✅ แสดง ชม. เมื่อเป็น Entertainer */}
+                  {isEntertainer && (
+                    <span className="text-sm text-primary">ชม.</span>
+                  )}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => setQuantity((prev) => prev + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -387,7 +400,10 @@ const MenuOrderDetailDialog = ({
             onClick={handleAddToCartClick}
             disabled={!isValid}
           >
-            เพิ่มลงตะกร้า - ฿{totalPrice.toLocaleString()}
+            {/* ✅ เปลี่ยนข้อความบนปุ่ม */}
+            {isEntertainer
+              ? `เลือก Entertainer - ฿${totalPrice.toLocaleString()}`
+              : `เพิ่มลงตะกร้า - ฿${totalPrice.toLocaleString()}`}
           </Button>
         </div>
       </div>

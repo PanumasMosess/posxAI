@@ -68,10 +68,11 @@ export const MenuSchema_ = z.object({
   unit: z.string().min(1, { message: "กรุณากรอกหน่วยสินค้า" }).max(50),
   description: z.string().optional(),
   status: z.string().optional(),
-  createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
+  createdById: z.coerce.number(),
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
   categoryMenuId: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),
   unitPriceId: z.coerce.number().min(1, "ต้องมี ID หมวดหมู่"),
+  mcEmployeeId: z.coerce.number().optional().nullable(),
 
   img: z.any().optional(),
   modifierGroupIds: z.array(z.number()).optional(),
@@ -166,14 +167,16 @@ export const MemberSchema_ = z.object({
 export type MemberSchema = z.infer<typeof MemberSchema_>;
 
 export const EmployeePinSchema_ = z.object({
-  pin: z.string().min(4, "PIN ต้องมีอย่างน้อย 4 หลัก"), 
+  pin: z.string().min(4, "PIN ต้องมีอย่างน้อย 4 หลัก"),
   name: z.string().min(1, "กรุณาระบุชื่อ"),
   surname: z.string().min(1, "กรุณาระบุนามสกุล"),
   email: z.string().email("อีเมลไม่ถูกต้อง").optional().or(z.literal("")),
-  birthday: z.string().min(1, "กรุณาระบุวันเกิด"),
+  tel: z.string().optional().or(z.literal("")),
+  birthday: z.string().min(1, "กรุณาระบุวันเกิด").optional().or(z.literal("")),
   img: z.any().optional(),
   position_id: z.coerce.number().min(1, "กรุณาเลือกตำแหน่ง"),
   created_by: z.string().optional(),
   organizationId: z.coerce.number(),
 });
+
 export type EmployeePinSchema = z.infer<typeof EmployeePinSchema_>;

@@ -60,12 +60,10 @@ const SettingFormEmployeePin = ({
   const formAddEmployeePin = useForm<EmployeePinSchema>({
     resolver: zodResolver(EmployeePinSchema_),
     defaultValues: {
-      // ❌ เอา username ออกจาก defaultValues
       pin: "",
       name: "",
       surname: "",
-      email: "",
-      birthday: "",
+      tel: "", // ✅ เพิ่ม default value สำหรับเบอร์โทร
       img: "",
       position_id: 0,
       created_by: currentUserId.toString(),
@@ -91,9 +89,7 @@ const SettingFormEmployeePin = ({
         created_by: currentUserId.toString(),
         organizationId: Number(organizationId),
         position_id: Number(dataForm.position_id),
-        birthday: dataForm.birthday
-          ? new Date(dataForm.birthday).toISOString()
-          : new Date().toISOString(),
+        // ✅ เอาการแปลงค่า birthday ออกไปแล้ว
       };
 
       if (dataForm.img && dataForm.img instanceof File) {
@@ -193,39 +189,28 @@ const SettingFormEmployeePin = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={formAddEmployeePin.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>อีเมล</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="example@email.com"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={formAddEmployeePin.control}
-                name="birthday"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>วันเกิด</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* ✅ เพิ่มฟิลด์เบอร์โทรศัพท์ */}
+            <FormField
+              control={formAddEmployeePin.control}
+              name="tel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>เบอร์โทรศัพท์</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="tel"
+                      placeholder="08xxxxxxxx"
+                      maxLength={10}
+                      onChange={(e) =>
+                        field.onChange(e.target.value.replace(/[^0-9]/g, ""))
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={formAddEmployeePin.control}
