@@ -140,6 +140,14 @@ export const PositionSchema_ = z.object({
 });
 export type PositionSchema = z.infer<typeof PositionSchema_>;
 
+export const PermissionSchema_ = z.object({
+  permissionKey: z.string().min(1, "กรุณากรอก key"),
+  permissionName: z.string().min(1, "กรุณากรอกชื่อสิทธิ"),
+  organizationId: z.number(),
+});
+
+export type PermissionSchema = z.infer<typeof PermissionSchema_>;
+
 export const EmployeeSchema_ = z.object({
   id: z.number().optional(),
   username: z.string().min(1, { message: "กรุณากรอก username" }).max(50),

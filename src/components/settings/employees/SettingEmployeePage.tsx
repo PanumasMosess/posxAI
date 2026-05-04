@@ -3,6 +3,9 @@ import { SettingEmployeeProps, SettingPositions } from "@/lib/type";
 import { useRouter } from "next/navigation";
 import { Data_table_setting_position } from "../tables/data-table-setting-position";
 import column_setting_position from "../tables/column_setting_position";
+import column_setting_permission from "../tables/column_setting_permission";
+import { Data_table_setting_permission } from "../tables/data-table-setting-permission";
+
 import {
   updateNameEmp,
   updateNamePosition,
@@ -18,6 +21,9 @@ import {
   updatePositionEmpPin,
   updatePinEmpPin,
   payMemberCredit,
+  updatePermissionKey,
+  updatePermissionName,
+  updatePermissionStatus,
 } from "@/lib/actions/actionSettings";
 import { Data_table_setting_employee } from "../tables/data-table-setting-employee";
 import column_setting_employee from "../tables/column_setting_employee";
@@ -29,7 +35,9 @@ import { toast } from "react-toastify";
 import { Data_table_setting_employee_pin } from "../tables/Data_table_setting_employee_pin";
 import column_setting_employee_pin from "../tables/column_setting_employee_pin";
 import { useUser } from "@/components/providers/UserContext";
-
+import { useState } from "react";
+import { Sheet } from "@/components/ui/sheet";
+import SettingFormPositionPermission from "@/components/forms/SettingFormPositionPermission";
 const SettingEmployeePage = ({
   initialItems,
   relatedData,
@@ -48,6 +56,35 @@ const SettingEmployeePage = ({
 
   const onUpdateName = async (id: number, positionName: string) => {
     const result = await updateNamePosition(id, positionName);
+    if (result.success) {
+      router.refresh();
+    }
+  };
+
+  const [openPermissionSheet, setOpenPermissionSheet] = useState(false);
+  const [currentPositionId, setCurrentPositionId] = useState<number | null>(null);
+
+  const onOpenPermission = (positionId: number) => {
+    setCurrentPositionId(positionId);
+    setOpenPermissionSheet(true);
+  };
+
+  const handleUpdatePermissionKey = async (id: number, value: string) => {
+    const result = await updatePermissionKey(id, value);
+    if (result.success) {
+      router.refresh();
+    }
+  };
+
+  const handleUpdatePermissionName = async (id: number, value: string) => {
+    const result = await updatePermissionName(id, value);
+    if (result.success) {
+      router.refresh();
+    }
+  };
+
+  const handleUpdatePermissionStatus = async (id: number, status: string) => {
+    const result = await updatePermissionStatus(id, status);
     if (result.success) {
       router.refresh();
     }
@@ -168,6 +205,7 @@ const SettingEmployeePage = ({
     handleStatusChange,
     onUpdateName,
     organizationId ?? 0,
+    onOpenPermission
   );
 
   const column_employee = column_setting_employee(
@@ -194,6 +232,12 @@ const SettingEmployeePage = ({
     onUpdatePinEmpPin,
     organizationId ?? 0,
     relatedData.positions,
+  );
+
+  const column_permission = column_setting_permission(
+    handleUpdatePermissionKey,
+    handleUpdatePermissionName,
+    handleUpdatePermissionStatus
   );
 
   return (
@@ -295,7 +339,43 @@ const SettingEmployeePage = ({
             </div>
           </div>
         </div>
+        <div
+          className="
+          rounded-2xl 
+          border border-white/20 dark:border-zinc-700/50    
+          bg-white/70 dark:bg-zinc-900/70 
+          backdrop-blur-xl   
+          shadow-[0_8px_30px_rgb(0,0,0,0.04)]
+          dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]
+          p-0 overflow-hidden w-full
+        "
+        >
+          <div className="overflow-x-auto w-full">
+            <div className="min-w-[800px] md:min-w-full p-4">
+              <Data_table_setting_permission
+                columns={column_permission}
+                data={(relatedData as any).permissions || []}
+                userId={Number(employeeId)}
+                organizationId={organizationId ?? 0}
+              />
+            </div>
+          </div>
+        </div>
+
       </div>
+      {/* 🔥 Permission Sheet */}
+      <Sheet
+        open={openPermissionSheet}
+        onOpenChange={setOpenPermissionSheet}
+      >
+        {currentPositionId && (
+          <SettingFormPositionPermission
+            positionId={currentPositionId}
+            organizationId={organizationId ?? 0}
+            stateSheet={setOpenPermissionSheet}
+          />
+        )}
+      </Sheet>
     </div>
   );
 };

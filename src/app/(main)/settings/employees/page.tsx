@@ -34,6 +34,15 @@ const page = async () => {
     },
   });
 
+  const itemsDataPermission = await prisma.permission.findMany({
+    where: {
+      organizationId: organizationId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
   const itemsDataMember = await prisma.member.findMany({
     where: {
       organizationId: organizationId,
@@ -55,7 +64,8 @@ const page = async () => {
   const relatedData = {
     positions: itemsDataPosition,
     members: itemsDataMember,
-    employeePins: itemsDataEmployeePin, 
+    employeePins: itemsDataEmployeePin,
+    permissions: itemsDataPermission,
   };
 
   return (
