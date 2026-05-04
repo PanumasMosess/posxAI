@@ -37,7 +37,6 @@ import {
 import { createMenu, updateMenu } from "@/lib/actions/actionMenu";
 import {
   deleteFileS3,
-  handleImageUpload,
   menu_handleImageUpload,
 } from "@/lib/actions/actionIndex";
 import { toast } from "react-toastify";
@@ -75,12 +74,18 @@ const MenuFormPOS = ({
       organizationId: organizationId,
       categoryMenuId: 0,
       unitPriceId: 0,
+      mcEmployeeId: null,
     },
   });
 
   const router = useRouter();
 
-  const { categories, unitprices } = relatedData;
+  // ดึง employees มาจาก relatedData ด้วย
+  const {
+    categories = [],
+    unitprices = [],
+    employees = [],
+  } = relatedData || {};
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [OldImg, setOldImg] = useState("");
@@ -89,20 +94,30 @@ const MenuFormPOS = ({
     {
       success: false,
       error: false,
-    }
+    },
   );
+
+  const watchCategoryId = formAddMenu.watch("categoryMenuId");
+  const selectedCategory = categories.find(
+    (c: any) => c.id === Number(watchCategoryId),
+  );
+  const isEntertainer = selectedCategory?.categoryName === "Entertainer";
 
   const onSubmit = async (dataForm: MenuSchema) => {
     try {
       setIsSubmitting(true);
-      const finalData = { ...dataForm };
+      const finalData = { ...dataForm, createdById: currentUserId };
+
+      if (!isEntertainer) {
+        finalData.mcEmployeeId = null;
+      }
 
       if (type === "update" && OldImg && dataForm.img) {
         const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!;
         const urlObject = new URL(OldImg);
         const pathname = urlObject.pathname;
         const key = pathname.substring(`/${bucketName}/`.length);
-        const status_del_old = await deleteFileS3(key);
+        await deleteFileS3(key); 
       }
 
       if (dataForm.img && dataForm.img instanceof File) {
@@ -111,11 +126,13 @@ const MenuFormPOS = ({
       } else {
         finalData.img = OldImg;
       }
+
       startTransition(async () => {
         formAction(finalData);
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "เกิดข้อผิดพลาด");
+      setIsSubmitting(false);
     }
   };
 
@@ -132,9 +149,9 @@ const MenuFormPOS = ({
   useEffect(() => {
     if (stateForm) {
       formAddMenu.reset();
+      formAddMenu.setValue("createdById", currentUserId);
     }
 
-    // ทำงานเมื่อเป็นโหมดแก้ไขและมี data
     if (type === "update" && data) {
       formAddMenu.setValue("menuName", data.menuName);
       formAddMenu.setValue("price_sale", data.price_sale);
@@ -144,20 +161,24 @@ const MenuFormPOS = ({
       formAddMenu.setValue("status", data.status);
       formAddMenu.setValue("categoryMenuId", data.categoryMenuId);
       formAddMenu.setValue("unitPriceId", data.unitPriceId);
+      formAddMenu.setValue("mcEmployeeId", data.mcEmployeeId || null);
       formAddMenu.setValue("id", data.id);
+
       const existingGroupIds =
         data.modifiers?.map((item: any) => item.modifierGroupId) || [];
       formAddMenu.setValue("modifierGroupIds", existingGroupIds);
-      setOldImg("");
-      setOldImg(data.img);
+
+      setOldImg(data.img || "");
     }
 
     if (type === "create" && categories?.length > 0) {
       const firstCategoryId = categories[0].id;
       formAddMenu.setValue("categoryMenuId", firstCategoryId);
 
-      const firstunitpricesId = unitprices[0].id;
-      formAddMenu.setValue("unitPriceId", firstunitpricesId);
+      if (unitprices?.length > 0) {
+        const firstunitpricesId = unitprices[0].id;
+        formAddMenu.setValue("unitPriceId", firstunitpricesId);
+      }
     }
   }, [type, data, stateForm, categories, unitprices, formAddMenu, setOldImg]);
 
@@ -175,88 +196,61 @@ const MenuFormPOS = ({
         <Form {...formAddMenu}>
           <form
             id="addMenuForm"
-            className="space-y-8 px-6 py-4"
-            onSubmit={formAddMenu.handleSubmit(onSubmit)}
+            className="space-y-6 px-6 py-4"
+            onSubmit={formAddMenu.handleSubmit(onSubmit, (errors) => {
+              console.log("❌ Zod Errors:", errors);
+              toast.error("กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง");
+            })}
           >
             {data && (
-              <>
-                <FormField
-                  control={formAddMenu.control}
-                  name="id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input type="hidden" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
+              <FormField
+                control={formAddMenu.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem className="hidden">
+                    <FormControl>
+                      <Input type="hidden" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             )}
-            <FormField
-              control={formAddMenu.control}
-              name="menuName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ชื่อรายการ</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
+            {/* ✅ 1. ย้ายหมวดหมู่มาบนสุด เพื่อให้เลือกก่อน */}
             <FormField
               control={formAddMenu.control}
-              name="price_sale"
+              name="categoryMenuId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ราคาขาย</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={formAddMenu.control}
-              name="price_cost"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ราคาต้นทุน</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={formAddMenu.control}
-              name="unitPriceId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>หน่วยราคา</FormLabel>
+                  <FormLabel>
+                    หมวดหมู่สินค้า <span className="text-red-500">*</span>
+                  </FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={String(field.value)}
+                    onValueChange={(val) => {
+                      field.onChange(Number(val));
+                      // ถ้าเปลี่ยนหมวดหมู่ที่ไม่ใช่ Entertainer ให้ล้างค่า mcEmployeeId
+                      const cat = categories.find(
+                        (c: any) => c.id === Number(val),
+                      );
+                      if (cat?.categoryName !== "Entertainer") {
+                        formAddMenu.setValue("mcEmployeeId", null);
+                      }
+                    }}
+                    value={field.value ? String(field.value) : ""}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="เลือกหน่วยราคา" />
+                      <SelectTrigger className="w-full bg-blue-50/50 border-blue-200">
+                        <SelectValue placeholder="เลือกหมวดหมู่ก่อน" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {unitprices.map((unit: { id: number; label: String }) => (
-                        <SelectItem key={unit.id} value={String(unit.id)}>
-                          {unit.label}
-                        </SelectItem>
-                      ))}
+                      {categories.map(
+                        (cat: { id: number; categoryName: String }) => (
+                          <SelectItem key={cat.id} value={String(cat.id)}>
+                            {cat.categoryName}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -264,12 +258,71 @@ const MenuFormPOS = ({
               )}
             />
 
+            {/* ✅ 2. ถ้าเป็น Entertainer ให้ดึง EmployeePin มาเลือก */}
+            {isEntertainer && (
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30 rounded-xl space-y-4">
+                <FormField
+                  control={formAddMenu.control}
+                  name="mcEmployeeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-purple-700 dark:text-purple-400">
+                        เลือกพนักงาน (Entertainer)
+                      </FormLabel>
+                      <Select
+                        onValueChange={(val) => {
+                          field.onChange(Number(val));
+
+                          // 🟢 Auto-fill ชื่อและรูปภาพเมื่อเลือกพนักงาน
+                          const emp = employees.find(
+                            (e: any) => e.id === Number(val),
+                          );
+                          if (emp) {
+                            // เซ็ตชื่อเมนูอัตโนมัติ
+                            formAddMenu.setValue(
+                              "menuName",
+                              `${emp.name} ${emp.surname || ""}`.trim(),
+                            );
+                            formAddMenu.setValue("unit", "ชม."); // เดาว่าหน่วยเป็นชั่วโมง
+
+                            // ดึงรูปมาเซ็ต
+                            if (emp.img) {
+                              setOldImg(emp.img);
+                              formAddMenu.setValue("img", undefined); // เคลียร์ File object ทิ้ง
+                            }
+                          }
+                        }}
+                        value={field.value ? String(field.value) : ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full border-purple-200">
+                            <SelectValue placeholder="เลือกพนักงาน..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {employees.map((emp: any) => (
+                            <SelectItem key={emp.id} value={String(emp.id)}>
+                              {emp.name} {emp.surname}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* ฟิลด์อื่นๆ ปกติ */}
             <FormField
               control={formAddMenu.control}
-              name="unit"
+              name="menuName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>หน่วยสินค้า</FormLabel>
+                  <FormLabel>
+                    ชื่อรายการ {isEntertainer && "(ดึงมาจากชื่อพนักงาน)"}
+                  </FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -277,6 +330,85 @@ const MenuFormPOS = ({
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={formAddMenu.control}
+                name="price_sale"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      ราคาขาย {isEntertainer && "(ต่อ 1 ชม.)"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddMenu.control}
+                name="price_cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ราคาต้นทุน</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={formAddMenu.control}
+                name="unitPriceId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>หน่วยราคา</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ? String(field.value) : ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="เลือกหน่วยราคา" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {unitprices.map(
+                          (unit: { id: number; label: String }) => (
+                            <SelectItem key={unit.id} value={String(unit.id)}>
+                              {unit.label}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddMenu.control}
+                name="unit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>หน่วยสินค้า</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder={isEntertainer ? "ชม." : ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={formAddMenu.control}
@@ -291,35 +423,6 @@ const MenuFormPOS = ({
                 </FormItem>
               )}
             />
-            <FormField
-              control={formAddMenu.control}
-              name="categoryMenuId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>หมวดหมู่</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={String(field.value)}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="เลือกหมวดหมู่" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map(
-                        (cat: { id: number; categoryName: String }) => (
-                          <SelectItem key={cat.id} value={String(cat.id)}>
-                            {cat.categoryName}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {data && (
               <FormField
@@ -330,7 +433,7 @@ const MenuFormPOS = ({
                     <FormLabel>สถานะสินค้า</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={String(field.value)}
+                      value={String(field.value)}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -338,18 +441,9 @@ const MenuFormPOS = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem
-                          key={"READY_TO_SELL"}
-                          value={"READY_TO_SELL"}
-                        >
-                          พร้อมขาย
-                        </SelectItem>
-                        <SelectItem key={"STOP_TO_SELL"} value={"STOP_TO_SELL"}>
-                          งดขาย
-                        </SelectItem>
-                        <SelectItem key={"OUT_OF_MENU"} value={"OUT_OF_MENU"}>
-                          หมด
-                        </SelectItem>
+                        <SelectItem value="READY_TO_SELL">พร้อมขาย</SelectItem>
+                        <SelectItem value="STOP_TO_SELL">งดขาย</SelectItem>
+                        <SelectItem value="OUT_OF_MENU">หมด</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -357,8 +451,11 @@ const MenuFormPOS = ({
                 )}
               />
             )}
-            <div className="space-y-4 border rounded-md p-4">
-              <FormLabel className="text-base">ตัวเลือกเพิ่มเติม</FormLabel>
+
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+              <FormLabel className="text-base">
+                ตัวเลือกเพิ่มเติม (Modifiers)
+              </FormLabel>
               <div className="grid grid-cols-2 gap-4">
                 {relatedData.modifierGroups?.map((group: any) => (
                   <FormField
@@ -381,8 +478,8 @@ const MenuFormPOS = ({
                                 } else {
                                   field.onChange(
                                     currentValues.filter(
-                                      (value) => value !== group.id
-                                    )
+                                      (value) => value !== group.id,
+                                    ),
                                   );
                                 }
                               }}
@@ -398,22 +495,37 @@ const MenuFormPOS = ({
                 ))}
               </div>
             </div>
-            <FormFieldImageUpload
-              control={formAddMenu.control}
-              name="img"
-              label="รูปภาพสินค้า"
-            />
+
+            {/* ✅ กล่องอัปโหลดรูปภาพ */}
+            <div className="space-y-2">
+              <FormFieldImageUpload
+                control={formAddMenu.control}
+                name="img"
+                label={
+                  isEntertainer
+                    ? "รูปโปรไฟล์พนักงาน (สามารถอัปโหลดทับได้)"
+                    : "รูปภาพสินค้า"
+                }
+              />
+              {/* ✅ โชว์รูปเดิมที่ดึงมาจาก employeePin */}
+              {OldImg && !formAddMenu.watch("img") && (
+                <p className="text-xs text-muted-foreground">
+                  * กำลังใช้รูปภาพเดิม หรือรูปที่ดึงมาจากข้อมูลพนักงาน
+                </p>
+              )}
+            </div>
+
             <Button
               type="submit"
               form="addMenuForm"
-              className="w-full"
+              className="w-full h-12 text-lg"
               disabled={isSubmitting}
             >
               {isSubmitting
                 ? "กำลังบันทึก..."
                 : type === "create"
-                ? "ยืนยัน"
-                : "แก้ไข"}
+                  ? "ยืนยันการเพิ่มเมนู"
+                  : "แก้ไขข้อมูลเมนู"}
             </Button>
           </form>
         </Form>

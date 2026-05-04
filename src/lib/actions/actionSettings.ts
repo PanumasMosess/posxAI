@@ -444,10 +444,9 @@ export const createEmployeePin = async (
   data: EmployeePinSchema,
 ) => {
   try {
-
     const existingEmployees = await prisma.employeepin.findMany({
       where: { organizationId: data.organizationId },
-      select: { pin: true, name: true }, 
+      select: { pin: true, name: true },
     });
 
     for (const emp of existingEmployees) {
@@ -471,14 +470,15 @@ export const createEmployeePin = async (
         pin: hashedPin,
         name: data.name,
         surname: data.surname,
-        email: data.email,
-        birthday: new Date(data.birthday).toISOString(),
-        img: data.img,
+        email: data.email || null,
+        tel: data.tel ? Number(data.tel) : null,
+        birthday: data.birthday ? new Date(data.birthday).toISOString() : null,
+        img: data.img || null,
         position_id: data.position_id,
         created_by: data.created_by || "SYSTEM",
         organizationId: data.organizationId,
         login_fail: 0,
-        status: "ACTIVE",
+        status: "ACTIVE", 
       },
     });
 
@@ -634,7 +634,7 @@ export const updatePinEmpPin = async (id: number, newPin: string) => {
     const otherEmployees = await prisma.employeepin.findMany({
       where: {
         organizationId: currentEmp.organizationId,
-        id: { not: id }, 
+        id: { not: id },
       },
       select: { pin: true, name: true },
     });
@@ -742,13 +742,12 @@ export const updateMemberField = async (
   }
 };
 
-
 export const payMemberCredit = async (
   memberId: number,
   amount: number,
   employeeId: number,
-  organizationId: number, 
-  note: string = "ชำระเครดิต" 
+  organizationId: number,
+  note: string = "ชำระเครดิต",
 ) => {
   try {
     await prisma.$transaction(async (tx) => {
@@ -756,7 +755,7 @@ export const payMemberCredit = async (
         where: { id: memberId },
         data: {
           creditBalance: {
-            increment: amount, 
+            increment: amount,
           },
         },
       });
@@ -766,14 +765,13 @@ export const payMemberCredit = async (
           memberId: memberId,
           organizationId: organizationId,
           type: "TOPUP",
-          walletType: "CREDIT", 
+          walletType: "CREDIT",
           amount: amount,
-          balanceAfter: updatedMember.creditBalance, 
-          note: note, 
-          createdById: employeeId, 
+          balanceAfter: updatedMember.creditBalance,
+          note: note,
+          createdById: employeeId,
         },
       });
-      
     });
 
     return { success: true, message: "ชำระเครดิตและบันทึกประวัติสำเร็จ" };

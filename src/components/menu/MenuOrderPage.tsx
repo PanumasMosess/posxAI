@@ -180,7 +180,9 @@ const MenuOrderPage = ({
     const lowercasedFilter = searchTerm.toLowerCase();
     const filteredData = initialItems
       .filter((item: any) => {
-        if (filterCategory === "All") return true;
+        if (filterCategory === "All") {
+          return item.category.categoryName !== "Entertainer";
+        }
         return item.category.categoryName === filterCategory;
       })
       .filter((item: any) => {
@@ -489,8 +491,14 @@ const MenuOrderPage = ({
                             >
                               <Minus size={14} />
                             </button>
-                            <span className="text-sm font-bold min-w-[20px] text-center text-foreground">
+                            <span className="text-sm font-bold min-w-[20px] text-center text-foreground flex items-center gap-1">
                               {item.quantity}
+                              {menuItem?.category?.categoryName ===
+                              "Entertainer" ? (
+                                <span className="text-xs text-primary font-medium">
+                                  ชม.
+                                </span>
+                              ) : null}
                             </span>
                             <button
                               onClick={() => {

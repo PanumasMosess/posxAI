@@ -6,6 +6,7 @@ const page = async () => {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = session?.user.organizationId ?? 0;
+
   const itemsData = await prisma.menu.findMany({
     where: {
       organizationId: organizationId,
@@ -19,6 +20,7 @@ const page = async () => {
       id: "desc",
     },
   });
+
   const categoriesData = await prisma.categorystock.findMany({
     where: {
       organizationId: organizationId,
@@ -66,13 +68,39 @@ const page = async () => {
     },
   });
 
+  const entertainerPosition = await prisma.posiotion.findFirst({
+    where: {
+      position_name: "Entertainer",
+      organizationId: organizationId,
+    },
+  });
+
+  const employeeData = await prisma.employeepin.findMany({
+    where: {
+      organizationId: organizationId,
+      status: "ACTIVE",
+      position_id: entertainerPosition ? entertainerPosition.id : -1,
+    },
+    select: {
+      id: true,
+      name: true,
+      surname: true,
+      img: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
   const relatedData = {
     categories: categoriesData,
     unitprices: unitpriceData,
     tabledatas: tableData,
     cartdatas: cartData,
     modifierGroups: itemsGroup,
+    employees: employeeData,
   };
+
   return (
     <div>
       <MenuPOSPage

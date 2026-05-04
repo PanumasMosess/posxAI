@@ -21,26 +21,12 @@ export const createMenu = async (
         description: data.description || null,
         status: "READY_TO_SELL",
         img: data.img || null,
-        creator: {
-          connect: {
-            id: data.createdById,
-          },
-        },
-        organization: {
-          connect: {
-            id: data.organizationId,
-          },
-        },
-        category: {
-          connect: {
-            id: data.categoryMenuId,
-          },
-        },
-        unitPrice: {
-          connect: {
-            id: data.unitPriceId,
-          },
-        },
+        createdById: data.createdById,
+        organizationId: data.organizationId,
+        categoryMenuId: data.categoryMenuId,
+        unitPriceId: data.unitPriceId,
+        mcEmployeeId: data.mcEmployeeId || null,
+
         modifiers: {
           create: data.modifierGroupIds?.map((groupId) => ({
             modifierGroup: { connect: { id: groupId } },
@@ -50,7 +36,6 @@ export const createMenu = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -76,9 +61,13 @@ export const updateMenu = async (
         img: data.img || null,
         status: data.status,
         updatedAt: new Date(),
+
+        // ✅ ใช้ ID ตรงๆ เหมือนตอน Create
         createdById: data.createdById,
         categoryMenuId: data.categoryMenuId,
         unitPriceId: data.unitPriceId,
+        mcEmployeeId: data.mcEmployeeId || null,
+
         modifiers: {
           deleteMany: {},
           create: data.modifierGroupIds?.map((groupId) => ({
@@ -89,7 +78,6 @@ export const updateMenu = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false, data: updatedStock };
   } catch (err) {
     console.log(err);
@@ -222,6 +210,17 @@ export const createOrder = async (items: CartItemPayload[]) => {
       return { success: false, error: true, message: "Table not found" };
     }
 
+    const menuIds = items.map((item) => item.menuId);
+    const menusInfo = await prisma.menu.findMany({
+      where: { id: { in: menuIds } },
+      include: { category: true },
+    });
+
+    const menuCategoryMap = new Map();
+    menusInfo.forEach((menu) => {
+      menuCategoryMap.set(menu.id, menu.category?.categoryName);
+    });
+
     let runningCode = "";
 
     const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
@@ -285,6 +284,10 @@ export const createOrder = async (items: CartItemPayload[]) => {
 
     const transactionOperations: any[] = items.map((item) => {
       const modifiersList = item.modifiers || [];
+
+      const categoryName = menuCategoryMap.get(item.menuId);
+      const orderStatus = categoryName === "Entertainer" ? "COMPLETED" : "NEW";
+
       return prisma.order.create({
         data: {
           quantity: item.quantity,
@@ -292,7 +295,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
           price_pre_unit: item.price_pre_unit,
           menuId: item.menuId,
           tableId: item.tableId,
-          status: "NEW",
+          status: orderStatus,
           organizationId: item.organizationId,
           order_running_code: runningCode,
           orderitems: {

@@ -32,7 +32,7 @@ const MenuPOSPage = ({
   id_user,
   organizationId,
 }: MenuPOSPageClientProps) => {
-  const { employeeId } = useUser();
+  const { employeeId } = useUser();  
   const [menuItems, setOrderItems] = useState(initialItems);
 
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
