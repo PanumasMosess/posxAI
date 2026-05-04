@@ -28,7 +28,7 @@ import column_setting_member from "../tables/column_setting_member";
 import { toast } from "react-toastify";
 import { Data_table_setting_employee_pin } from "../tables/Data_table_setting_employee_pin";
 import column_setting_employee_pin from "../tables/column_setting_employee_pin";
-import { useUser } from "@/components/providers/PositionContext";
+import { useUser } from "@/components/providers/UserContext";
 
 const SettingEmployeePage = ({
   initialItems,

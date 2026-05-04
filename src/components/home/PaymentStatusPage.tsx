@@ -66,7 +66,7 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "../payments/PaymentMethodsPanel";
-import { useUser } from "../providers/PositionContext";
+import { useUser } from "../providers/UserContext";
 
 const PaymentStatusPage = ({
   initialItems,

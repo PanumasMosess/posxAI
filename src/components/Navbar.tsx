@@ -25,10 +25,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { useUser } from "./providers/UserContext";
 
 const Navbar = () => {
-  const session = useSession();
-  const img_user = session.data?.user.image?.toString();
+  const { employeeName, img } = useUser();
 
   return (
     <nav className="p-4 flex items-center justify-between">
@@ -55,12 +55,12 @@ const Navbar = () => {
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Avatar>
-              <AvatarImage src={img_user} />
+              <AvatarImage src={img || ""} />
               <AvatarFallback>NO</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent sideOffset={10}>
-            <DropdownMenuLabel> {session.data?.user?.name}</DropdownMenuLabel>
+            <DropdownMenuLabel> {employeeName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="h-[1.2rem] w-[1.2rem] mr-2" /> ผู้ใช้งาน

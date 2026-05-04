@@ -8,9 +8,10 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUserState] = useState<UserState>({
     employeeId: null,
-    employeeName: null, 
+    employeeName: null,
     positionId: null,
     positionName: null,
+    img: null,
   });
 
   const setUser = (
@@ -18,12 +19,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     empName: string | null,
     posId: number | null,
     posName: string | null,
+    imgStr: string | null,
   ) => {
     setUserState({
       employeeId: empId,
       employeeName: empName,
       positionId: posId,
       positionName: posName,
+      img: imgStr,
     });
   };
 
@@ -33,6 +36,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       employeeName: null,
       positionId: null,
       positionName: null,
+      img: null,
     });
   };
 

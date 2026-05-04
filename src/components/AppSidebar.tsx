@@ -63,7 +63,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { useUser } from "./providers/PositionContext";
+import { useUser } from "./providers/UserContext";
 
 const items = menuList.menuList;
 const settingList = menuList.settingsMenu;

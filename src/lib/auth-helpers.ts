@@ -80,6 +80,7 @@ export const verifyPositionPin = async (
           employeeName: `${emp.name} ${emp.surname}`,
           positionId: emp.position_id,
           positionName: positionData?.position_name || "ไม่มีตำแหน่ง",
+          img: emp.img || null,
         };
       }
     }

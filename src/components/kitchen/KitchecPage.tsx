@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { updateStatusOrder } from "@/lib/actions/actionMenu";
 import { UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import { useUser } from "../providers/PositionContext";
+import { useUser } from "../providers/UserContext";
 
 const KitchecPage = ({
   initialItems,

@@ -7,7 +7,7 @@ import { Lock, Delete, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 import { verifyPositionPin } from "@/lib/auth-helpers";
-import { useUser } from "./providers/PositionContext";
+import { useUser } from "./providers/UserContext";
 
 export default function IdleTimeoutHandler() {
   const { isLocked, setIsLocked, resetTimer } = useIdleTimeout(1800000);
@@ -71,12 +71,12 @@ export default function IdleTimeoutHandler() {
         setPin("");
         resetTimer();
 
-        // ✅ แก้ไขให้ส่งค่าเข้าไปใน Context ครบทั้ง 4 ตัว
         setUser(
           result.employeeId ?? null,
           result.employeeName ?? null,
           result.positionId ?? null,
           result.positionName ?? null,
+          result.img ?? null,
         );
 
         toast.success(`ปลดล็อกสำเร็จ (พนักงาน: ${result.employeeName})`);

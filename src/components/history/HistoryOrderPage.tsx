@@ -2,7 +2,7 @@
 import { HistoryOrderProps } from "@/lib/type";
 import HistoryOrderComple from "./HistoryOrderComple";
 import HistoryOrderCancel from "./HistoryOrderCancel";
-import { useUser } from "../providers/PositionContext";
+import { useUser } from "../providers/UserContext";
 
 const HistoryOrderPage = ({
   initialItems,
