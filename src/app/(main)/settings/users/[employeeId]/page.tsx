@@ -1,6 +1,7 @@
 "use server";
 import ProfileClient from "@/components/settings/users/ProfileClient";
 import prisma from "@/lib/prisma";
+
 const page = async ({
   params,
 }: {
@@ -15,20 +16,101 @@ const page = async ({
 
   if (!profileData) {
     return (
-      <div className="flex items-center justify-center h-[50vh] text-muted-foreground">
+      <div className="p-8 text-center text-muted-foreground">
         ไม่พบข้อมูลโปรไฟล์
       </div>
     );
   }
 
-  // 2. ดึงข้อมูล Position
   const positionData = await prisma.posiotion.findUnique({
     where: { id: profileData.position_id },
     select: { position_name: true },
   });
 
+  let orderHistory: any[] = [];
+
+  if (positionData?.position_name === "Entertainer") {
+    // 3.1 หาเลขบิลทั้งหมดที่ Entertainer มีส่วนร่วม
+    const involvedOrders = await prisma.order.findMany({
+      where: { menu: { mcEmployeeId: targetUserId } },
+      select: { order_running_code: true },
+      distinct: ["order_running_code"],
+    });
+
+    const runningCodes = involvedOrders
+      .map((o) => o.order_running_code)
+      .filter((code) => code !== null) as string[];
+
+    if (runningCodes.length > 0) {
+      // 3.2 ดึง "ออเดอร์ทั้งหมด"
+      const fullOrders = await prisma.order.findMany({
+        where: { order_running_code: { in: runningCodes } },
+        include: { table: true, menu: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // ✅ 3.3 ดึงข้อมูล "Payment (การจ่ายเงิน)" ของเลขบิลเหล่านั้น
+      const payments = await prisma.paymentorder.findMany({
+        where: { order_running_code: { in: runningCodes } },
+      });
+
+      // สร้าง Dictionary ให้หาข้อมูลการจ่ายเงินง่ายๆ
+      const paymentMap = payments.reduce((acc: any, curr) => {
+        acc[curr.order_running_code] = curr;
+        return acc;
+      }, {});
+
+      // 3.4 จัดกลุ่มข้อมูล
+      const groupedOrders = fullOrders.reduce((acc: any, curr) => {
+        const code = curr.order_running_code || `N/A`;
+        const payment = paymentMap[code]; // หาว่าบิลนี้จ่ายเงินหรือยัง
+
+        if (!acc[code]) {
+          acc[code] = {
+            orderNumber: code,
+            tableName: curr.table?.tableName || "ไม่ระบุโต๊ะ",
+            // ถ้าเจอใน payment แสดงว่าจ่ายแล้ว ถ้าไม่เจอให้ใช้สถานะจาก order (เช่น กำลังทาน)
+            status: payment ? "PAID" : curr.status,
+            createdAt: payment ? payment.createdAt : curr.createdAt,
+            totalAmount: payment ? payment.totalAmount : 0, // ยอดสุทธิจาก Payment
+            discount: payment ? payment.discount : 0, // ส่วนลดจาก Payment
+            paymentMethod: payment ? payment.paymentMethod : "ยังไม่ชำระ", // วิธีจ่ายเงิน
+            menus: [],
+            calculatedTotal: 0, // เอาไว้เผื่อยังไม่จ่ายเงิน จะได้บวกยอดโชว์ชั่วคราว
+          };
+        }
+
+        acc[code].menus.push({
+          id: curr.id,
+          menuName: curr.menu.menuName,
+          quantity: curr.quantity,
+          price_sum: curr.price_sum,
+          isMC: curr.menu.mcEmployeeId === targetUserId,
+        });
+
+        acc[code].calculatedTotal += curr.price_sum;
+
+        // ถ้ายังไม่ได้เช็คบิล (ไม่มี payment) ให้ใช้ยอดรวมจากการบวกค่าอาหารไปก่อน
+        if (!payment) {
+          acc[code].totalAmount = acc[code].calculatedTotal;
+        }
+
+        return acc;
+      }, {});
+
+      orderHistory = Object.values(groupedOrders);
+      orderHistory.sort(
+        (a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+    }
+  }
+
   return (
-    <ProfileClient profileData={profileData} positionData={positionData} />
+    <ProfileClient
+      profileData={profileData}
+      positionData={positionData}
+      orders={orderHistory}
+    />
   );
 };
 

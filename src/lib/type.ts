@@ -831,17 +831,27 @@ export interface DataTableProps<TData, TValue> {
   organizationId: number;
 }
 
+export interface OrderMenu {
+  id: number;
+  menuName: string;
+  quantity: number;
+  price_sum: number;
+  isMC: boolean;
+}
+
+export interface OrderData {
+  orderNumber: string;
+  tableName: string;
+  totalAmount: number;
+  discount: number;
+  paymentMethod: string; 
+  status: string;
+  createdAt: Date;
+  menus: OrderMenu[]; 
+}
+
 export interface ProfileClientProps {
-  profileData: {
-    id: number;
-    name: string;
-    surname: string;
-    img?: string | null;
-    tel?: number | null;
-    email?: string | null;
-    status: string;
-  };
-  positionData: {
-    position_name: string;
-  } | null;
+  profileData: any;
+  positionData: any;
+  orders?: OrderData[];
 }
