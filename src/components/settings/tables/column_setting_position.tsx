@@ -5,6 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil } from "lucide-react";
 import status from "@/lib/data_temp";
 import { useState, useEffect } from "react";
+import { Settings } from "lucide-react";
 
 const positionStatuses = status.positionStatuses;
 
@@ -84,97 +85,124 @@ const column_setting_position = (
   onUpdateStatus: (id: number, newStatus: string) => void,
   onUpdateName: (id: number, newName: string) => void,
   organizationId: number,
+  onOpenPermission: (positionId: number) => void,
 ): ColumnDef<SettingPositions>[] => [
-  {
-    id: "id",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        #
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      return <div className="text-left font-medium ml-4">{row.index + 1}</div>;
-    },
-  },
-  {
-    accessorKey: "position_name",
-    header: ({ column }) => (
-      <div className="text-center">
+    {
+      id: "id",
+      header: ({ column }) => (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          ชื่อตำแหน่ง
+          #
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      </div>
-    ),
-    cell: (props) => <EditableCell {...props} onUpdate={onUpdateName} />,
-  },
-  {
-    accessorKey: "status",
-    header: () => <div className="text-center">สถานะ</div>,
-    cell: ({ row }) => {
-      const currentStatus = row.getValue("status") as string;
-      const positionId = row.original.id;
-
-      const statusMeta = positionStatuses.find(
-        (s) => s.value === currentStatus,
-      );
-
-      return (
-        <div className="flex justify-center items-center gap-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              statusMeta?.color || "bg-gray-300"
-            }`}
-          />
-          <select
-            className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={currentStatus || "INACTIVE"}
-            onChange={(e) => {
-              const newStatus = e.target.value;
-              if (onUpdateStatus) {
-                onUpdateStatus(positionId, newStatus);
-              }
-            }}
+      ),
+      cell: ({ row }) => {
+        return <div className="text-left font-medium ml-4">{row.index + 1}</div>;
+      },
+    },
+    {
+      accessorKey: "position_name",
+      header: ({ column }) => (
+        <div className="text-center">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            {positionStatuses.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+            ชื่อตำแหน่ง
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
         </div>
-      );
+      ),
+      cell: (props) => <EditableCell {...props} onUpdate={onUpdateName} />,
     },
-  },
-  {
-    accessorKey: "updatedAt",
-    header: () => <div className="text-center">อัปเดตล่าสุด</div>,
-    cell: ({ row }) => {
-      const dateVal = row.getValue("updatedAt");
-      if (!dateVal) return <div className="text-center">-</div>;
-      const amount = new Date(dateVal as string | Date);
-      const formatted = amount.toLocaleDateString("th-TH", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        timeZone: "Asia/Bangkok",
-      });
+    {
+      accessorKey: "status",
+      header: () => <div className="text-center">สถานะ</div>,
+      cell: ({ row }) => {
+        const currentStatus = row.getValue("status") as string;
+        const positionId = row.original.id;
 
-      return (
-        <div className="text-center text-sm text-gray-500">{formatted}</div>
-      );
+        const statusMeta = positionStatuses.find(
+          (s) => s.value === currentStatus,
+        );
+
+        return (
+          <div className="flex justify-center items-center gap-2">
+            <div
+              className={`w-3 h-3 rounded-full ${statusMeta?.color || "bg-gray-300"
+                }`}
+            />
+            <select
+              className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={currentStatus || "INACTIVE"}
+              onChange={(e) => {
+                const newStatus = e.target.value;
+                if (onUpdateStatus) {
+                  onUpdateStatus(positionId, newStatus);
+                }
+              }}
+            >
+              {positionStatuses.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      },
     },
-  },
-];
+    {
+      id: "permission",
+      header: () => <div className="text-center">สิทธิ</div>,
+      cell: ({ row }) => {
+        const positionId = row.original.id;
+
+        return (
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenPermission(positionId)}
+              className="
+            border-zinc-300 dark:border-zinc-700
+            bg-white dark:bg-zinc-900
+            text-zinc-700 dark:text-zinc-200
+            hover:bg-zinc-100 dark:hover:bg-zinc-800
+            flex items-center gap-1
+          "
+            >
+              <Settings className="w-3 h-3" />
+              ตั้งค่า
+            </Button>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "updatedAt",
+      header: () => <div className="text-center">อัปเดตล่าสุด</div>,
+      cell: ({ row }) => {
+        const dateVal = row.getValue("updatedAt");
+        if (!dateVal) return <div className="text-center">-</div>;
+        const amount = new Date(dateVal as string | Date);
+        const formatted = amount.toLocaleDateString("th-TH", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZone: "Asia/Bangkok",
+        });
+
+        return (
+          <div className="text-center text-sm text-gray-500">{formatted}</div>
+        );
+      },
+    },
+  ];
 
 export default column_setting_position;

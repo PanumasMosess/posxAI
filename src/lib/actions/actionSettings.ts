@@ -478,7 +478,7 @@ export const createEmployeePin = async (
         created_by: data.created_by || "SYSTEM",
         organizationId: data.organizationId,
         login_fail: 0,
-        status: "ACTIVE", 
+        status: "ACTIVE",
       },
     });
 
@@ -778,5 +778,148 @@ export const payMemberCredit = async (
   } catch (error) {
     console.error("Error payMemberCredit:", error);
     return { success: false, message: "เกิดข้อผิดพลาดในการชำระเครดิต" };
+  }
+};
+
+export const updatePositionPermission = async (
+  positionId: number,
+  permissionId: number,
+  allowed: boolean,
+) => {
+  try {
+    await prisma.position_permission.upsert({
+      where: {
+        positionId_permissionId: {
+          positionId,
+          permissionId,
+        },
+      },
+      update: {
+        allowed,
+      },
+      create: {
+        positionId,
+        permissionId,
+        allowed,
+      },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.log("updatePositionPermission error:", err);
+    return { success: false };
+  }
+};
+
+export const getPermissionByPosition = async (positionId: number) => {
+  try {
+    const data = await prisma.permission.findMany({
+      include: {
+        positions: {
+          where: {
+            positionId: positionId,
+          },
+        },
+      },
+    });
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, data: [] };
+  }
+};
+
+export const createPermission = async (
+  currentState: CurrentState,
+  data: {
+    permissionKey: string;
+    permissionName: string;
+    organizationId: number;
+  },
+) => {
+  try {
+    await prisma.permission.create({
+      data: {
+        permissionKey: data.permissionKey.toUpperCase(),
+        permissionName: data.permissionName,
+        status: "ACTIVE", // 👈 แก้ตรงนี้
+        organization: {
+          connect: {
+            id: data.organizationId,
+          },
+        },
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.log("createPermission error:", err);
+    return {
+      success: false,
+      error: true,
+      message: "เกิดข้อผิดพลาดของระบบ",
+    };
+  }
+};
+
+export const updatePermissionKey = async (id: number, value: string) => {
+  try {
+    await prisma.permission.update({
+      where: { id },
+      data: {
+        permissionKey: value.trim().toUpperCase(),
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.log("updatePermissionKey error:", err);
+    return { success: false };
+  }
+};
+
+export const updatePermissionName = async (id: number, value: string) => {
+  try {
+    await prisma.permission.update({
+      where: { id },
+      data: {
+        permissionName: value.trim(),
+        updatedAt: new Date(),
+      },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.log("updatePermissionName error:", err);
+    return { success: false };
+  }
+};
+export const deletePermission = async (id: number) => {
+  try {
+    await prisma.permission.update({
+      where: { id },
+      data: { status: "INACTIVE" }, // 👈 ใช้ status แทน
+    });
+
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+};
+
+export const updatePermissionStatus = async (id: number, status: string) => {
+  try {
+    await prisma.permission.update({
+      where: { id },
+      data: {
+        status,
+        updatedAt: new Date(), // 👈 เพิ่ม
+      },
+    });
+
+    return { success: true };
+  } catch {
+    return { success: false };
   }
 };

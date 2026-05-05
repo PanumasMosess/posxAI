@@ -283,6 +283,7 @@ model organization {
   ordermodifiers ordermodifier[]
   posiotions     posiotion[]
   employeepins   employeepin[]
+  permissions  permission[]
 }
 
 model printer {
@@ -387,6 +388,47 @@ model posiotion {
   creator        employeepin   @relation(fields: [createdById], references: [id])
   organizationId Int?
   organization   organization? @relation(fields: [organizationId], references: [id])
+
+  permissions position_permission[]
+}
+
+// =====================================
+// Permission = สิทธิ์ (เช่น PROJECT_VIEW, TASK_EDIT)
+// - แยกตามบริษัท
+// =====================================
+
+model permission {
+  id Int @id @default(autoincrement())
+
+  permissionKey  String // รหัสสิทธิ์ เช่น "PROJECT_VIEW"
+  permissionName String // ชื่อแสดงผล เช่น "ดูโปรเจค"
+  permissionDesc String? // รายละเอียดเพิ่มเติม
+  status         String @default("ACTIVE")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  // ---------- relations ----------
+  organizationId Int // FK -> organization.id
+  organization   organization          @relation(fields: [organizationId], references: [id])
+  positions      position_permission[] // ตำแหน่งไหนมีสิทธิ์นี้
+}
+
+// =====================================
+// PositionPermission = ตารางกลาง (ตำแหน่ง ↔ สิทธิ์)
+// - บอกว่า "ตำแหน่งนี้" มี/ไม่มี "สิทธิ์นี้"
+// =====================================
+model position_permission {
+  id      Int     @id @default(autoincrement())
+  allowed Boolean @default(false) // เปิด/ปิดสิทธิ์ (เผื่อทำ override)
+
+  positionId Int // FK -> position.id
+  position   posiotion @relation(fields: [positionId], references: [id])
+
+  permissionId Int // FK -> permission.id
+  permission   permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([positionId, permissionId])
 }
 
 // ------------------------------------------------------

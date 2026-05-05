@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { MenuSchema } from "./formValidationSchemas";
+import { ColumnDef } from "@tanstack/react-table";
 
 export type StocksFormularRunning = {
   id: number;
@@ -804,4 +805,28 @@ export interface PaymentMethodsPanelProps {
 
 export interface MemberTransactionProps {
   data: any[];
+}
+
+export type Permission = {
+  id: number;
+  permissionKey: string;
+  permissionName: string;
+  positions: {
+    allowed: boolean;
+  }[];
+};
+
+export type SettingPermissions = {
+  id: number;
+  permissionKey: string;
+  permissionName: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  userId: number;
+  organizationId: number;
 }
