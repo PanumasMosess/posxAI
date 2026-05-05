@@ -1,5 +1,6 @@
 "use client";
-import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
+// ✅ 1. เพิ่ม import Lock เข้ามา
+import { LogOut, Moon, Sun, User, Lock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +13,6 @@ import {
 import { Button } from "./ui/button";
 import { SidebarTrigger } from "./ui/sidebar";
 import { NavbarTheme } from "./navbar-theme";
-import { useSession } from "next-auth/react";
 import { handleSignOut } from "@/lib/actions/actionAuths";
 import {
   AlertDialog,
@@ -26,20 +26,18 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import { useUser } from "./providers/UserContext";
+import Link from "next/link";
 
 const Navbar = () => {
-  const { employeeName, img } = useUser();
+  const { employeeName, img, employeeId } = useUser();
 
   return (
     <nav className="p-4 flex items-center justify-between">
       {/* LEFT */}
       <SidebarTrigger />
-      {/* <Button variant="outline" onClick={toggleSidebar}>
-        Custom Button
-      </Button> */}
+
       {/* Right */}
       <div className="flex items-center gap-4">
-        {/* <Link href="/">Dashboard</Link> */}
         {/* THEME MENU  */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -51,6 +49,7 @@ const Navbar = () => {
           </DropdownMenuTrigger>
           <NavbarTheme />
         </DropdownMenu>
+
         {/* USER MENU */}
         <DropdownMenu>
           <DropdownMenuTrigger>
@@ -62,13 +61,29 @@ const Navbar = () => {
           <DropdownMenuContent sideOffset={10}>
             <DropdownMenuLabel> {employeeName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="h-[1.2rem] w-[1.2rem] mr-2" /> ผู้ใช้งาน
+
+            {/* เมนูผู้ใช้งาน */}
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/settings/users/${employeeId || ""}`}
+                className="cursor-pointer w-full flex items-center"
+              >
+                <User className="h-[1.2rem] w-[1.2rem] mr-2" /> ผู้ใช้งาน
+              </Link>
             </DropdownMenuItem>
-            {/* <DropdownMenuItem>
-              <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
-              ตั้งค่าโปรไฟล์
-            </DropdownMenuItem> */}
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => {
+                window.dispatchEvent(new Event("manual-lock"));
+              }}
+              className="cursor-pointer text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950"
+            >
+              <Lock className="h-[1.2rem] w-[1.2rem] mr-2" /> ล็อกหน้าจอ
+            </DropdownMenuItem>
+
+            {/* เมนูออกจากระบบ */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem
