@@ -110,6 +110,16 @@ export default function IdleTimeoutHandler() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isLocked, pin, isVerifying, isError]);
 
+  useEffect(() => {
+    const handleManualLock = () => {
+      setIsLocked(true);
+      clearUser();
+    };
+
+    window.addEventListener("manual-lock", handleManualLock);
+    return () => window.removeEventListener("manual-lock", handleManualLock);
+  }, [setIsLocked, clearUser]);
+
   if (!isLocked) return null;
 
   return (

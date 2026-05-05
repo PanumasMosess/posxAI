@@ -830,3 +830,18 @@ export interface DataTableProps<TData, TValue> {
   userId: number;
   organizationId: number;
 }
+
+export interface ProfileClientProps {
+  profileData: {
+    id: number;
+    name: string;
+    surname: string;
+    img?: string | null;
+    tel?: number | null;
+    email?: string | null;
+    status: string;
+  };
+  positionData: {
+    position_name: string;
+  } | null;
+}

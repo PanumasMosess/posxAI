@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { SessionProvider } from "next-auth/react";
 import IdleTimeoutHandler from "@/components/IdleTimeoutHandler";
 import { UserProvider } from "@/components/providers/UserContext";
+import { PermissionProvider } from "@/components/providers/PermissionContext";
 
 export const metadata: Metadata = {
   title: "POSX",
@@ -26,23 +27,25 @@ export default async function MainLayout({
   return (
     <SessionProvider>
       <UserProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SidebarProvider defaultOpen={defaultOpen}>
-            <AppSidebar />
-            <main className="w-full">
-              <Navbar />
-              <div className="px-4">
-                {children}
-                <IdleTimeoutHandler />
-              </div>
-            </main>
-          </SidebarProvider>
-        </ThemeProvider>
+        <PermissionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SidebarProvider defaultOpen={defaultOpen}>
+              <AppSidebar />
+              <main className="w-full">
+                <Navbar />
+                <div className="px-4">
+                  {children}
+                  <IdleTimeoutHandler />
+                </div>
+              </main>
+            </SidebarProvider>
+          </ThemeProvider>
+        </PermissionProvider>
       </UserProvider>
     </SessionProvider>
   );

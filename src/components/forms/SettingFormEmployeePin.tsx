@@ -181,7 +181,7 @@ const SettingFormEmployeePin = ({
                   <FormItem>
                     <FormLabel>นามสกุล</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="ใจดี" />
+                      <Input {...field} placeholder="ใส่หรือไม่ก็ได้" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

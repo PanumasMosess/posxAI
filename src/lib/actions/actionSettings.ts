@@ -469,7 +469,7 @@ export const createEmployeePin = async (
       data: {
         pin: hashedPin,
         name: data.name,
-        surname: data.surname,
+        surname: data.surname || '-',
         email: data.email || null,
         tel: data.tel ? Number(data.tel) : null,
         birthday: data.birthday ? new Date(data.birthday).toISOString() : null,

@@ -130,6 +130,7 @@ const EditablePinCell = ({
         onBlur={handleSave}
         onKeyDown={onKeyDown}
         className="h-8 text-center font-bold text-sm tracking-[0.3em] w-28 mx-auto"
+        autoComplete="new-password"
       />
     );
   }
