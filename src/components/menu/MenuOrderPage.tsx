@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MenuOrderHistorySheet } from "./MenuOrderHistorySheet";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const MenuOrderPage = ({
   relatedData,
@@ -56,15 +57,21 @@ const MenuOrderPage = ({
   );
   const [hasMore, setHasMore] = useState(initialItems.length > itemsPerPage);
   const [isOpenDetail, setIsOpenDetail] = useState(false);
-  const [itemnDetail, setItemnDetail] = useState();
+  const [itemnDetail, setItemnDetail] = useState<any>();
   const [tableNumber, setTableNumber] = useState(0);
   const [cartCount, setCartCount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  const [packageSelections, setPackageSelections] = useState<
+    Record<number, boolean>
+  >({});
+
   const categories = useMemo(() => {
     const cats = new Set(
-      initialItems.map((item: any) => item.category.categoryName),
+      initialItems
+        .map((item: any) => item.category?.categoryName)
+        .filter(Boolean),
     );
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
@@ -88,11 +95,14 @@ const MenuOrderPage = ({
     const itemToDetail = initialItems.find(
       (item: any) => item.id === id_for_detail,
     );
-    setItemnDetail(itemToDetail);
+
+    const isPackageSelected = packageSelections[id_for_detail] || false;
+
+    setItemnDetail({ ...itemToDetail, isPackageSelected });
     setIsOpenDetail(true);
   };
 
-  const handleAddToCart = async (cartItem: CartItem) => {
+  const handleAddToCart = async (cartItem: CartItem) => {  
     cartItem.organizationId = organizationId ?? 1;
     if (tableNumber != 0) {
       cartItem.tableId = tableNumber;
@@ -181,9 +191,9 @@ const MenuOrderPage = ({
     const filteredData = initialItems
       .filter((item: any) => {
         if (filterCategory === "All") {
-          return item.category.categoryName !== "Entertainer";
+          return item.category?.categoryName !== "Entertainer";
         }
-        return item.category.categoryName === filterCategory;
+        return item.category?.categoryName === filterCategory;
       })
       .filter((item: any) => {
         return (
@@ -235,8 +245,6 @@ const MenuOrderPage = ({
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40 opacity-90 z-10" />
-
-          <div className="absolute top-4 right-4 text-primary-foreground text-xs opacity-70 z-20"></div>
         </div>
 
         <div className="relative -mt-16 mx-4 mb-4 z-10">
@@ -300,55 +308,87 @@ const MenuOrderPage = ({
             }
             className="flex flex-col gap-4"
           >
-            {currentItems.map((item: any, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="bg-card text-card-foreground p-3 rounded-xl shadow-sm border border-border flex gap-4 items-center active:scale-[0.98] transition-transform"
-                onClick={() => handelOpendetail(item.id)}
-              >
-                <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                  {item.img ? (
-                    <Image
-                      src={item.img}
-                      alt={item.menuName}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100px, 150px"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                      <span className="text-xs">No Image</span>
-                    </div>
-                  )}
-                </div>
+            {currentItems.map((item: any, index) => {
+              const isPkgChecked = packageSelections[item.id] || false;
+              const displayPrice = isPkgChecked
+                ? item.price_package || 0
+                : item.price_sale;
 
-                <div className="flex-1 flex flex-col justify-between h-24 py-1">
-                  <div>
-                    <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1">
-                      {item.menuName}
-                    </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {item.description || "รายละเอียดสินค้าเพิ่มเติม"}
-                    </p>
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="bg-card text-card-foreground p-3 rounded-xl shadow-sm border border-border flex gap-4 items-center active:scale-[0.98] transition-transform"
+                  onClick={() => handelOpendetail(item.id)}
+                >
+                  <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                    {item.img ? (
+                      <Image
+                        src={item.img}
+                        alt={item.menuName}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100px, 150px"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
+                        <span className="text-xs">No Image</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between items-end mt-2">
-                    <span className="font-bold text-foreground text-lg">
-                      {item.price_sale > 0
-                        ? `${item.price_sale} ${item.unitPrice.label}`
-                        : `0 ${item.unitPrice.label}`}
-                    </span>
+                  <div className="flex-1 flex flex-col justify-between min-h-[6rem] py-1">
+                    <div>
+                      <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1">
+                        {item.menuName}
+                      </h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {item.description || "รายละเอียดสินค้าเพิ่มเติม"}
+                      </p>
+                      {item.category?.categoryName === "Entertainer" &&
+                        item.package_hours > 0 && (
+                          <div
+                            className="flex items-center gap-1.5 mt-2"
+                            onClick={(e) => e.stopPropagation()} 
+                          >
+                            <Checkbox
+                              id={`pkg-${item.id}`}
+                              checked={isPkgChecked}
+                              onCheckedChange={(checked) =>
+                                setPackageSelections((prev) => ({
+                                  ...prev,
+                                  [item.id]: !!checked,
+                                }))
+                              }
+                              className="w-4 h-4 rounded border-amber-400 text-amber-600 data-[state=checked]:bg-amber-500"
+                            />
+                            <label
+                              htmlFor={`pkg-${item.id}`}
+                              className="text-[11px] font-medium text-amber-600 cursor-pointer"
+                            >
+                              จัดแพ็กเกจเหมา {item.package_hours} ชม.
+                            </label>
+                          </div>
+                        )}
+                    </div>
 
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm">
-                      <Plus size={18} />
+                    <div className="flex justify-between items-end mt-2">
+                      <span className="font-bold text-foreground text-lg">
+                        {displayPrice > 0
+                          ? `${displayPrice.toLocaleString()} ${item.unitPrice?.label || "฿"}`
+                          : `0 ${item.unitPrice?.label || "฿"}`}
+                      </span>
+
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm">
+                        <Plus size={18} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </InfiniteScroll>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -358,7 +398,6 @@ const MenuOrderPage = ({
         )}
       </main>
 
-      {/* --- Bottom Navigation --- */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border h-16 px-6 flex justify-between items-center z-40 shadow-lg">
         <button
           className={`flex flex-col items-center justify-center gap-1 w-1/3 relative transition-colors ${
@@ -392,7 +431,6 @@ const MenuOrderPage = ({
           <span className="text-[10px] font-medium">เรียกพนักงาน</span>
         </button>
       </div>
-
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetContent
           side="bottom"
@@ -435,9 +473,7 @@ const MenuOrderPage = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1">
                           <h4 className="font-semibold text-sm text-foreground line-clamp-1">
-                            {menuItem.menuName ||
-                              menuItem?.menuName ||
-                              "Unknown Item"}
+                            {menuItem?.menuName || "Unknown Item"}
                           </h4>
                           <button
                             onClick={() =>
@@ -468,7 +504,7 @@ const MenuOrderPage = ({
                         <div className="flex justify-between items-end mt-2">
                           <span className="font-bold text-primary text-sm">
                             {item.price_sum.toLocaleString()}{" "}
-                            {menuItem.unitPrice.label}
+                            {menuItem?.unitPrice?.label || "฿"}
                           </span>
 
                           <div className="flex items-center gap-3 bg-muted rounded-lg px-2 py-1">
@@ -476,7 +512,6 @@ const MenuOrderPage = ({
                               onClick={() => {
                                 if (item.quantity > 1) {
                                   const newQty = item.quantity - 1;
-
                                   const unitPrice =
                                     item.price_sum / item.quantity;
                                   handleUpdateCartQuantity(
@@ -493,12 +528,6 @@ const MenuOrderPage = ({
                             </button>
                             <span className="text-sm font-bold min-w-[20px] text-center text-foreground flex items-center gap-1">
                               {item.quantity}
-                              {menuItem?.category?.categoryName ===
-                              "Entertainer" ? (
-                                <span className="text-xs text-primary font-medium">
-                                  ชม.
-                                </span>
-                              ) : null}
                             </span>
                             <button
                               onClick={() => {
@@ -535,7 +564,8 @@ const MenuOrderPage = ({
             <div className="flex justify-between items-center mb-4">
               <span className="text-muted-foreground">ยอดรวมทั้งหมด</span>
               <span className="text-xl font-bold text-foreground">
-                {totalPrice} {initialItems[0].unitPrice.label}
+                {totalPrice.toLocaleString()}{" "}
+                {initialItems[0]?.unitPrice?.label || "฿"}
               </span>
             </div>
             <Button

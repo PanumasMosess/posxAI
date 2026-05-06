@@ -105,6 +105,7 @@ export interface MenuPOSPageClientProps {
       price_sum: number;
       price_pre_unit: number;
       organizationId: number | null;
+      note: string | null;
       modifiers: {
         id: number;
         name: string;
@@ -243,6 +244,7 @@ export type CartItem = {
   price_pre_unit: any;
   organizationId: number | null;
   modifiers: any[];
+  note: string;
 };
 
 export type CartDetailItem = {
@@ -299,6 +301,7 @@ export interface CartItemPayload {
   price_sum: number;
   price_pre_unit: number;
   organizationId: number | null;
+  note: string | null;
   modifiers?: {
     modifierItemId: number;
     name: string;
@@ -314,6 +317,7 @@ export type KitchenOrder = {
   createdAt: Date;
   status: string;
   order_running_code: string | null;
+  note: string | null;
   table: {
     id: number;
     tableName: string;
@@ -469,6 +473,7 @@ export type HistoryPayment = {
       price_sum: number;
       price_pre_unit: number;
       status: string;
+      note?: string | null;
       menu: {
         id: number;
         menuName: string;
@@ -705,6 +710,7 @@ export type OrderItem = {
   price: number;
   organizationId: number | null;
   menu: Menu;
+  note?: string | null;
 };
 
 export type Order = {
@@ -718,6 +724,7 @@ export type Order = {
   price_sum: number;
   price_pre_unit: number;
   orderDetail: string | null;
+  note?: string | null;
 
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -844,10 +851,10 @@ export interface OrderData {
   tableName: string;
   totalAmount: number;
   discount: number;
-  paymentMethod: string; 
+  paymentMethod: string;
   status: string;
   createdAt: Date;
-  menus: OrderMenu[]; 
+  menus: OrderMenu[];
 }
 
 export interface ProfileClientProps {

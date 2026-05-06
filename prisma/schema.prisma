@@ -93,16 +93,18 @@ model stock {
 }
 
 model menu {
-  id          Int      @id @default(autoincrement())
-  menuName    String
-  price_sale  Float
-  price_cost  Float
-  unit        String
-  img         String?
-  description String?
-  status      String   @default("OFF_SALE") //@default("ON_SALE") for SALE menu
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  menuName      String
+  price_sale    Float
+  price_cost    Float
+  package_hours Int?
+  price_package Float?
+  unit          String
+  img           String?
+  description   String?
+  status        String   @default("OFF_SALE") //@default("ON_SALE") for SALE menu
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   createdById    Int
   creator        employeepin   @relation("MenuCreator", fields: [createdById], references: [id])
@@ -162,6 +164,7 @@ model order {
   price_sum      Float
   price_pre_unit Float
   orderDetail    String?
+  note           String?
   status         String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -198,6 +201,7 @@ model cart {
   price_sum      Float
   price_pre_unit Float
   status         String?
+  note           String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -283,7 +287,7 @@ model organization {
   ordermodifiers ordermodifier[]
   posiotions     posiotion[]
   employeepins   employeepin[]
-  permissions  permission[]
+  permissions    permission[]
 }
 
 model printer {
@@ -403,7 +407,7 @@ model permission {
   permissionKey  String // รหัสสิทธิ์ เช่น "PROJECT_VIEW"
   permissionName String // ชื่อแสดงผล เช่น "ดูโปรเจค"
   permissionDesc String? // รายละเอียดเพิ่มเติม
-  status         String @default("ACTIVE")
+  status         String  @default("ACTIVE")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())

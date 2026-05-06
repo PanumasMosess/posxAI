@@ -77,6 +77,14 @@ const MenuOrderDetailDialog = ({
     });
   };
 
+  // ✅ ดึงค่าสถานะว่าลูกค้ากดเลือกแบบ "เหมา" หรือไม่
+  const isPackage = menuDetail?.isPackageSelected || false;
+
+  // ✅ ถ้าระบุว่าเหมา ให้ใช้ราคาเหมา ถ้าไม่ใช่ ให้ใช้ราคาต่อชม. (price_sale)
+  const basePrice = isPackage
+    ? menuDetail?.price_package || 0
+    : menuDetail?.price_sale || 0;
+
   const totalPrice = useMemo(() => {
     if (!menuDetail) return 0;
     let modifierPrice = 0;
@@ -85,14 +93,15 @@ const MenuOrderDetailDialog = ({
       const group = modRel.modifierGroup;
       const selectedIds = selections[group.id] || [];
 
-      selectedIds.forEach((selectedId) => {
+      selectedIds.forEach((selectedId: number) => {
         const item = group.items.find((i: any) => i.id === selectedId);
         if (item) modifierPrice += item.price;
       });
     });
 
-    return (menuDetail.price_sale + modifierPrice) * quantity;
-  }, [menuDetail, selections, quantity]);
+    // ✅ นำราคาตั้งต้น (basePrice) มาบวกของเสริม แล้วคูณจำนวน
+    return (basePrice + modifierPrice) * quantity;
+  }, [menuDetail, selections, quantity, basePrice]);
 
   const isValid = useMemo(() => {
     if (!menuDetail?.modifiers) return true;
@@ -127,7 +136,7 @@ const MenuOrderDetailDialog = ({
     menuDetail.modifiers?.forEach((modRel: any) => {
       const group = modRel.modifierGroup;
       const selectedIds = selections[group.id] || [];
-      selectedIds.forEach((id) => {
+      selectedIds.forEach((id: number) => {
         const item = group.items.find((i: any) => i.id === id);
         if (item) {
           selectedModifiers.push({
@@ -143,13 +152,14 @@ const MenuOrderDetailDialog = ({
       id: menuDetail.id,
       menuId: menuDetail.id,
       tableId: tableNumber !== 0 ? tableNumber : tableNumberSelect,
-      price_pre_unit: menuDetail.price_sale,
+      price_pre_unit: basePrice,
       quantity: quantity,
       price_sum: totalPrice,
       organizationId: menuDetail.organizationId,
       modifiers: selectedModifiers,
+      note: isPackage ? `(แพ็กเกจเหมา ${menuDetail.package_hours} ชม.)` : "",
     };
-
+  
     onAddToCart(cartItem);
     onClose();
   };
@@ -164,7 +174,7 @@ const MenuOrderDetailDialog = ({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 50, scale: 0.95 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -190,10 +200,16 @@ const MenuOrderDetailDialog = ({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-4 left-6 right-6 text-white">
-            <h3 className="text-2xl font-bold leading-tight shadow-sm">
+            <h3 className="text-2xl font-bold leading-tight shadow-sm flex items-center gap-2">
               {menuDetail?.menuName}
+              {/* ✅ โชว์ป้ายกำกับว่านี่คือราคาเหมา */}
+              {isPackage && (
+                <span className="text-sm bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium shadow-md">
+                  เหมา {menuDetail.package_hours} ชม.
+                </span>
+              )}
             </h3>
-            <p className="text-sm text-gray-200 line-clamp-1 opacity-90">
+            <p className="text-sm text-gray-200 line-clamp-1 opacity-90 mt-1">
               {menuDetail?.description}
             </p>
           </div>
@@ -331,38 +347,42 @@ const MenuOrderDetailDialog = ({
         </div>
 
         <div className="flex-shrink-0 p-4 bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10 safe-area-bottom">
-          <div
-            className={`flex items-center gap-4 mb-4 ${
-              tableNumber == 0 ? "justify-between" : "justify-center"
-            }`}
-          >
-            {tableNumber == 0 && (
-              <Select
-                onValueChange={(value) =>
-                  onTableChange(value === "ALL" ? null : value)
-                }
-              >
-                <SelectTrigger className="w-[140px]">
-                  <div className="flex items-center text-muted-foreground">
-                    <Table className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="เลือกโต๊ะ" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {dataTable?.map((table) => (
-                    <SelectItem key={table.id} value={String(table.id)}>
-                      {table.tableName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+          {/* ✅ แก้ที่ 1: เปลี่ยนมาใช้ justify-between เสมอ */}
+          <div className="flex items-center justify-between gap-4 mb-4">
+            {/* ✅ แก้ที่ 2: เอาปีกกา {tableNumber == 0 &&} ออก เพื่อให้ช่องแสดงตลอดเวลา */}
+            <Select
+              // ✅ แก้ที่ 3: เพิ่ม value เพื่อให้ระบบจำและแสดงชื่อโต๊ะที่ถูกเลือกอยู่
+              value={
+                tableNumberSelect !== 0
+                  ? String(tableNumberSelect)
+                  : tableNumber !== 0
+                    ? String(tableNumber)
+                    : undefined
+              }
+              onValueChange={(value) =>
+                onTableChange(value === "ALL" ? null : value)
+              }
+            >
+              <SelectTrigger className="w-[140px] bg-background">
+                <div className="flex items-center text-foreground">
+                  <Table className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="เลือกโต๊ะ" />
+                </div>
+              </SelectTrigger>
+              {/* ✅ แก้ที่ 4: เพิ่ม z-[70] เพื่อดันให้ Dropdown ลอยอยู่เหนือ Modal (ที่ลอยอยู่ z-[60]) */}
+              <SelectContent className="z-[70]">
+                {dataTable?.map((table) => (
+                  <SelectItem key={table.id} value={String(table.id)}>
+                    {table.tableName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <div className="flex flex-col items-center">
-              {/* ✅ แสดงเฉพาะเมื่อเป็น Entertainer */}
               {isEntertainer && (
                 <span className="text-xs text-muted-foreground font-medium mb-1">
-                  ระบุจำนวนชั่วโมง
+                  {isPackage ? "จำนวนแพ็กเกจ" : "ระบุจำนวนชั่วโมง"}
                 </span>
               )}
               <div className="flex items-center gap-3 bg-muted rounded-lg p-1">
@@ -376,9 +396,10 @@ const MenuOrderDetailDialog = ({
                 </Button>
                 <span className="text-lg font-bold min-w-[32px] text-center text-foreground flex items-center justify-center gap-1">
                   {quantity}
-                  {/* ✅ แสดง ชม. เมื่อเป็น Entertainer */}
                   {isEntertainer && (
-                    <span className="text-sm text-primary">ชม.</span>
+                    <span className="text-sm text-primary">
+                      {isPackage ? "แพ็กเกจ" : "ชม."}
+                    </span>
                   )}
                 </span>
                 <Button
@@ -400,9 +421,8 @@ const MenuOrderDetailDialog = ({
             onClick={handleAddToCartClick}
             disabled={!isValid}
           >
-            {/* ✅ เปลี่ยนข้อความบนปุ่ม */}
             {isEntertainer
-              ? `เลือก Entertainer - ฿${totalPrice.toLocaleString()}`
+              ? `${isPackage ? "รับงานเหมา" : "เลือก Entertainer"} - ฿${totalPrice.toLocaleString()}`
               : `เพิ่มลงตะกร้า - ฿${totalPrice.toLocaleString()}`}
           </Button>
         </div>

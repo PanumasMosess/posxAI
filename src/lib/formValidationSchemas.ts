@@ -65,6 +65,8 @@ export const MenuSchema_ = z.object({
   menuName: z.string().min(1, { message: "กรุณากรอกชื่อสินค้า" }).max(50),
   price_sale: z.coerce.number().min(0, "ห้ามติดลบ"),
   price_cost: z.coerce.number().min(0, "ห้ามติดลบ"),
+  package_hours: z.coerce.number().optional().nullable(),
+  price_package: z.coerce.number().optional().nullable(),
   unit: z.string().min(1, { message: "กรุณากรอกหน่วยสินค้า" }).max(50),
   description: z.string().optional(),
   status: z.string().optional(),

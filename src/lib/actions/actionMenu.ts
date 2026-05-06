@@ -27,6 +27,10 @@ export const createMenu = async (
         unitPriceId: data.unitPriceId,
         mcEmployeeId: data.mcEmployeeId || null,
 
+        // ✅ เพิ่ม 2 ฟิลด์นี้สำหรับระบบราคาเหมา
+        package_hours: data.package_hours || null,
+        price_package: data.price_package || null,
+
         modifiers: {
           create: data.modifierGroupIds?.map((groupId) => ({
             modifierGroup: { connect: { id: groupId } },
@@ -67,6 +71,10 @@ export const updateMenu = async (
         categoryMenuId: data.categoryMenuId,
         unitPriceId: data.unitPriceId,
         mcEmployeeId: data.mcEmployeeId || null,
+
+        // ✅ เพิ่ม 2 ฟิลด์นี้สำหรับระบบราคาเหมา
+        package_hours: data.package_hours || null,
+        price_package: data.price_package || null,
 
         modifiers: {
           deleteMany: {},
@@ -134,6 +142,8 @@ export const updateImageMenu = async (data: any) => {
 };
 
 export const createMenuToCart = async (data: any) => {
+  console.log(data);
+  
   try {
     const modifiers = data.modifiers || [];
     await prisma.cart.create({
@@ -144,6 +154,7 @@ export const createMenuToCart = async (data: any) => {
         menuId: data.menuId,
         tableId: data.tableId,
         status: "ON_CART",
+        note: data.note,
         organizationId: data.organizationId,
         modifiers: {
           create: modifiers.map((mod: any) => ({
@@ -298,6 +309,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
           status: orderStatus,
           organizationId: item.organizationId,
           order_running_code: runningCode,
+          note: item.note || null, // ✅ บันทึกค่า note ลงฐานข้อมูล (ปรับให้ตรงกับชื่อฟิลด์ของคุณ)
           orderitems: {
             create: {
               menuId: item.menuId,
