@@ -899,7 +899,7 @@ export const deletePermission = async (id: number) => {
   try {
     await prisma.permission.update({
       where: { id },
-      data: { status: "INACTIVE" }, // 👈 ใช้ status แทน
+      data: { status: "INACTIVE" }, 
     });
 
     return { success: true };
@@ -923,3 +923,28 @@ export const updatePermissionStatus = async (id: number, status: string) => {
     return { success: false };
   }
 };
+
+
+export async function updateProfile(
+  id: number,
+  data: { name: string; surname: string; tel: string; email: string }
+) {
+  try {
+    const telNumber = data.tel ? parseInt(data.tel.replace(/[^0-9]/g, ""), 10) : null;
+
+    await prisma.employeepin.update({
+      where: { id: id },
+      data: {
+        name: data.name,
+        surname: data.surname,
+        email: data.email || null,
+        tel: telNumber,
+      },
+    });
+
+    return { success: true, message: "อัปเดตข้อมูลสำเร็จ" };
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" };
+  }
+}

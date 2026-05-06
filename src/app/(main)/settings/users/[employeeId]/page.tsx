@@ -1,4 +1,3 @@
-"use server";
 import ProfileClient from "@/components/settings/users/ProfileClient";
 import prisma from "@/lib/prisma";
 
@@ -29,10 +28,17 @@ const page = async ({
 
   let orderHistory: any[] = [];
 
-  if (positionData?.position_name === "Entertainer") {
-    // 3.1 หาเลขบิลทั้งหมดที่ Entertainer มีส่วนร่วม
+  const posName = positionData?.position_name || "";
+  const isEntertainer = posName === "Entertainer";
+  const isAdmin = ["Admin", "admin", "Spadmin", "spadmin"].includes(posName);
+
+  if (isEntertainer || isAdmin) {
+    const orderWhereCondition = isAdmin
+      ? { menu: { mcEmployeeId: { not: null } } }
+      : { menu: { mcEmployeeId: targetUserId } };
+
     const involvedOrders = await prisma.order.findMany({
-      where: { menu: { mcEmployeeId: targetUserId } },
+      where: orderWhereCondition,
       select: { order_running_code: true },
       distinct: ["order_running_code"],
     });
@@ -42,14 +48,14 @@ const page = async ({
       .filter((code) => code !== null) as string[];
 
     if (runningCodes.length > 0) {
-      // 3.2 ดึง "ออเดอร์ทั้งหมด"
+      // 3.2 ดึง "ออเดอร์ทั้งหมด" ในบิลเหล่านั้น
       const fullOrders = await prisma.order.findMany({
         where: { order_running_code: { in: runningCodes } },
         include: { table: true, menu: true },
         orderBy: { createdAt: "desc" },
       });
 
-      // ✅ 3.3 ดึงข้อมูล "Payment (การจ่ายเงิน)" ของเลขบิลเหล่านั้น
+      // 3.3 ดึงข้อมูล "Payment (การจ่ายเงิน)"
       const payments = await prisma.paymentorder.findMany({
         where: { order_running_code: { in: runningCodes } },
       });
@@ -63,20 +69,19 @@ const page = async ({
       // 3.4 จัดกลุ่มข้อมูล
       const groupedOrders = fullOrders.reduce((acc: any, curr) => {
         const code = curr.order_running_code || `N/A`;
-        const payment = paymentMap[code]; // หาว่าบิลนี้จ่ายเงินหรือยัง
+        const payment = paymentMap[code];
 
         if (!acc[code]) {
           acc[code] = {
             orderNumber: code,
             tableName: curr.table?.tableName || "ไม่ระบุโต๊ะ",
-            // ถ้าเจอใน payment แสดงว่าจ่ายแล้ว ถ้าไม่เจอให้ใช้สถานะจาก order (เช่น กำลังทาน)
             status: payment ? "PAID" : curr.status,
             createdAt: payment ? payment.createdAt : curr.createdAt,
-            totalAmount: payment ? payment.totalAmount : 0, // ยอดสุทธิจาก Payment
-            discount: payment ? payment.discount : 0, // ส่วนลดจาก Payment
-            paymentMethod: payment ? payment.paymentMethod : "ยังไม่ชำระ", // วิธีจ่ายเงิน
+            totalAmount: payment ? payment.totalAmount : 0,
+            discount: payment ? payment.discount : 0,
+            paymentMethod: payment ? payment.paymentMethod : "ยังไม่ชำระ",
             menus: [],
-            calculatedTotal: 0, // เอาไว้เผื่อยังไม่จ่ายเงิน จะได้บวกยอดโชว์ชั่วคราว
+            calculatedTotal: 0,
           };
         }
 
@@ -85,12 +90,13 @@ const page = async ({
           menuName: curr.menu.menuName,
           quantity: curr.quantity,
           price_sum: curr.price_sum,
-          isMC: curr.menu.mcEmployeeId === targetUserId,
+          isMC: isAdmin
+            ? curr.menu.mcEmployeeId !== null
+            : curr.menu.mcEmployeeId === targetUserId,
         });
 
         acc[code].calculatedTotal += curr.price_sum;
 
-        // ถ้ายังไม่ได้เช็คบิล (ไม่มี payment) ให้ใช้ยอดรวมจากการบวกค่าอาหารไปก่อน
         if (!payment) {
           acc[code].totalAmount = acc[code].calculatedTotal;
         }
