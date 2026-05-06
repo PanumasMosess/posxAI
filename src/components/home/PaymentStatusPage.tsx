@@ -184,7 +184,7 @@ const PaymentStatusPage = ({
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
-    initialItems.forEach((order) => {
+    initialItems.forEach((order: any) => {
       if (order.status !== "COMPLETED") {
         return;
       }
@@ -196,8 +196,8 @@ const PaymentStatusPage = ({
           id: key,
           firstOrderId: order.id,
           runningCode: order.order_running_code || "-",
-          table: order.table.tableName,
-          tableId: order.table.id,
+          table: order.table?.tableName || "-",
+          tableId: order.tableId,
           time: new Date(order.createdAt).toLocaleTimeString("th-TH", {
             hour: "2-digit",
             minute: "2-digit",
@@ -214,8 +214,8 @@ const PaymentStatusPage = ({
       groups[key].total += order.price_sum || 0;
 
       if (order.orderitems && Array.isArray(order.orderitems)) {
-        order.orderitems.forEach((item) => {
-          if (groups[key].items.length === 0 && item.menu.unitPrice?.label) {
+        order.orderitems.forEach((item: any) => {
+          if (groups[key].items.length === 0 && item.menu?.unitPrice?.label) {
             groups[key].currency = item.menu.unitPrice.label;
           }
 
@@ -226,17 +226,17 @@ const PaymentStatusPage = ({
               const price = m.price || 0;
               modifiersTotal += price;
               if (price > 0) {
-                return `${m.modifierItem.name} (+${price})`;
+                return `${m.modifierItem?.name} (+${price})`;
               }
-              return m.modifierItem.name;
+              return m.modifierItem?.name;
             })
             .join(", ");
 
           const displayName = modifiersText
-            ? `${item.menu.menuName} (${modifiersText})`
-            : item.menu.menuName;
+            ? `${item.menu?.menuName} (${modifiersText})`
+            : item.menu?.menuName;
 
-          const basePrice = item.menu.price_sale || 0;
+          const basePrice = item.menu?.price_sale || 0;
           const finalUnitPrice = basePrice + modifiersTotal;
           const totalPriceForItem = finalUnitPrice * item.quantity;
 
@@ -244,8 +244,9 @@ const PaymentStatusPage = ({
             id: item.id,
             name: displayName,
             qty: item.quantity,
-            img: item.menu.img,
+            img: item.menu?.img,
             price: totalPriceForItem,
+            note: item.note || order.note || null,
           });
         });
       }
@@ -665,7 +666,6 @@ const PaymentStatusPage = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            // ✅ จุดที่แก้ CSS เพื่อให้เป็น Drawer ซ้อนทับด้านขวา
             className="
               fixed inset-y-0 right-0 z-50 w-full sm:w-[500px]
               bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl
@@ -771,26 +771,34 @@ const PaymentStatusPage = ({
                     {selectedOrder.items.map((item: any, idx: number) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-center p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
+                        // ✅ ปรับจาก items-center เป็น items-start เผื่อ note ยาวหลายบรรทัด
+                        className="flex justify-between items-start p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
                       >
-                        <div className="flex gap-2 items-center">
-                          <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm">
+                        <div className="flex gap-2 items-start">
+                          <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm mt-0.5">
                             <AvatarImage
                               src={item.img || "/placeholder.png"}
                               className="object-cover"
                             />
                             <AvatarFallback>IMG</AvatarFallback>
                           </Avatar>
-                          <div>
+                          <div className="flex flex-col">
                             <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                               {item.name}
                             </p>
                             <p className="text-[10px] text-zinc-400">
                               x{item.qty}
                             </p>
+
+                            {/* ✅ เพิ่มการแสดงผล Note ตรงนี้ */}
+                            {item.note && (
+                              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
+                                * {item.note}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <span className="text-xs font-medium text-zinc-900 dark:text-white">
+                        <span className="text-xs font-medium text-zinc-900 dark:text-white mt-0.5">
                           {item.price.toLocaleString()}
                         </span>
                       </div>

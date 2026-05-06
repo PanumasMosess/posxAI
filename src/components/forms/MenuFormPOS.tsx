@@ -68,6 +68,8 @@ const MenuFormPOS = ({
       description: "",
       price_sale: 0,
       price_cost: 0,
+      package_hours: 0, // ✅ ค่าเริ่มต้น
+      price_package: 0, // ✅ ค่าเริ่มต้น
       status: "READY_TO_SELL",
       img: undefined,
       createdById: currentUserId,
@@ -80,7 +82,6 @@ const MenuFormPOS = ({
 
   const router = useRouter();
 
-  // ดึง employees มาจาก relatedData ด้วย
   const {
     categories = [],
     unitprices = [],
@@ -91,11 +92,11 @@ const MenuFormPOS = ({
   const [OldImg, setOldImg] = useState("");
   const [state, formAction] = useActionState(
     type === "create" ? createMenu : updateMenu,
-    {
-      success: false,
-      error: false,
-    },
+    { success: false, error: false },
   );
+
+  // ✅ State เปิด/ปิด กล่องแพ็กเกจเหมา
+  const [isPackage, setIsPackage] = useState(false);
 
   const watchCategoryId = formAddMenu.watch("categoryMenuId");
   const selectedCategory = categories.find(
@@ -112,12 +113,18 @@ const MenuFormPOS = ({
         finalData.mcEmployeeId = null;
       }
 
+      // ✅ ถ้าไม่ได้ติ๊กเปิดแพ็กเกจเหมา ให้เคลียร์ค่าเป็น 0 / null
+      if (!isPackage) {
+        finalData.package_hours = null;
+        finalData.price_package = null;
+      }
+
       if (type === "update" && OldImg && dataForm.img) {
         const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME!;
         const urlObject = new URL(OldImg);
         const pathname = urlObject.pathname;
         const key = pathname.substring(`/${bucketName}/`.length);
-        await deleteFileS3(key); 
+        await deleteFileS3(key);
       }
 
       if (dataForm.img && dataForm.img instanceof File) {
@@ -150,6 +157,7 @@ const MenuFormPOS = ({
     if (stateForm) {
       formAddMenu.reset();
       formAddMenu.setValue("createdById", currentUserId);
+      setIsPackage(false);
     }
 
     if (type === "update" && data) {
@@ -163,6 +171,13 @@ const MenuFormPOS = ({
       formAddMenu.setValue("unitPriceId", data.unitPriceId);
       formAddMenu.setValue("mcEmployeeId", data.mcEmployeeId || null);
       formAddMenu.setValue("id", data.id);
+
+      // ✅ ดึงค่า package มาแสดง ถ้ามีค่าแปลว่าเคยตั้งราคาเหมาไว้
+      if (data.package_hours > 0 || data.price_package > 0) {
+        setIsPackage(true);
+        formAddMenu.setValue("package_hours", data.package_hours || 0);
+        formAddMenu.setValue("price_package", data.price_package || 0);
+      }
 
       const existingGroupIds =
         data.modifiers?.map((item: any) => item.modifierGroupId) || [];
@@ -202,6 +217,7 @@ const MenuFormPOS = ({
               toast.error("กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง");
             })}
           >
+            {/* ... Form ID (Hidden) ... */}
             {data && (
               <FormField
                 control={formAddMenu.control}
@@ -216,7 +232,7 @@ const MenuFormPOS = ({
               />
             )}
 
-            {/* ✅ 1. ย้ายหมวดหมู่มาบนสุด เพื่อให้เลือกก่อน */}
+            {/* หมวดหมู่ */}
             <FormField
               control={formAddMenu.control}
               name="categoryMenuId"
@@ -228,7 +244,6 @@ const MenuFormPOS = ({
                   <Select
                     onValueChange={(val) => {
                       field.onChange(Number(val));
-                      // ถ้าเปลี่ยนหมวดหมู่ที่ไม่ใช่ Entertainer ให้ล้างค่า mcEmployeeId
                       const cat = categories.find(
                         (c: any) => c.id === Number(val),
                       );
@@ -244,13 +259,11 @@ const MenuFormPOS = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map(
-                        (cat: { id: number; categoryName: String }) => (
-                          <SelectItem key={cat.id} value={String(cat.id)}>
-                            {cat.categoryName}
-                          </SelectItem>
-                        ),
-                      )}
+                      {categories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={String(cat.id)}>
+                          {cat.categoryName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -258,44 +271,40 @@ const MenuFormPOS = ({
               )}
             />
 
-            {/* ✅ 2. ถ้าเป็น Entertainer ให้ดึง EmployeePin มาเลือก */}
+            {/* ถ้าเป็น Entertainer ให้เลือกพนักงาน */}
             {isEntertainer && (
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30 rounded-xl space-y-4">
+              <div className="p-4 border rounded-xl bg-muted/30 dark:bg-muted/10 space-y-4">
                 <FormField
                   control={formAddMenu.control}
                   name="mcEmployeeId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-purple-700 dark:text-purple-400">
+                      <FormLabel className="text-foreground">
                         เลือกพนักงาน (Entertainer)
                       </FormLabel>
                       <Select
                         onValueChange={(val) => {
                           field.onChange(Number(val));
-
-                          // 🟢 Auto-fill ชื่อและรูปภาพเมื่อเลือกพนักงาน
                           const emp = employees.find(
                             (e: any) => e.id === Number(val),
                           );
                           if (emp) {
-                            // เซ็ตชื่อเมนูอัตโนมัติ
                             formAddMenu.setValue(
                               "menuName",
                               `${emp.name} ${emp.surname || ""}`.trim(),
                             );
-                            formAddMenu.setValue("unit", "ชม."); // เดาว่าหน่วยเป็นชั่วโมง
-
-                            // ดึงรูปมาเซ็ต
+                            formAddMenu.setValue("unit", "ชม.");
                             if (emp.img) {
                               setOldImg(emp.img);
-                              formAddMenu.setValue("img", undefined); // เคลียร์ File object ทิ้ง
+                              formAddMenu.setValue("img", undefined);
                             }
                           }
                         }}
                         value={field.value ? String(field.value) : ""}
                       >
                         <FormControl>
-                          <SelectTrigger className="w-full border-purple-200">
+                          {/* ✅ เปลี่ยนสีขอบและพื้นหลังของ Select ให้เข้า Theme */}
+                          <SelectTrigger className="w-full bg-background border-input">
                             <SelectValue placeholder="เลือกพนักงาน..." />
                           </SelectTrigger>
                         </FormControl>
@@ -314,14 +323,14 @@ const MenuFormPOS = ({
               </div>
             )}
 
-            {/* ฟิลด์อื่นๆ ปกติ */}
             <FormField
               control={formAddMenu.control}
               name="menuName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    ชื่อรายการ {isEntertainer && "(ดึงมาจากชื่อพนักงาน)"}
+                    ชื่อรายการ{" "}
+                    {isEntertainer && "(ดึงมาจากชื่อพนักงานอัตโนมัติ)"}
                   </FormLabel>
                   <FormControl>
                     <Input {...field} />
@@ -331,6 +340,7 @@ const MenuFormPOS = ({
               )}
             />
 
+            {/* ✅ ราคาต่อชั่วโมง */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={formAddMenu.control}
@@ -338,7 +348,10 @@ const MenuFormPOS = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      ราคาขาย {isEntertainer && "(ต่อ 1 ชม.)"}
+                      ราคาขาย{" "}
+                      <span className="text-primary font-bold">
+                        {isEntertainer && "(ต่อ 1 ชม.)"}
+                      </span>
                     </FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
@@ -362,6 +375,89 @@ const MenuFormPOS = ({
               />
             </div>
 
+            {/* ✅ ส่วนเพิ่มราคาเหมา (ปรับสีให้เข้ากับ Theme หลัก) */}
+            {isEntertainer && (
+              <div className="p-4 border rounded-xl bg-muted/30 dark:bg-muted/10">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Checkbox
+                    id="isPackage"
+                    checked={isPackage}
+                    onCheckedChange={(checked) => setIsPackage(!!checked)}
+                  />
+                  <FormLabel
+                    htmlFor="isPackage"
+                    className="cursor-pointer font-medium text-foreground"
+                  >
+                    เพิ่มตัวเลือก "ราคาเหมา" ให้พนักงานคนนี้
+                  </FormLabel>
+                </div>
+
+                {isPackage && (
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-2 border-t border-border/50 animate-in fade-in zoom-in duration-300">
+                    <FormField
+                      control={formAddMenu.control}
+                      name="package_hours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-muted-foreground">
+                            จำนวน ชม. (ที่ให้เหมา)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              {...field}
+                              // ✅ เพิ่มบรรทัดนี้: แปลง null เป็นช่องว่าง ""
+                              value={field.value ?? ""}
+                              // ✅ แปลงค่ากลับเป็นตัวเลขตอนพิมพ์
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
+                                )
+                              }
+                              className="bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={formAddMenu.control}
+                      name="price_package"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-muted-foreground">
+                            ราคาเหมา (บาท)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              {...field}
+                              // ✅ เพิ่มบรรทัดนี้: แปลง null เป็นช่องว่าง ""
+                              value={field.value ?? ""}
+                              // ✅ แปลงค่ากลับเป็นตัวเลขตอนพิมพ์
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
+                                )
+                              }
+                              className="bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={formAddMenu.control}
@@ -379,13 +475,11 @@ const MenuFormPOS = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {unitprices.map(
-                          (unit: { id: number; label: String }) => (
-                            <SelectItem key={unit.id} value={String(unit.id)}>
-                              {unit.label}
-                            </SelectItem>
-                          ),
-                        )}
+                        {unitprices.map((unit: any) => (
+                          <SelectItem key={unit.id} value={String(unit.id)}>
+                            {unit.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -452,6 +546,7 @@ const MenuFormPOS = ({
               />
             )}
 
+            {/* Modifiers และ รูปภาพ เหมือนเดิม... */}
             <div className="space-y-4 border rounded-md p-4 bg-muted/20">
               <FormLabel className="text-base">
                 ตัวเลือกเพิ่มเติม (Modifiers)
@@ -462,41 +557,35 @@ const MenuFormPOS = ({
                     key={group.id}
                     control={formAddMenu.control}
                     name="modifierGroupIds"
-                    render={({ field }) => {
-                      return (
-                        <FormItem
-                          key={group.id}
-                          className="flex flex-row items-start space-x-3 space-y-0"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(group.id)}
-                              onCheckedChange={(checked) => {
-                                const currentValues = field.value || [];
-                                if (checked) {
-                                  field.onChange([...currentValues, group.id]);
-                                } else {
-                                  field.onChange(
-                                    currentValues.filter(
-                                      (value) => value !== group.id,
-                                    ),
-                                  );
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            {group.name}
-                          </FormLabel>
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value?.includes(group.id)}
+                            onCheckedChange={(checked) => {
+                              const currentValues = field.value || [];
+                              if (checked) {
+                                field.onChange([...currentValues, group.id]);
+                              } else {
+                                field.onChange(
+                                  currentValues.filter(
+                                    (val) => val !== group.id,
+                                  ),
+                                );
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal cursor-pointer">
+                          {group.name}
+                        </FormLabel>
+                      </FormItem>
+                    )}
                   />
                 ))}
               </div>
             </div>
 
-            {/* ✅ กล่องอัปโหลดรูปภาพ */}
             <div className="space-y-2">
               <FormFieldImageUpload
                 control={formAddMenu.control}
@@ -507,7 +596,6 @@ const MenuFormPOS = ({
                     : "รูปภาพสินค้า"
                 }
               />
-              {/* ✅ โชว์รูปเดิมที่ดึงมาจาก employeePin */}
               {OldImg && !formAddMenu.watch("img") && (
                 <p className="text-xs text-muted-foreground">
                   * กำลังใช้รูปภาพเดิม หรือรูปที่ดึงมาจากข้อมูลพนักงาน

@@ -72,7 +72,6 @@ const PaymentPage = ({
 }: KitchecOrderList) => {
   const router = useRouter();
   const { employeeId } = useUser();
-
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<
     "QR" | "CASH" | "CARD" | "MEMBER"
@@ -279,6 +278,7 @@ const PaymentPage = ({
             qty: item.quantity,
             img: item.menu.img,
             price: totalPriceForItem,
+            note: order.note || null,
           });
         });
       }
@@ -663,38 +663,46 @@ const PaymentPage = ({
                 />
 
                 <div>
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <p className="text-xs font-bold text-zinc-400 uppercase">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase">
                       รายการอาหาร
                     </p>
-                    <Badge variant="secondary" className="text-[10px] h-5">
+                    <Badge variant="secondary" className="text-[9px] h-4">
                       {selectedOrder.items.length} รายการ
                     </Badge>
                   </div>
-                  <div className="space-y-1 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-1 max-h-32 overflow-y-auto pr-2 custom-scrollbar border rounded-xl p-2">
                     {selectedOrder.items.map((item: any, idx: number) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-center p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg transition-colors group"
+                        // ✅ ปรับจาก items-center เป็น items-start เผื่อ note ยาวหลายบรรทัด
+                        className="flex justify-between items-start p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
                       >
-                        <div className="flex gap-3 items-center">
-                          <Avatar className="h-10 w-10 rounded-lg border border-zinc-100 shadow-sm">
+                        <div className="flex gap-2 items-start">
+                          <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm mt-0.5">
                             <AvatarImage
                               src={item.img || "/placeholder.png"}
                               className="object-cover"
                             />
                             <AvatarFallback>IMG</AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-primary transition-colors">
+                          <div className="flex flex-col">
+                            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                               {item.name}
                             </p>
-                            <p className="text-xs text-zinc-400">
-                              จำนวน: {item.qty}
+                            <p className="text-[10px] text-zinc-400">
+                              x{item.qty}
                             </p>
+
+                            {/* ✅ เพิ่มการแสดงผล Note ตรงนี้ */}
+                            {item.note && (
+                              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
+                                * {item.note}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                        <span className="text-xs font-medium text-zinc-900 dark:text-white mt-0.5">
                           {item.price.toLocaleString()}
                         </span>
                       </div>
