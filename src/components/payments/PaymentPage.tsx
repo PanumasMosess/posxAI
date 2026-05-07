@@ -279,6 +279,7 @@ const PaymentPage = ({
             img: item.menu.img,
             price: totalPriceForItem,
             note: order.note || null,
+            price_package: item.menu?.price_package || 0,
           });
         });
       }
@@ -703,7 +704,9 @@ const PaymentPage = ({
                           </div>
                         </div>
                         <span className="text-xs font-medium text-zinc-900 dark:text-white mt-0.5">
-                          {item.price.toLocaleString()}
+                          {item.note && item.price_package
+                            ? item.price_package.toLocaleString()
+                            : item.price.toLocaleString()}
                         </span>
                       </div>
                     ))}

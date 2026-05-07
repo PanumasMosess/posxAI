@@ -93,6 +93,10 @@ const page = async ({
           isMC: isAdmin
             ? curr.menu.mcEmployeeId !== null
             : curr.menu.mcEmployeeId === targetUserId,
+          status: curr.status,
+          createdAt: curr.createdAt,
+          packageHours: curr.menu.package_hours || 0,
+          unit: curr.menu.unit,
         });
 
         acc[code].calculatedTotal += curr.price_sum;
