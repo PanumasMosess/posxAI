@@ -9,8 +9,6 @@ import {
   Mail,
   ShieldCheck,
   ReceiptText,
-  CreditCard,
-  Coins,
   Edit2,
   Save,
   Search,
@@ -44,6 +42,7 @@ import { ProfileClientProps } from "@/lib/type";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/lib/actions/actionSettings";
 import { toast } from "react-toastify";
+import CountdownTimer from "./CountdownTimer";
 
 export default function ProfileClient({
   profileData,
@@ -395,31 +394,46 @@ export default function ProfileClient({
                       {/* รายการเมนูทั้งหมด */}
                       <TableCell className="pt-4 pb-4">
                         <ul className="space-y-2">
-                          {order.menus.map((menu) => (
+                          {order.menus.map((menu: any) => (
                             <li
                               key={menu.id}
-                              className={`text-sm flex justify-between items-center px-3 py-2 rounded-lg border ${
+                              className={`text-sm flex justify-between items-start px-3 py-2 rounded-lg border ${
                                 menu.isMC
                                   ? "bg-primary/10 border-primary/20 shadow-sm"
                                   : "bg-muted/20 border-transparent"
                               }`}
                             >
-                              <div className="flex items-center gap-3">
-                                <span
-                                  className={
-                                    menu.isMC
-                                      ? "font-semibold text-primary"
-                                      : "text-muted-foreground"
-                                  }
-                                >
-                                  {menu.menuName}
-                                </span>
-                                <span className="text-xs text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded-md">
-                                  x{menu.quantity}
-                                </span>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={
+                                      menu.isMC
+                                        ? "font-semibold text-primary"
+                                        : "text-muted-foreground"
+                                    }
+                                  >
+                                    {menu.menuName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded-md">
+                                    x{menu.quantity}
+                                  </span>
+                                </div>
+
+                                {menu.isMC && menu.status === "COMPLETED" && (
+                                  <CountdownTimer
+                                    startTime={menu.createdAt}
+                                    packageHours={menu.packageHours}
+                                    quantity={menu.quantity}
+                                    unit={menu.unit}
+                                  />
+                                )}
                               </div>
                               <span
-                                className={`text-xs font-medium ${menu.isMC ? "text-primary" : "text-muted-foreground"}`}
+                                className={`text-xs font-medium mt-0.5 ${
+                                  menu.isMC
+                                    ? "text-primary"
+                                    : "text-muted-foreground"
+                                }`}
                               >
                                 ฿{menu.price_sum.toLocaleString()}
                               </span>

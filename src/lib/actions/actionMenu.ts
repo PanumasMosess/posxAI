@@ -142,8 +142,7 @@ export const updateImageMenu = async (data: any) => {
 };
 
 export const createMenuToCart = async (data: any) => {
-  console.log(data);
-  
+ 
   try {
     const modifiers = data.modifiers || [];
     await prisma.cart.create({

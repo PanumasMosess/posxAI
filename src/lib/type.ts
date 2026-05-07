@@ -339,6 +339,8 @@ export type KitchenOrder = {
       menuName: string;
       price_sale: number;
       img: string | null;
+      price_package?: number | null;
+      package_hours?: number | null;
       unitPrice: {
         label: string;
       };
@@ -711,6 +713,8 @@ export type OrderItem = {
   organizationId: number | null;
   menu: Menu;
   note?: string | null;
+  price_package?: number | null;
+  package_hours?: number | null;
 };
 
 export type Order = {
@@ -725,6 +729,8 @@ export type Order = {
   price_pre_unit: number;
   orderDetail: string | null;
   note?: string | null;
+  price_package?: number | null;
+  package_hours?: number | null;
 
   createdAt: Date | string;
   updatedAt: Date | string;
