@@ -42,6 +42,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const isLoggedIn = !!auth?.user;
       const { pathname } = nextUrl;
       const isProtectedRoute =
+        pathname.startsWith("/profiles") ||
         pathname.startsWith("/home") ||
         pathname.startsWith("/stock") ||
         pathname.startsWith("/menu") ||
@@ -82,13 +83,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
 
             throw new Error(
-              "บัญชีถูกสร้างเรียบร้อยแล้ว กรุณารอผู้ดูแลระบบอนุมัติ (Wait for Admin Approval)"
+              "บัญชีถูกสร้างเรียบร้อยแล้ว กรุณารอผู้ดูแลระบบอนุมัติ (Wait for Admin Approval)",
             );
           }
 
           if (existingUser.status !== "ACTIVE") {
             throw new Error(
-              "บัญชีของคุณยังไม่ได้รับการอนุมัติ หรือถูกระงับการใช้งาน (Contact Admin)"
+              "บัญชีของคุณยังไม่ได้รับการอนุมัติ หรือถูกระงับการใช้งาน (Contact Admin)",
             );
           }
 
@@ -152,6 +153,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   pages: {
     signIn: "/",
-    error: "/", 
+    error: "/",
   },
 });

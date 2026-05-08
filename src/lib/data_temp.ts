@@ -19,9 +19,15 @@ import {
   Sparkles,
   Utensils,
   Flame,
+  UserCheck2,
 } from "lucide-react";
 
 const menuList = [
+  {
+    title: "โปรไฟล์การทำงาน",
+    url: "/profiles",
+    icon: UserCheck2,
+  },
   {
     title: "หน้าหลัก",
     url: "/home",
