@@ -868,3 +868,14 @@ export interface ProfileClientProps {
   positionData: any;
   orders?: OrderData[];
 }
+
+export interface CountdownTimerProps {
+  startTime: string | Date;
+  packageHours: number;
+  quantity: number;
+  unit: string;
+}
+
+export interface ProfilleMainProps {
+  orders: any[];
+}
