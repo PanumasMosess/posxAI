@@ -187,12 +187,12 @@ export default function PaymentMethodsPanel({
                   รับเงินมา
                 </label>
                 {change >= 0 && (
-                  <span className="text-xs font-bold text-emerald-600">
+                  <span className="text-xl font-bold text-emerald-600">
                     เงินทอน: {change.toLocaleString()}
                   </span>
                 )}
                 {change < 0 && (
-                  <span className="text-xs font-bold text-red-500">
+                  <span className="text-xl font-bold text-red-500">
                     ขาดอีก: {Math.abs(change).toLocaleString()}
                   </span>
                 )}
