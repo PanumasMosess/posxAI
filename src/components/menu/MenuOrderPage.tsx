@@ -12,6 +12,8 @@ import {
   Plus,
   Trash2,
   Minus,
+  Search,
+  X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
@@ -37,6 +39,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MenuOrderHistorySheet } from "./MenuOrderHistorySheet";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "../ui/input";
 
 const MenuOrderPage = ({
   relatedData,
@@ -102,7 +105,7 @@ const MenuOrderPage = ({
     setIsOpenDetail(true);
   };
 
-  const handleAddToCart = async (cartItem: CartItem) => {  
+  const handleAddToCart = async (cartItem: CartItem) => {
     cartItem.organizationId = organizationId ?? 1;
     if (tableNumber != 0) {
       cartItem.tableId = tableNumber;
@@ -272,8 +275,27 @@ const MenuOrderPage = ({
           </div>
         </div>
       </div>
-
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur shadow-sm border-b border-border">
+        <div className="px-4 pt-3 pb-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="ค้นหาเมนูอาหาร..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 bg-muted/30 border-border focus-visible:ring-1 focus-visible:ring-primary rounded-xl h-10 w-full shadow-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
         <div className="flex overflow-x-auto hide-scrollbar py-3 px-4 gap-2">
           {categories.map((cat: any) => (
             <button
@@ -351,7 +373,7 @@ const MenuOrderPage = ({
                         item.package_hours > 0 && (
                           <div
                             className="flex items-center gap-1.5 mt-2"
-                            onClick={(e) => e.stopPropagation()} 
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Checkbox
                               id={`pkg-${item.id}`}
