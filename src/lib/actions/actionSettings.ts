@@ -11,6 +11,7 @@ import {
 } from "../formValidationSchemas";
 import prisma from "../prisma";
 import bcrypt from "bcryptjs";
+import { deleteFileS3, sendbase64toS3DataMultifile } from "./actionIndex";
 type CurrentState = { success: boolean; error: boolean };
 
 export const createTable = async (
@@ -469,7 +470,7 @@ export const createEmployeePin = async (
       data: {
         pin: hashedPin,
         name: data.name,
-        surname: data.surname || '-',
+        surname: data.surname || "-",
         email: data.email || null,
         tel: data.tel ? Number(data.tel) : null,
         birthday: data.birthday ? new Date(data.birthday).toISOString() : null,
@@ -899,7 +900,7 @@ export const deletePermission = async (id: number) => {
   try {
     await prisma.permission.update({
       where: { id },
-      data: { status: "INACTIVE" }, 
+      data: { status: "INACTIVE" },
     });
 
     return { success: true };
@@ -924,13 +925,14 @@ export const updatePermissionStatus = async (id: number, status: string) => {
   }
 };
 
-
 export async function updateProfile(
   id: number,
-  data: { name: string; surname: string; tel: string; email: string }
+  data: { name: string; surname: string; tel: string; email: string },
 ) {
   try {
-    const telNumber = data.tel ? parseInt(data.tel.replace(/[^0-9]/g, ""), 10) : null;
+    const telNumber = data.tel
+      ? parseInt(data.tel.replace(/[^0-9]/g, ""), 10)
+      : null;
 
     await prisma.employeepin.update({
       where: { id: id },
@@ -948,3 +950,187 @@ export async function updateProfile(
     return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" };
   }
 }
+
+export const createBackdrop = async (formData: FormData) => {
+  try {
+    const organizationId = Number(formData.get("organizationId"));
+    const title = formData.get("title") as string;
+    const sequence = Number(formData.get("sequence"));
+    const duration = Number(formData.get("duration"));
+    const createdById = Number(formData.get("userId"));
+    const isActive = formData.get("isActive") === "true";
+
+    const imageFile = formData.get("image") as File;
+    let imageUrl = "";
+
+    if (imageFile && imageFile.size > 0) {
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Data = buffer.toString("base64");
+      const fileType = imageFile.type;
+      const uploadResult = await sendbase64toS3DataMultifile(
+        base64Data,
+        "backdroup_posxai",
+        fileType,
+      );
+
+      if (!uploadResult.success || !uploadResult.url) {
+        return { success: false, message: "อัปโหลดไฟล์ไม่สำเร็จ" };
+      }
+      imageUrl = uploadResult.url;
+    } else {
+      return { success: false, message: "กรุณาแนบไฟล์" };
+    }
+
+    await prisma.display_backdrop.create({
+      data: {
+        organizationId,
+        title,
+        sequence,
+        duration,
+        isActive,
+        imageUrl,
+        createdById
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Create Backdrop Error:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" };
+  }
+};
+
+export const updateBackdrop = async (formData: FormData) => {
+  try {
+    const id = Number(formData.get("id"));
+    const title = formData.get("title") as string;
+    const sequence = Number(formData.get("sequence"));
+    const duration = Number(formData.get("duration"));
+    const isActive = formData.get("isActive") === "true";
+
+    const imageFile = formData.get("image") as File | null;
+
+    const updateData: any = {
+      title,
+      sequence,
+      duration,
+      isActive,
+    };
+
+    if (imageFile && imageFile.size > 0) {
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Data = buffer.toString("base64");
+
+      const fileType = imageFile.type;
+      const uploadResult = await sendbase64toS3DataMultifile(
+        base64Data,
+        "backdroup_posxai",
+        fileType,
+      );
+
+      if (!uploadResult.success || !uploadResult.url) {
+        return { success: false, message: "อัปโหลดไฟล์ใหม่ไม่สำเร็จ" };
+      }
+      updateData.imageUrl = uploadResult.url;
+    }
+
+    // อัปเดต Database
+    await prisma.display_backdrop.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Update Backdrop Error:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล" };
+  }
+};
+
+export const updateBackdropTitle = async (id: number, title: string) => {
+  try {
+    await prisma.display_backdrop.update({
+      where: { id },
+      data: { title },
+    });
+    return { success: true, message: "อัปเดตชื่อโปรโมชั่นสำเร็จ" };
+  } catch (error) {
+    console.error("Error updating title:", error);
+    return { success: false, message: "อัปเดตชื่อไม่สำเร็จ" };
+  }
+};
+
+export const updateBackdropSequence = async (id: number, sequence: number) => {
+  try {
+    await prisma.display_backdrop.update({
+      where: { id },
+      data: { sequence },
+    });
+    return { success: true, message: "อัปเดตลำดับสำเร็จ" };
+  } catch (error) {
+    console.error("Error updating sequence:", error);
+    return { success: false, message: "อัปเดตลำดับไม่สำเร็จ" };
+  }
+};
+
+export const updateBackdropDuration = async (id: number, duration: number) => {
+  try {
+    await prisma.display_backdrop.update({
+      where: { id },
+      data: { duration },
+    });
+    return { success: true, message: "อัปเดตเวลาแสดงผลสำเร็จ" };
+  } catch (error) {
+    console.error("Error updating duration:", error);
+    return { success: false, message: "อัปเดตเวลาไม่สำเร็จ" };
+  }
+};
+
+export const updateBackdropStatus = async (id: number, isActive: boolean) => {
+  try {
+    await prisma.display_backdrop.update({
+      where: { id },
+      data: { isActive },
+    });
+    return { success: true, message: "อัปเดตสถานะการแสดงผลสำเร็จ" };
+  } catch (error) {
+    console.error("Error updating status:", error);
+    return { success: false, message: "อัปเดตสถานะไม่สำเร็จ" };
+  }
+};
+
+export const deleteBackdrop = async (id: number) => {
+  try {
+
+    const backdrop = await prisma.display_backdrop.findUnique({
+      where: { id },
+    });
+
+    if (!backdrop) {
+      return { success: false, message: "ไม่พบข้อมูลที่ต้องการลบ" };
+    }
+
+    if (backdrop.imageUrl) {
+      try {
+        const urlParts = backdrop.imageUrl.split("uploads/");       
+        if (urlParts.length > 1) {
+          const s3Key = "uploads/" + urlParts[1]; 
+          await deleteFileS3(s3Key); 
+        }
+      } catch (s3Error) {
+        console.error("Error deleting file from S3:", s3Error);
+      }
+    }
+
+    await prisma.display_backdrop.delete({
+      where: { id },
+    });
+
+    return { success: true, message: "ลบข้อมูลและไฟล์สำเร็จ" };
+  } catch (error) {
+    console.error("Error deleting backdrop:", error);
+    return { success: false, message: "ลบข้อมูลไม่สำเร็จ" };
+  }
+};

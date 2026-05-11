@@ -266,28 +266,29 @@ model organization {
   ownerId   Int
   createdAt DateTime @default(now())
 
-  menus          menu[]
-  orders         order[]
-  employees      employees[]
-  categories     categorystock[]
-  tables         table[]
-  unitprices     unitprice[]
-  carts          cart[]
-  stocks         stock[]
-  suppliers      supplier[]
-  formularstocks formularstock[]
-  order_runnings orderrunning[]
-  paymentorders  paymentorder[]
-  printers       printer[]
-  stations       station[]
-  modifiergroups modifiergroup[]
-  modifieritems  modifieritem[]
-  menumodifiers  menumodifier[]
-  orderitems     orderitem[]
-  ordermodifiers ordermodifier[]
-  posiotions     posiotion[]
-  employeepins   employeepin[]
-  permissions    permission[]
+  menus            menu[]
+  orders           order[]
+  employees        employees[]
+  categories       categorystock[]
+  tables           table[]
+  unitprices       unitprice[]
+  carts            cart[]
+  stocks           stock[]
+  suppliers        supplier[]
+  formularstocks   formularstock[]
+  order_runnings   orderrunning[]
+  paymentorders    paymentorder[]
+  printers         printer[]
+  stations         station[]
+  modifiergroups   modifiergroup[]
+  modifieritems    modifieritem[]
+  menumodifiers    menumodifier[]
+  orderitems       orderitem[]
+  ordermodifiers   ordermodifier[]
+  posiotions       posiotion[]
+  employeepins     employeepin[]
+  permissions      permission[]
+  displayBackdrops display_backdrop[]
 }
 
 model printer {
@@ -540,4 +541,22 @@ model employeepin {
   posiotions         posiotion[]
   membertransactions membertransaction[]
   mcMenus            menu[]              @relation("MenuMC") // เมนูที่พนักงานคนนี้เป็น MC
+  displayBackdrops   display_backdrop[]
+}
+
+model display_backdrop {
+  id             Int           @id @default(autoincrement())
+  organizationId Int // เผื่อมีหลายสาขา
+  organization   organization? @relation(fields: [organizationId], references: [id])
+  createdById    Int? // พนักงานคนที่ทำรายการ
+  employee       employeepin?  @relation(fields: [createdById], references: [id])
+
+  imageUrl String
+  title    String?
+  isActive Boolean @default(true)
+  sequence Int     @default(0)
+  duration Int     @default(10)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

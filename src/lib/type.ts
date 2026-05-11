@@ -879,3 +879,22 @@ export interface CountdownTimerProps {
 export interface ProfilleMainProps {
   orders: any[];
 }
+
+export interface SettingBackdropProps {
+  initialItems: any[];
+  organizationId: number;
+}
+
+export interface SettingFormBackdropProps {
+  backdropId: number | null;
+  organizationId: number;
+  stateSheet: (open: boolean) => void;
+  userId: number;
+}
+
+export interface BackdropItem {
+  id: number;
+  imageUrl: string;
+  duration: number;
+  title: string | null;
+}

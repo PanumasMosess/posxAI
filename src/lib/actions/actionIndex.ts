@@ -117,7 +117,7 @@ export const menu_handleImageUpload = async (file: File): Promise<string> => {
 
 export const menu_getPresignedUrl = async (
   fileType: string,
-  fileSize: number
+  fileSize: number,
 ) => {
   try {
     if (fileSize > 10 * 1024 * 1024) {
@@ -210,7 +210,7 @@ export async function uploadCertToS3(formData: FormData) {
           Key: `uploads/certs/${keyName}`,
           Body: buffer,
           ContentType: "text/plain",
-        })
+        }),
       );
     };
 
@@ -247,11 +247,11 @@ export async function getCertContentFromS3(fileName: string) {
 
 export async function signDataWithS3Key(
   toSign: string,
-  organizationId: string
+  organizationId: string,
 ) {
   try {
     const keyRes = await getCertContentFromS3(
-      `private-key_${organizationId}.txt`
+      `private-key_${organizationId}.txt`,
     );
 
     if (!keyRes.success || !keyRes.data) {
@@ -272,7 +272,9 @@ export async function signDataWithS3Key(
   }
 }
 
-export const profile_handleImageUpload = async (file: File): Promise<string> => {
+export const profile_handleImageUpload = async (
+  file: File,
+): Promise<string> => {
   const result = await profile_getPresignedUrl(file.type, file.size);
   if (!result.success || !result.url) {
     throw new Error(result.error || "ไม่สามารถขอสิทธิ์อัปโหลดได้");
@@ -293,7 +295,7 @@ export const profile_handleImageUpload = async (file: File): Promise<string> => 
 
 export const profile_getPresignedUrl = async (
   fileType: string,
-  fileSize: number
+  fileSize: number,
 ) => {
   try {
     if (fileSize > 10 * 1024 * 1024) {
@@ -313,11 +315,46 @@ export const profile_getPresignedUrl = async (
       ACL: "public-read",
     });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); 
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 
     return { success: true, url, key };
   } catch (error) {
     console.error("Error creating presigned URL", error);
     return { success: false, error: "Error creating presigned URL" };
+  }
+};
+
+export const sendbase64toS3DataMultifile = async (
+  base64Data: string,
+  path: string,
+  contentType: string = "image/png",
+) => {
+  try {
+    const buffer = Buffer.from(base64Data, "base64");
+
+    const extension = contentType.split("/")[1] || "png";
+
+    const randomBytes = crypto.randomBytes(16);
+    const key = `uploads/${path}/${randomBytes.toString("hex")}.${extension}`;
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET!,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+      ACL: "public-read",
+    });
+
+    const data = await s3Client.send(command);
+
+    let publicUrl;
+    if (data) {
+      publicUrl = `https://sgp1.digitaloceanspaces.com/${process.env.S3_BUCKET}/${key}`;
+    }
+
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    console.error("Error uploading Base64 file:", error);
+    return { success: false, error: "Failed to upload file." };
   }
 };
