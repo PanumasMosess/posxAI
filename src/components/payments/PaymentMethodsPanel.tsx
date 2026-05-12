@@ -228,7 +228,7 @@ export default function PaymentMethodsPanel({
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-              {[50000, 100000, 200000, 500000, 1000000].map((amt, i) => (
+              {[100000, 50000, 20000, 10000, 5000, 1000].map((amt, i) => (
                 <Button
                   key={amt}
                   variant="outline"
@@ -341,7 +341,7 @@ export default function PaymentMethodsPanel({
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      e.preventDefault(); 
+                      e.preventDefault();
                       if (!isLoadingMember) {
                         handleCheckMember();
                       }

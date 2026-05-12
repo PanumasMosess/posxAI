@@ -146,7 +146,7 @@ const PaymentPage = ({
   };
 
   const handleQuickAmount = (amount: number) => {
-    setCashReceived(amount.toString());
+    setCashReceived((prev) => String((Number(prev) || 0) + amount));
   };
 
   const handleExactAmount = () => {

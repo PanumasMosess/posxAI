@@ -53,7 +53,7 @@ const menuList = [
         url: "/kitchen",
       },
       {
-        title: "รูปแสดง",
+        title: "หน้าจอโปรโมชั่น",
         url: "/backdroup",
         target: "_blank",
       },
@@ -113,7 +113,7 @@ const settingsMenu = {
     { title: "จัดการโต๊ะ", url: "/settings/tables", icon: Table },
     { title: "จัดการเครื่องปริ้น", url: "/settings/printers", icon: Printer },
     { title: "จัดการพนักงาน", url: "/settings/employees", icon: UserCog },
-    { title: "จัดรูปพื้นหลัง", url: "/settings/backdroup", icon: Tv },
+    { title: "จัดการหน้าจอโปรโมชั่น ", url: "/settings/backdroup", icon: Tv },
   ],
 };
 
