@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import MenuPOSPage from "@/components/menu/MenuPOSPage";
 import prisma from "@/lib/prisma";
+import { boolean } from "zod";
 
 const page = async () => {
   const session = await auth();
@@ -25,7 +26,7 @@ const page = async () => {
     where: {
       organizationId: organizationId,
     },
-    select: { id: true, categoryName: true },
+    select: { id: true, categoryName: true, requiresKitchen: true },
   });
 
   const unitpriceData = await prisma.unitprice.findMany({
