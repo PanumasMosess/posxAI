@@ -23,7 +23,7 @@ const page = async () => {
     where: {
       organizationId: Number(organizationId),
     },
-    select: { id: true, categoryName: true },
+    select: { id: true, categoryName: true, requiresKitchen: true },
   });
   const suppliersData = await prisma.supplier.findMany({
     where: {

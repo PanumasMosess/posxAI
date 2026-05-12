@@ -11,7 +11,7 @@ import { CreateStockPayload, CurrentState, FormularPayload } from "../type";
 
 export const createStock = async (
   currentState: CurrentState,
-  data: StockSchema
+  data: StockSchema,
 ) => {
   try {
     await prisma.stock.create({
@@ -62,7 +62,7 @@ export const createStock = async (
 
 export const createStockByImg = async (
   currentState: CurrentState,
-  payload: CreateStockPayload
+  payload: CreateStockPayload,
 ) => {
   try {
     const { items, creator_id, category_id, supplier_id, organizationId } =
@@ -79,7 +79,7 @@ export const createStockByImg = async (
     });
 
     const existingStockMap = new Map(
-      existingStocks.map((s) => [s.productName, s])
+      existingStocks.map((s) => [s.productName, s]),
     );
 
     const itemsToCreate: any[] = [];
@@ -148,7 +148,7 @@ export const createStockByImg = async (
 
 export const updateStock = async (
   currentState: CurrentState,
-  data: StockSchema
+  data: StockSchema,
 ) => {
   try {
     const updatedStock = await prisma.stock.update({
@@ -232,7 +232,7 @@ export const deleteStock = async (data: any) => {
 
 export const crearteCategories = async (
   currentState: CurrentState,
-  data: CategorySchema
+  data: CategorySchema,
 ) => {
   try {
     await prisma.categorystock.create({
@@ -261,7 +261,7 @@ export const crearteCategories = async (
 
 export const updateCategories = async (
   currentState: CurrentState,
-  data: CategorySchema
+  data: CategorySchema,
 ) => {
   try {
     const updatedCategory = await prisma.categorystock.update({
@@ -299,9 +299,26 @@ export const deleteCategories = async (data: any) => {
   }
 };
 
+export const updateCategoryKitchenStatus = async (
+  id: number,
+  requiresKitchen: boolean,
+) => {
+  try {
+    await prisma.categorystock.update({
+      where: { id },
+      data: { requiresKitchen },
+    });
+
+    return { success: true, message: "อัปเดตสถานะสำเร็จ" };
+  } catch (error) {
+    console.error("Error updating requiresKitchen status:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการอัปเดตสถานะ" };
+  }
+};
+
 export const crearteSupplier = async (
   currentState: CurrentState,
-  data: SupplierSchema
+  data: SupplierSchema,
 ) => {
   try {
     await prisma.supplier.create({
@@ -330,7 +347,7 @@ export const crearteSupplier = async (
 
 export const updateSupplier = async (
   currentState: CurrentState,
-  data: SupplierSchema
+  data: SupplierSchema,
 ) => {
   try {
     const updatedSupplierName = await prisma.supplier.update({
@@ -370,7 +387,7 @@ export const deleteSupplier = async (data: any) => {
 
 export const crearteFormularStock = async (
   currentState: CurrentState,
-  data: FormularPayload
+  data: FormularPayload,
 ) => {
   try {
     const dataToCreate = data.items.map((item) => ({
@@ -382,7 +399,7 @@ export const crearteFormularStock = async (
     await prisma.formularstock.createMany({
       data: dataToCreate,
     });
-    
+
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

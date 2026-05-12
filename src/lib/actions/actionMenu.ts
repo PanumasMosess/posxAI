@@ -228,7 +228,10 @@ export const createOrder = async (items: CartItemPayload[]) => {
 
     const menuCategoryMap = new Map();
     menusInfo.forEach((menu) => {
-      menuCategoryMap.set(menu.id, menu.category?.categoryName);
+      menuCategoryMap.set(menu.id, {
+        categoryName: menu.category?.categoryName,
+        requiresKitchen: menu.category?.requiresKitchen,
+      });
     });
 
     let runningCode = "";
@@ -294,9 +297,14 @@ export const createOrder = async (items: CartItemPayload[]) => {
 
     const transactionOperations: any[] = items.map((item) => {
       const modifiersList = item.modifiers || [];
-
-      const categoryName = menuCategoryMap.get(item.menuId);
-      const orderStatus = categoryName === "Entertainer" ? "COMPLETED" : "NEW";
+      const categoryInfo = menuCategoryMap.get(item.menuId);
+      
+      let orderStatus = "NEW";
+      if (categoryInfo?.categoryName === "Entertainer") {
+        orderStatus = "COMPLETED";
+      } else if (categoryInfo?.requiresKitchen === false || categoryInfo?.requiresKitchen === 0) {
+        orderStatus = "READY"; 
+      }
 
       return prisma.order.create({
         data: {
@@ -305,10 +313,10 @@ export const createOrder = async (items: CartItemPayload[]) => {
           price_pre_unit: item.price_pre_unit,
           menuId: item.menuId,
           tableId: item.tableId,
-          status: orderStatus,
+          status: orderStatus, 
           organizationId: item.organizationId,
           order_running_code: runningCode,
-          note: item.note || null, // ✅ บันทึกค่า note ลงฐานข้อมูล (ปรับให้ตรงกับชื่อฟิลด์ของคุณ)
+          note: item.note || null, 
           orderitems: {
             create: {
               menuId: item.menuId,

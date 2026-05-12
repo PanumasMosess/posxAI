@@ -22,7 +22,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { deleteCategories, deleteSupplier } from "@/lib/actions/actionStocks";
+import {
+  deleteCategories,
+  deleteSupplier,
+  updateCategoryKitchenStatus,
+} from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import StockFormularManament from "../forms/StockFormularManament";
@@ -69,7 +73,7 @@ const StockPageFormular = ({
   const [openSheetItemUpdate, setOpenSheetItemUpdate] = useState(false);
   const [editingItemItem, setEditingItemItem] = useState<any | null>(null);
   const [deleteItemItem, setDeleteItemItem] = useState<any | null>(null);
-  const {  employeeId } = useUser();
+  const { employeeId } = useUser();
 
   const router = useRouter();
 
@@ -150,10 +154,24 @@ const StockPageFormular = ({
       throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
     }
   };
+  const handleToggleKitchen = async (
+    category: Categories,
+    newStatus: boolean,
+  ) => {
+    const result = await updateCategoryKitchenStatus(category.id, newStatus);
+
+    if (result.success) {
+      toast.success(result.message);
+      router.refresh();
+    } else {
+      toast.error(result.message);
+    }
+  };
 
   const columns_categories = CategoriesColumns({
     handleEditCat,
     handleDeleteCat,
+    handleToggleKitchen,
   });
   const columns_supplier = SupplierColumns({ handleEditSup, handleDeleteSup });
   const columns_modifiergroup = ModifierGroupColumns({
@@ -170,7 +188,7 @@ const StockPageFormular = ({
       //   setDisplayItems(initialItems);
     } else {
       const filtered = initialItems.filter(
-        (item) => item.category.categoryName === filterCategory
+        (item) => item.category.categoryName === filterCategory,
       );
       //   setDisplayItems(filtered);
     }

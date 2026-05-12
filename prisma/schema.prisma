@@ -34,10 +34,11 @@ model employees {
 }
 
 model categorystock {
-  id           Int      @id @default(autoincrement())
-  categoryName String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  categoryName    String
+  requiresKitchen Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   createdById Int
   creator     employeepin @relation(fields: [createdById], references: [id])

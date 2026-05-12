@@ -43,7 +43,11 @@ export interface FormularPayload {
 export interface StockPageFormularProps {
   initialItems: any[];
   relatedData: {
-    categories: { id: number; categoryName: string }[];
+    categories: {
+      id: number;
+      categoryName: string;
+      requiresKitchen: boolean;
+    }[];
     suppliers: { id: number; supplierName: string }[];
     menu: { id: number; menuName: string }[];
     formular: {
@@ -95,7 +99,11 @@ export interface MenuScrollerProps {
 export interface MenuPOSPageClientProps {
   initialItems: any[];
   relatedData: {
-    categories: { id: number; categoryName: string }[];
+    categories: {
+      id: number;
+      categoryName: string;
+      requiresKitchen: boolean;
+    }[];
     tabledatas: { id: number; tableName: string }[];
     cartdatas: {
       id: number;
