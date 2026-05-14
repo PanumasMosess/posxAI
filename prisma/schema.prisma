@@ -258,6 +258,8 @@ model paymentorder {
   table              table?        @relation(fields: [tableId], references: [id])
   order_running_code String        @unique
   runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
+  shiftId            Int?
+  shift              shift?        @relation(fields: [shiftId], references: [id])
 }
 
 model organization {
@@ -290,6 +292,7 @@ model organization {
   employeepins     employeepin[]
   permissions      permission[]
   displayBackdrops display_backdrop[]
+  shifts           shift[]
 }
 
 model printer {
@@ -531,17 +534,19 @@ model employeepin {
 
   organizationId     Int?
   organization       organization?       @relation(fields: [organizationId], references: [id])
+  openedShifts       shift[]             @relation("ShiftOpenedBy")
+  closedShifts       shift[]             @relation("ShiftClosedBy")
   categorystocks     categorystock[]
   suppliers          supplier[]
   stocks             stock[]
-  menus              menu[]              @relation("MenuCreator") // เมนูที่พนักงานคนนี้เป็นคนกดสร้าง
+  menus              menu[]              @relation("MenuCreator")
   tables             table[]
   paymentorders      paymentorder[]
   printers           printer[]
   stations           station[]
   posiotions         posiotion[]
   membertransactions membertransaction[]
-  mcMenus            menu[]              @relation("MenuMC") // เมนูที่พนักงานคนนี้เป็น MC
+  mcMenus            menu[]              @relation("MenuMC")
   displayBackdrops   display_backdrop[]
 }
 
@@ -560,4 +565,37 @@ model display_backdrop {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum shiftstatus {
+  OPEN
+  CLOSED
+}
+
+model shift {
+  id             Int         @id @default(autoincrement())
+  organizationId Int
+  status         shiftstatus @default(OPEN)
+
+  startingCash Float  @default(0)
+  expectedCash Float?
+  endingCash   Float?
+
+  note String?
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  openedById Int
+  openedBy   employeepin @relation("ShiftOpenedBy", fields: [openedById], references: [id])
+
+  closedById    Int?
+  closedBy      employeepin?   @relation("ShiftClosedBy", fields: [closedById], references: [id])
+  organization  organization?  @relation(fields: [organizationId], references: [id])
+  paymentorders paymentorder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shift")
 }
