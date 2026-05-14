@@ -23,13 +23,7 @@ import {
 } from "@tanstack/react-table";
 import { Armchair, Search, Store } from "lucide-react";
 import { useState } from "react";
-
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
-  userId: number;
-  organizationId: number;
-}
+import { DataTableProps } from "@/lib/type";
 
 export function Data_table_status_table<TData, TValue>({
   columns,

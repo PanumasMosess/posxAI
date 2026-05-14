@@ -1134,3 +1134,76 @@ export const deleteBackdrop = async (id: number) => {
     return { success: false, message: "ลบข้อมูลไม่สำเร็จ" };
   }
 };
+
+export const updateTableLayout = async (
+  id: number,
+  data: {
+    posX: number;
+    posY: number;
+    width: number;
+    height: number;
+    rotation?: number;
+  },
+) => {
+  try {
+    await prisma.table.update({
+      where: {
+        id,
+      },
+      data: {
+        posX: data.posX,
+        posY: data.posY,
+        width: data.width,
+        height: data.height,
+        // แก้ไข: ใช้การเช็ค undefined เพื่อป้องกันการบันทึกทับด้วยค่า 0
+        ...(data.rotation !== undefined && { rotation: data.rotation }),
+      },
+    });
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    console.error("Update Table Layout Error:", err);
+
+    return {
+      success: false,
+      error: err,
+    };
+  }
+};
+
+export const updateTableDesign = async (
+  id: number,
+  data: {
+    tableName: string;
+    shape: string;
+    rotation: number;
+    seatCount: number;
+  },
+) => {
+  try {
+    await prisma.table.update({
+      where: {
+        id,
+      },
+      data: {
+        tableName: data.tableName,
+        shape: data.shape,
+        rotation: data.rotation,
+        seatCount: data.seatCount,
+      },
+    });
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    console.log(err);
+
+    return {
+      success: false,
+      error: err,
+    };
+  }
+};

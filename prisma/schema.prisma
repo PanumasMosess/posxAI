@@ -149,6 +149,15 @@ model table {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  posX Float @default(0) // X = แนวนอน
+  posY Float @default(0) // Y = แนวตั้ง
+  width Float @default(120) // width = กว้าง
+  height Float @default(120) // height = สูง
+  rotation Float @default(0) // มุมหมุนโต๊ะ
+  floorPlanLocked Boolean @default(false) // ล็อคโต๊ะ
+  shape String @default("circle") // รูปทรงโต๊ะ
+  seatCount Int @default(4) // จำนวนที่นั่ง
+  
   closeById Int
   creator   employeepin @relation(fields: [closeById], references: [id])
 
