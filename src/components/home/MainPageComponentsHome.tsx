@@ -13,6 +13,8 @@ import OrderStatusPage from "./OrderStatusPage";
 import PaymentStatusPage from "./PaymentStatusPage";
 import { useUser } from "../providers/UserContext";
 
+import Table_status_tabs from "./tables/table-status-tabs";
+
 const MainPageComponentsHome = ({
   initialItems,
   userId,
@@ -61,7 +63,7 @@ const MainPageComponentsHome = ({
         />
       </div>
       <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-        <Data_table_status_table
+        <Table_status_tabs
           columns={columns}
           data={initialItems}
           userId={Number(employeeId)}

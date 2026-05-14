@@ -754,6 +754,15 @@ export type StatusTable = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
 
+  posX: number;
+  posY: number;
+  width: number;
+  height: number;
+  rotation: number;
+  floorPlanLocked: boolean;
+  shape: string;
+  seatCount?: number;
+
   order: Order[];
   creator?: {
     id: number;
@@ -905,4 +914,34 @@ export interface BackdropItem {
   imageUrl: string;
   duration: number;
   title: string | null;
+}
+
+export interface TableGridProps {
+  tables: StatusTable[];
+  editMode: boolean;
+}
+
+export interface EditModeProps {
+  editMode: boolean;
+  setEditMode: (value: boolean) => void;
+}
+
+export interface TableCardProps {
+  table: StatusTable;
+  containerWidth: number;
+  onClick?: () => void;
+}
+
+export interface TableEditorProps {
+  open: boolean;
+  onClose: () => void;
+  table: StatusTable | null;
+  onSaved: (table: StatusTable) => void;
+}
+
+export interface TableDataListProps {
+  columns: any;
+  data: StatusTable[];
+  userId: number;
+  organizationId: number;
 }
