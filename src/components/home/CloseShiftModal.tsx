@@ -48,11 +48,11 @@ export function CloseShiftModal({
       if (result.success) {
         const diff = result.data!.diff;
         if (diff === 0) {
-          toast.success("ปิดกะสำเร็จ ยอดเงินตรง 🎉");
+          // toast.success("ปิดกะสำเร็จ ยอดเงินตรง 🎉");
         } else if (diff < 0) {
-          toast.warning(`ปิดกะสำเร็จ แต่เงินขาดไป ${Math.abs(diff)} บาท`);
+          // toast.warning(`ปิดกะสำเร็จ แต่เงินขาดไป ${Math.abs(diff)} บาท`);
         } else {
-          toast.info(`ปิดกะสำเร็จ เงินเกินมา ${diff} บาท`);
+          // toast.info(`ปิดกะสำเร็จ เงินเกินมา ${diff} บาท`);
         }
 
         setActualCash("");
