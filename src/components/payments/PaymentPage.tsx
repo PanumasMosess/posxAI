@@ -13,6 +13,7 @@ import {
   RefreshCcw,
   Printer,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -64,6 +65,8 @@ import {
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "./PaymentMethodsPanel";
 import { useUser } from "../providers/UserContext";
+import { checkActiveShift } from "@/lib/actions/actionShift";
+import { OpenShiftModal } from "../home/OpenShiftModal";
 
 const PaymentPage = ({
   initialItems,
@@ -71,7 +74,7 @@ const PaymentPage = ({
   organizationId,
 }: KitchecOrderList) => {
   const router = useRouter();
-  const { employeeId } = useUser();
+  const { employeeId, employeeName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<
     "QR" | "CASH" | "CARD" | "MEMBER"
@@ -90,6 +93,7 @@ const PaymentPage = ({
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
@@ -347,12 +351,12 @@ const PaymentPage = ({
   const handlePayment = async () => {
     if (!selectedOrder) return;
 
+    // 1. ตรวจสอบความถูกต้องเบื้องต้น (เงินสด/สมาชิก)
     if (paymentMethod === "CASH" && !isCashSufficient) {
       toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
       return;
     }
 
-    // ✅ ดักจับเงื่อนไขก่อนชำระด้วย MEMBER
     if (paymentMethod === "MEMBER") {
       if (!memberData) {
         toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
@@ -364,36 +368,53 @@ const PaymentPage = ({
       }
     }
 
-    const paymentPayload = {
-      orderId: selectedOrder.id,
-      table: selectedOrder.table,
-      tableId: selectedOrder.tableId,
-      paymentMethod: paymentMethod,
-      totalAmount: finalTotal,
-      discount: discountAmount,
-      createdById: Number(employeeId),
-      organizationId: organizationId,
-      cashReceived:
-        paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
-      change: paymentMethod === "CASH" ? change : 0,
-      memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
-    };
-
     setIsProcessing(true);
-    const create_status = await createPaymentOrder(paymentPayload);
 
-    if (create_status.success) {
-      await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
-      await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+    try {
+      const activeShift = await checkActiveShift(organizationId);
 
-      toast.success("ชำระเงินเรียบร้อย!");
+      if (!activeShift) {
+        toast.error("ไม่พบกะที่กำลังเปิดอยู่ กรุณาเปิดกะก่อนรับชำระเงิน");
+        setShowOpenShiftModal(true);
+        setIsProcessing(false);
+        return;
+      }
 
-      setSelectedOrder(null);
-      router.refresh();
-    } else {
-      toast.error("ไม่สามารถบันทึกข้อมูลได้");
+      const paymentPayload = {
+        orderId: selectedOrder.id,
+        table: selectedOrder.table,
+        tableId: selectedOrder.tableId,
+        paymentMethod: paymentMethod,
+        totalAmount: finalTotal,
+        discount: discountAmount,
+        createdById: Number(employeeId),
+        organizationId: organizationId,
+        shiftId: activeShift.id,
+        cashReceived:
+          paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
+        change: paymentMethod === "CASH" ? change : 0,
+        memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
+      };
+
+      const create_status = await createPaymentOrder(paymentPayload);
+
+      if (create_status.success) {
+        await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
+        await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+
+        toast.success("ชำระเงินเรียบร้อย!");
+
+        setSelectedOrder(null);
+        router.refresh();
+      } else {
+        toast.error(create_status.message || "ไม่สามารถบันทึกข้อมูลได้");
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("เกิดข้อผิดพลาดในการประมวลผลการชำระเงิน");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleCancelOrder = async () => {
@@ -764,8 +785,17 @@ const PaymentPage = ({
                             memberData.creditBalance < finalTotal))
                       }
                     >
-                      ยืนยันการชำระเงิน
-                      <ChevronRight className="ml-2 h-5 w-5" />
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          กำลังชำระเงิน...
+                        </>
+                      ) : (
+                        <>
+                          ยืนยันการชำระเงิน
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -796,6 +826,17 @@ const PaymentPage = ({
           <p>เลือกรายการทางซ้ายเพื่อชำระเงิน</p>
         </div>
       )}
+
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        organizationId={organizationId}
+        employeeId={Number(employeeId)}
+        employeeName={employeeName || "พนักงานทั่วไป"}
+        onSuccess={() => {
+          setShowOpenShiftModal(false);
+          toast.info("เปิดกะเรียบร้อยแล้ว กรุณากดยืนยันการชำระเงินอีกครั้ง");
+        }}
+      />
     </div>
   );
 };

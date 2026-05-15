@@ -409,24 +409,23 @@ export interface KitchecTicketProps {
   organizationId: number;
 }
 
-export type HistoryOrder = {
-  id: number;
-  quantity: number;
+export interface HistoryOrder {
+  id: string | number;
+  order_running_code: string;
   price_sum: number;
-  price_pre_unit: number;
-  createdAt: Date;
+  quantity: number;
+  menusList?: { name: string; image: string | null }[];
   status: string;
-  menu: {
-    menuName: string;
-    img: string | null;
-    unitPrice: {
-      label: string;
-    };
-  };
-  table: {
+  table?: {
     tableName: string;
-  };
-};
+  } | null;
+  updatedAt: Date;
+
+  paymentInfo?: {
+    shift: { id: number } | null;
+    creator: { name: string } | null;
+  } | null;
+}
 
 export interface HistoryOrderProps {
   initialItems: HistoryOrder[];
@@ -944,4 +943,19 @@ export interface TableDataListProps {
   data: StatusTable[];
   userId: number;
   organizationId: number;
+}
+
+export interface OpenShiftModalProps {
+  isOpen: boolean;
+  organizationId: number;
+  employeeId: number;
+  employeeName: string;
+  onSuccess: () => void;
+}
+
+export interface CloseShiftModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  shiftId: number | null;
+  employeeId: number;
 }
