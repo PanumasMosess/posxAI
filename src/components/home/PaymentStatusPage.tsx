@@ -15,6 +15,7 @@ import {
   ChefHat,
   Trash2,
   Receipt,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,6 +68,8 @@ import {
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "../payments/PaymentMethodsPanel";
 import { useUser } from "../providers/UserContext";
+import { checkActiveShift } from "@/lib/actions/actionShift";
+import { OpenShiftModal } from "./OpenShiftModal";
 
 const PaymentStatusPage = ({
   initialItems,
@@ -74,7 +77,7 @@ const PaymentStatusPage = ({
   organizationId,
 }: KitchecOrderList) => {
   const router = useRouter();
-  const { employeeId } = useUser();
+  const { employeeId, employeeName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<
     "QR" | "CASH" | "CARD" | "MEMBER"
@@ -92,6 +95,8 @@ const PaymentStatusPage = ({
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
@@ -369,6 +374,15 @@ const PaymentStatusPage = ({
         return;
       }
     }
+    setIsProcessing(true);
+    const activeShift = await checkActiveShift(organizationId);
+
+    if (!activeShift) {
+      toast.error("กรุณาเปิดกะ (Shift) ก่อนรับชำระเงินครับ!");
+      setIsProcessing(false);
+      setShowOpenShiftModal(true);
+      return;
+    }
 
     const paymentPayload = {
       orderId: selectedOrder.id,
@@ -383,9 +397,9 @@ const PaymentStatusPage = ({
         paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
       change: paymentMethod === "CASH" ? change : 0,
       memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
+      shiftId: activeShift.id,
     };
 
-    setIsProcessing(true);
     const create_status = await createPaymentOrder(paymentPayload);
 
     if (create_status.success) {
@@ -397,8 +411,9 @@ const PaymentStatusPage = ({
       setSelectedOrder(null);
       router.refresh();
     } else {
-      toast.error("ไม่สามารถบันทึกข้อมูลได้");
+      toast.error(create_status.message || "ไม่สามารถบันทึกข้อมูลได้");
     }
+
     setIsProcessing(false);
   };
 
@@ -857,8 +872,17 @@ const PaymentStatusPage = ({
                             memberData.creditBalance < finalTotal))
                       }
                     >
-                      ยืนยันการชำระเงิน
-                      <ChevronRight className="ml-2 h-4 w-4" />
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          กำลังชำระเงิน...
+                        </>
+                      ) : (
+                        <>
+                          ยืนยันการชำระเงิน
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -889,6 +913,17 @@ const PaymentStatusPage = ({
           <p>เลือกรายการทางซ้ายเพื่อชำระเงิน</p>
         </div>
       )}
+
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        organizationId={organizationId}
+        employeeId={Number(employeeId)}
+        employeeName={employeeName || "พนักงานทั่วไป"}
+        onSuccess={() => {
+          setShowOpenShiftModal(false);
+          toast.info("เปิดกะเรียบร้อยแล้ว กรุณากดยืนยันการชำระเงินอีกครั้ง");
+        }}
+      />
     </div>
   );
 };

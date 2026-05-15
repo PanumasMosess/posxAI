@@ -21,7 +21,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Ban } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react"; 
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -35,8 +35,25 @@ export function Data_table_order_cancel<TData, TValue>({
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
 
+  const [dateFilter, setDateFilter] = useState("");
+
+  const filteredData = useMemo(() => {
+    if (!dateFilter) return data;
+
+    return data.filter((item: any) => {
+      if (!item.updatedAt) return false;
+      const itemDate = new Date(item.updatedAt);
+      const year = itemDate.getFullYear();
+      const month = String(itemDate.getMonth() + 1).padStart(2, "0");
+      const day = String(itemDate.getDate()).padStart(2, "0");
+      const formattedItemDate = `${year}-${month}-${day}`;
+
+      return formattedItemDate === dateFilter;
+    });
+  }, [data, dateFilter]);
+
   const table = useReactTable({
-    data,
+    data: filteredData, 
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -76,7 +93,14 @@ export function Data_table_order_cancel<TData, TValue>({
           </div>
         </div>
 
-        <div className="w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Input
+            type="date"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+            className="w-full sm:w-[150px] text-zinc-600 dark:text-zinc-300"
+          />
+
           <Input
             placeholder="ค้นหา..."
             value={globalFilter ?? ""}
@@ -85,7 +109,7 @@ export function Data_table_order_cancel<TData, TValue>({
           />
         </div>
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-white dark:bg-zinc-950">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -126,9 +150,9 @@ export function Data_table_order_cancel<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-24 text-center text-zinc-500"
                 >
-                  No results.
+                  ไม่พบข้อมูล
                 </TableCell>
               </TableRow>
             )}

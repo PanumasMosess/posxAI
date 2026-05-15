@@ -1,9 +1,6 @@
 "use server";
 
 import prisma from "../prisma";
-import { MenuSchema } from "../formValidationSchemas";
-
-type CurrentState = { success: boolean; error: boolean };
 
 export const updateStatusOrder = async (idRunning: string, status: string) => {
   try {
@@ -43,7 +40,6 @@ export const updateStatusTable = async (idTable: number, status: string) => {
 
 export const createPaymentOrder = async (data: any) => {
   try {
-    
     await prisma.$transaction(async (tx) => {
       await tx.paymentorder.create({
         data: {
@@ -66,6 +62,7 @@ export const createPaymentOrder = async (data: any) => {
           runningRef: {
             connect: { runningCode: data.orderId },
           },
+          shift: data.shiftId ? { connect: { id: data.shiftId } } : undefined,
         },
       });
 
@@ -104,10 +101,10 @@ export const createPaymentOrder = async (data: any) => {
           data: {
             memberId: member.id,
             organizationId: data.organizationId,
-            type: "SPEND", 
-            walletType: "CREDIT", 
+            type: "SPEND",
+            walletType: "CREDIT",
             amount: -data.totalAmount,
-            balanceAfter: updatedMember.creditBalance, 
+            balanceAfter: updatedMember.creditBalance,
             note: `ชำระค่าอาหาร (บิล: ${data.orderId})`,
             createdById: data.createdById,
           },
