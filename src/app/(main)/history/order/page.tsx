@@ -10,7 +10,7 @@ const page = async () => {
   const rawOrders = await prisma.order.findMany({
     where: {
       status: {
-        in: [ "PAY_COMPLETED"],
+        in: ["CANCELLED", "PAY_COMPLETED"],
       },
       organizationId: organizationId,
     },
@@ -46,7 +46,7 @@ const page = async () => {
 
     group.menusList.push({
       name: order.menu?.menuName || "ไม่ทราบชื่อ",
-      image: order.menu?.img || null, 
+      image: order.menu?.img || null,
     });
 
     if (new Date(order.updatedAt) > new Date(group.updatedAt)) {

@@ -15,7 +15,7 @@ const HistoryOrderPage = ({
   );
 
   const inActiveOrdersFinish = initialItems.filter((item) =>
-    ["COMPLETED", "PAY_COMPLETED"].includes(item.status),
+    ["PAY_COMPLETED"].includes(item.status),
   );
 
   return (
