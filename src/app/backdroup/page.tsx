@@ -11,6 +11,7 @@ const page = async () => {
   const itemsData = await prisma.display_backdrop.findMany({
     where: {
       organizationId: organizationId,
+      isTemporary: false,
     },
 
     orderBy: [
@@ -25,7 +26,7 @@ const page = async () => {
 
   return (
     <main className="w-full h-screen bg-black overflow-hidden">
-      <DisplayTV items={itemsData} />
+      <DisplayTV items={itemsData} organizationId={organizationId} />
     </main>
   );
 };

@@ -568,9 +568,13 @@ model display_backdrop {
 
   imageUrl String
   title    String?
+  igName         String?       // เพิ่ม: สำหรับเก็บชื่อ IG ของลูกค้า
+  message        String?       // สำหรับข้อความที่ลูกค้าพิมพ์
   isActive Boolean @default(true)
   sequence Int     @default(0)
   duration Int     @default(10)
+
+  isTemporary    Boolean       @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
