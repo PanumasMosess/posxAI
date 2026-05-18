@@ -74,7 +74,7 @@ export const column_member_transaction: ColumnDef<any>[] = [
             maximumFractionDigits: isPoint ? 0 : 2,
           })}{" "}
           <span className="text-[10px] font-normal text-zinc-500">
-            {isPoint ? "แต้ม" : "฿"}
+            {isPoint ? "แต้ม" : ""}
           </span>
         </div>
       );

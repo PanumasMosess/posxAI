@@ -237,7 +237,6 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{" "}
-                <span className="text-sm font-medium text-blue-600/70">฿</span>
               </p>
             </div>
           </div>
@@ -262,7 +261,6 @@ const MemberTransection = ({ data = [] }: MemberTransactionProps) => {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{" "}
-              ฿
             </p>
           </div>
         </div>
