@@ -77,14 +77,17 @@ const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
     cell: ({ row }) => {
       return (
         <div className="text-center font-bold text-amber-600">
-          {row.original.price_sum.toLocaleString()} 
+          {row.original.price_sum.toLocaleString()}
         </div>
       );
     },
   },
   {
     id: "shift",
-    accessorFn: (row) => row.paymentInfo?.shift?.id,
+    accessorFn: (row) => {
+      const shiftId = row.paymentInfo?.shift?.id;
+      return shiftId ? `กะที่ ${shiftId}` : ""; 
+    },
     header: () => <div className="text-center">กะการทำงาน</div>,
     cell: ({ row }) => {
       const shiftId = row.original.paymentInfo?.shift?.id;
