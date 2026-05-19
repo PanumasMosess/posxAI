@@ -14,6 +14,7 @@ import {
   Minus,
   Search,
   X,
+  MonitorUp,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
@@ -40,6 +41,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MenuOrderHistorySheet } from "./MenuOrderHistorySheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "../ui/input";
+import ShoutoutDialog from "./ShoutoutDialog";
 
 const MenuOrderPage = ({
   relatedData,
@@ -65,6 +67,7 @@ const MenuOrderPage = ({
   const [cartCount, setCartCount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isShoutoutOpen, setIsShoutoutOpen] = useState(false);
 
   const [packageSelections, setPackageSelections] = useState<
     Record<number, boolean>
@@ -250,9 +253,9 @@ const MenuOrderPage = ({
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40 opacity-90 z-10" />
         </div>
 
-        <div className="relative -mt-16 mx-4 mb-4 z-10">
+      <div className="relative -mt-16 mx-4 mb-4 z-10">
           <div className="bg-card text-card-foreground rounded-2xl shadow-lg p-4 flex flex-col gap-3 border border-border/50">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-full border-2 border-primary overflow-hidden flex-shrink-0 bg-muted relative">
                 <Image
                   src="/icon.png"
@@ -262,15 +265,29 @@ const MenuOrderPage = ({
                 />
               </div>
 
-              <div className="flex-1">
-                <h1 className="font-bold text-lg text-foreground">POSX</h1>
-                <p className="text-muted-foreground text-sm">
-                  โต๊ะ:{" "}
-                  <span className="font-bold text-primary text-lg">
+              {/* ส่วนข้อมูลโต๊ะ */}
+              <div className="flex-1 min-w-0">
+                <h1 className="font-bold text-lg text-foreground truncate">POSX</h1>
+                <div className="text-muted-foreground text-sm flex items-center gap-1 overflow-hidden">
+                  <span className="flex-shrink-0">โต๊ะ:</span>
+                    <span 
+                      className="font-bold text-primary text-lg truncate cursor-default hover:underline decoration-primary/50 underline-offset-4"
+                      title={String(currentTableName || "-")}
+                    >
                     {currentTableName || "-"}
                   </span>
-                </p>
+                </div>
               </div>
+
+              {/* ปุ่มโชว์ขึ้นจอ */}
+              <button
+                onClick={() => setIsShoutoutOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full hover:bg-primary hover:text-primary-foreground transition-all active:scale-95 flex-shrink-0"
+              >
+                <MonitorUp size={16} />
+                <span className="text-xs font-bold whitespace-nowrap">โชว์ขึ้นจอ</span>
+              </button>
+
             </div>
           </div>
         </div>
@@ -620,6 +637,13 @@ const MenuOrderPage = ({
           />
         )}
       </AnimatePresence>
+
+      <ShoutoutDialog 
+        isOpen={isShoutoutOpen} 
+        onClose={() => setIsShoutoutOpen(false)} 
+        organizationId={organizationId ?? 1} 
+      />
+      
     </div>
   );
 };

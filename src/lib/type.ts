@@ -959,3 +959,9 @@ export interface CloseShiftModalProps {
   shiftId: number | null;
   employeeId: number;
 }
+
+export interface ShoutoutDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  organizationId: number;
+}
