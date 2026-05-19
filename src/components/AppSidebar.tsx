@@ -79,7 +79,14 @@ const AppSidebar = () => {
   const [keyFile, setKeyFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const { employeeId, employeeName } = useUser();
+  const { positionName } = useUser();
+
+  const filteredItems =
+    positionName === "Entertainer"
+      ? items.filter((item) => item.title === "โปรไฟล์การทำงาน")
+      : items;
+
+  const showSettings = positionName !== "Entertainer";
 
   const handleUploadFiles = async (e: FormEvent) => {
     e.preventDefault();
@@ -187,7 +194,7 @@ const AppSidebar = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const hasSubItems = item.subItems && item.subItems.length > 0;
 
                   if (!hasSubItems) {
@@ -290,9 +297,8 @@ const AppSidebar = () => {
 
         <SidebarFooter>
           <SidebarMenu>
-            {/* ✅ ครอบเงื่อนไขตรงนี้ ถ้าเป็น Admin หรือ Spadmin ถึงจะโชว์เมนูตั้งค่า */}
-            {/* {canAccessSettings && */}
-              {(isCollapsed ? (
+            {showSettings &&
+              (isCollapsed ? (
                 <SidebarMenuItem>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -333,7 +339,6 @@ const AppSidebar = () => {
                   </SidebarMenuItem>
                 </Collapsible>
               ))}
-              {/* } */}
 
             <SidebarMenuItem key={"logout"}>
               <AlertDialog>
@@ -371,6 +376,7 @@ const AppSidebar = () => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
+
       <Dialog open={isPrinterDialogOpen} onOpenChange={setIsPrinterDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={handleUploadFiles}>
