@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/button";
 import { CartItem, MenuOrderDetailProps } from "@/lib/type";
 import Image from "next/image";
@@ -30,6 +30,7 @@ const MenuOrderDetailDialog = ({
   const [tableNumberSelect, setTableNumberSelect] = useState(0);
 
   const [selections, setSelections] = useState<Record<number, number[]>>({});
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -159,7 +160,7 @@ const MenuOrderDetailDialog = ({
       modifiers: selectedModifiers,
       note: isPackage ? `(แพ็กเกจเหมา ${menuDetail.package_hours} ชม.)` : "",
     };
-  
+
     onAddToCart(cartItem);
     onClose();
   };
@@ -169,132 +170,103 @@ const MenuOrderDetailDialog = ({
   const isEntertainer = menuDetail?.category?.categoryName === "Entertainer";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 50, scale: 0.95 }}
-      transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-sm rounded-xl shadow-2xl bg-background text-foreground overflow-hidden md:max-w-md lg:max-w-lg max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 50, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4 z-20 text-white bg-black/30 hover:bg-black/50 rounded-full"
-          onClick={onClose}
+        <div
+          className="relative w-full max-w-sm rounded-xl shadow-2xl bg-background text-foreground overflow-hidden md:max-w-md lg:max-w-lg max-h-[90vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
         >
-          <X className="h-5 w-5" />
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 z-20 text-white bg-black/30 hover:bg-black/50 rounded-full"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
 
-        <div className="relative w-full h-48 sm:h-56 flex-shrink-0 bg-muted">
-          <Image
-            src={menuDetail?.img || "/placeholder.png"}
-            alt={menuDetail?.menuName || "Menu Item"}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 500px"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-4 left-6 right-6 text-white">
-            <h3 className="text-2xl font-bold leading-tight shadow-sm flex items-center gap-2">
-              {menuDetail?.menuName}
-              {/* ✅ โชว์ป้ายกำกับว่านี่คือราคาเหมา */}
-              {isPackage && (
-                <span className="text-sm bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium shadow-md">
-                  เหมา {menuDetail.package_hours} ชม.
-                </span>
-              )}
-            </h3>
-            <p className="text-sm text-gray-200 line-clamp-1 opacity-90 mt-1">
-              {menuDetail?.description}
-            </p>
+          {/* แก้ไข div ตัวนี้ให้กดได้ถ้าเป็น Entertainer */}
+          <div
+            className={`relative w-full h-48 sm:h-56 flex-shrink-0 bg-muted ${isEntertainer && menuDetail?.img ? "cursor-pointer" : ""
+              }`}
+            onClick={() => {
+              if (isEntertainer && menuDetail?.img) {
+                setIsImageZoomed(true);
+              }
+            }}
+          >
+            <Image
+              src={menuDetail?.img || "/placeholder.png"}
+              alt={menuDetail?.menuName || "Menu Item"}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 500px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-4 left-6 right-6 text-white">
+              <h3 className="text-2xl font-bold leading-tight shadow-sm flex items-center gap-2">
+                {menuDetail?.menuName}
+                {/* ✅ โชว์ป้ายกำกับว่านี่คือราคาเหมา */}
+                {isPackage && (
+                  <span className="text-sm bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium shadow-md">
+                    เหมา {menuDetail.package_hours} ชม.
+                  </span>
+                )}
+              </h3>
+              <p className="text-sm text-gray-200 line-clamp-1 opacity-90 mt-1">
+                {menuDetail?.description}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto min-h-0 bg-background">
-          <div className="px-6 py-4">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-40">
-                <Loader2 className="animate-spin h-8 w-8 text-primary" />
-              </div>
-            ) : (
-              <div className="space-y-6 pb-4">
-                {menuDetail.modifiers?.map((modRel: any) => {
-                  const group = modRel.modifierGroup;
-                  const isRadio = group.maxSelect === 1;
+          <div className="flex-1 overflow-y-auto min-h-0 bg-background">
+            <div className="px-6 py-4">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-40">
+                  <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-6 pb-4">
+                  {menuDetail.modifiers?.map((modRel: any) => {
+                    const group = modRel.modifierGroup;
+                    const isRadio = group.maxSelect === 1;
 
-                  return (
-                    <div key={group.id} className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-semibold text-base">
-                          {group.name}
-                          {group.minSelect > 0 && (
-                            <span className="text-destructive text-sm ml-1">
-                              *
-                            </span>
-                          )}
-                        </h4>
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                          {isRadio ? "เลือก 1" : `สูงสุด ${group.maxSelect}`}
-                        </span>
-                      </div>
+                    return (
+                      <div key={group.id} className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-semibold text-base">
+                            {group.name}
+                            {group.minSelect > 0 && (
+                              <span className="text-destructive text-sm ml-1">
+                                *
+                              </span>
+                            )}
+                          </h4>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                            {isRadio ? "เลือก 1" : `สูงสุด ${group.maxSelect}`}
+                          </span>
+                        </div>
 
-                      {isRadio ? (
-                        <RadioGroup
-                          value={selections[group.id]?.[0]?.toString() || ""}
-                          onValueChange={(val) =>
-                            handleSelect(
-                              group.id,
-                              parseInt(val),
-                              group.maxSelect,
-                              true,
-                            )
-                          }
-                          className="gap-3"
-                        >
-                          {group.items.map((item: any) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center justify-between space-x-2 border p-3 rounded-lg hover:bg-accent cursor-pointer"
-                              onClick={() =>
-                                handleSelect(
-                                  group.id,
-                                  item.id,
-                                  group.maxSelect,
-                                  true,
-                                )
-                              }
-                            >
-                              <div className="flex items-center space-x-3">
-                                <RadioGroupItem
-                                  value={item.id.toString()}
-                                  id={`r-${item.id}`}
-                                />
-                                <Label
-                                  htmlFor={`r-${item.id}`}
-                                  className="cursor-pointer"
-                                >
-                                  {item.name}
-                                </Label>
-                              </div>
-                              {item.price > 0 && (
-                                <span className="text-sm font-medium text-primary">
-                                  +{item.price}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      ) : (
-                        <div className="grid gap-3">
-                          {group.items.map((item: any) => {
-                            const isChecked = selections[group.id]?.includes(
-                              item.id,
-                            );
-                            return (
+                        {isRadio ? (
+                          <RadioGroup
+                            value={selections[group.id]?.[0]?.toString() || ""}
+                            onValueChange={(val) =>
+                              handleSelect(
+                                group.id,
+                                parseInt(val),
+                                group.maxSelect,
+                                true,
+                              )
+                            }
+                            className="gap-3"
+                          >
+                            {group.items.map((item: any) => (
                               <div
                                 key={item.id}
                                 className="flex items-center justify-between space-x-2 border p-3 rounded-lg hover:bg-accent cursor-pointer"
@@ -303,25 +275,17 @@ const MenuOrderDetailDialog = ({
                                     group.id,
                                     item.id,
                                     group.maxSelect,
-                                    false,
+                                    true,
                                   )
                                 }
                               >
                                 <div className="flex items-center space-x-3">
-                                  <Checkbox
-                                    id={`c-${item.id}`}
-                                    checked={isChecked}
-                                    onCheckedChange={() =>
-                                      handleSelect(
-                                        group.id,
-                                        item.id,
-                                        group.maxSelect,
-                                        false,
-                                      )
-                                    }
+                                  <RadioGroupItem
+                                    value={item.id.toString()}
+                                    id={`r-${item.id}`}
                                   />
                                   <Label
-                                    htmlFor={`c-${item.id}`}
+                                    htmlFor={`r-${item.id}`}
                                     className="cursor-pointer"
                                   >
                                     {item.name}
@@ -333,101 +297,186 @@ const MenuOrderDetailDialog = ({
                                   </span>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      <Separator className="my-2" />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                            ))}
+                          </RadioGroup>
+                        ) : (
+                          <div className="grid gap-3">
+                            {group.items.map((item: any) => {
+                              const isChecked = selections[group.id]?.includes(
+                                item.id,
+                              );
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center justify-between space-x-2 border p-3 rounded-lg hover:bg-accent cursor-pointer"
+                                  onClick={() =>
+                                    handleSelect(
+                                      group.id,
+                                      item.id,
+                                      group.maxSelect,
+                                      false,
+                                    )
+                                  }
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <Checkbox
+                                      id={`c-${item.id}`}
+                                      checked={isChecked}
+                                      onCheckedChange={() =>
+                                        handleSelect(
+                                          group.id,
+                                          item.id,
+                                          group.maxSelect,
+                                          false,
+                                        )
+                                      }
+                                    />
+                                    <Label
+                                      htmlFor={`c-${item.id}`}
+                                      className="cursor-pointer"
+                                    >
+                                      {item.name}
+                                    </Label>
+                                  </div>
+                                  {item.price > 0 && (
+                                    <span className="text-sm font-medium text-primary">
+                                      +{item.price}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <Separator className="my-2" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="flex-shrink-0 p-4 bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10 safe-area-bottom">
-          {/* ✅ แก้ที่ 1: เปลี่ยนมาใช้ justify-between เสมอ */}
+          <div className="flex-shrink-0 p-4 bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10 safe-area-bottom">
+            {/* ✅ แก้ที่ 1: เปลี่ยนมาใช้ justify-between เสมอ */}
           <div className="flex items-center justify-between gap-4 mb-4">
             {/* ✅ แก้ที่ 2: เอาปีกกา {tableNumber == 0 &&} ออก เพื่อให้ช่องแสดงตลอดเวลา */}
             <Select
               // ✅ แก้ที่ 3: เพิ่ม value เพื่อให้ระบบจำและแสดงชื่อโต๊ะที่ถูกเลือกอยู่
-              value={
-                tableNumberSelect !== 0
-                  ? String(tableNumberSelect)
-                  : tableNumber !== 0
-                    ? String(tableNumber)
-                    : undefined
-              }
-              onValueChange={(value) =>
-                onTableChange(value === "ALL" ? null : value)
-              }
-            >
-              <SelectTrigger className="w-[140px] bg-background">
-                <div className="flex items-center text-foreground">
-                  <Table className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="เลือกโต๊ะ" />
-                </div>
-              </SelectTrigger>
-              {/* ✅ แก้ที่ 4: เพิ่ม z-[70] เพื่อดันให้ Dropdown ลอยอยู่เหนือ Modal (ที่ลอยอยู่ z-[60]) */}
-              <SelectContent className="z-[70]">
-                {dataTable?.map((table) => (
-                  <SelectItem key={table.id} value={String(table.id)}>
-                    {table.tableName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                value={
+                  tableNumberSelect !== 0
+                    ? String(tableNumberSelect)
+                    : tableNumber !== 0
+                      ? String(tableNumber)
+                      : undefined
+                }
+                onValueChange={(value) =>
+                  onTableChange(value === "ALL" ? null : value)
+                }
+              >
+                <SelectTrigger className="w-[140px] bg-background">
+                  <div className="flex items-center text-foreground">
+                    <Table className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="เลือกโต๊ะ" />
+                  </div>
+                </SelectTrigger>
+                {/* ✅ แก้ที่ 4: เพิ่ม z-[70] เพื่อดันให้ Dropdown ลอยอยู่เหนือ Modal (ที่ลอยอยู่ z-[60]) */}
+                <SelectContent className="z-[70]">
+                  {dataTable?.map((table) => (
+                    <SelectItem key={table.id} value={String(table.id)}>
+                      {table.tableName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <div className="flex flex-col items-center">
-              {isEntertainer && (
-                <span className="text-xs text-muted-foreground font-medium mb-1">
-                  {isPackage ? "จำนวนแพ็กเกจ" : "ระบุจำนวนชั่วโมง"}
-                </span>
-              )}
-              <div className="flex items-center gap-3 bg-muted rounded-lg p-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-md bg-background shadow-sm hover:bg-background/90"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="text-lg font-bold min-w-[32px] text-center text-foreground flex items-center justify-center gap-1">
-                  {quantity}
-                  {isEntertainer && (
-                    <span className="text-sm text-primary">
-                      {isPackage ? "แพ็กเกจ" : "ชม."}
-                    </span>
-                  )}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => setQuantity((prev) => prev + 1)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+              <div className="flex flex-col items-center">
+                {isEntertainer && (
+                  <span className="text-xs text-muted-foreground font-medium mb-1">
+                    {isPackage ? "จำนวนแพ็กเกจ" : "ระบุจำนวนชั่วโมง"}
+                  </span>
+                )}
+                <div className="flex items-center gap-3 bg-muted rounded-lg p-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-md bg-background shadow-sm hover:bg-background/90"
+                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="text-lg font-bold min-w-[32px] text-center text-foreground flex items-center justify-center gap-1">
+                    {quantity}
+                    {isEntertainer && (
+                      <span className="text-sm text-primary">
+                        {isPackage ? "แพ็กเกจ" : "ชม."}
+                      </span>
+                    )}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => setQuantity((prev) => prev + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <Button
-            className={`w-full h-12 text-lg font-bold transition-all ${
-              !isValid ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02]"
-            }`}
-            onClick={handleAddToCartClick}
-            disabled={!isValid}
-          >
-            {isEntertainer
-              ? `${isPackage ? "รับงานเหมา" : "เลือก Entertainer"} - ${totalPrice.toLocaleString()}`
-              : `เพิ่มลงตะกร้า - ${totalPrice.toLocaleString()}`}
-          </Button>
+            <Button
+              className={`w-full h-12 text-lg font-bold transition-all ${
+                !isValid ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02]"
+                }`}
+              onClick={handleAddToCartClick}
+              disabled={!isValid}
+            >
+              {isEntertainer
+                ? `${isPackage ? "รับงานเหมา" : "เลือก Entertainer"} - ${totalPrice.toLocaleString()}`
+                : `เพิ่มลงตะกร้า - ${totalPrice.toLocaleString()}`}
+            </Button>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      <AnimatePresence>
+        {isImageZoomed && menuDetail?.img && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md"
+            onClick={() => setIsImageZoomed(false)}
+          >
+            <button
+              className="absolute top-6 right-6 text-white bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors z-50 backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsImageZoomed(false);
+              }}
+            >
+              <X size={24} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-2xl h-[80vh] md:h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={menuDetail.img}
+                alt={menuDetail.menuName || "Full image"}
+                fill
+                className="object-contain"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

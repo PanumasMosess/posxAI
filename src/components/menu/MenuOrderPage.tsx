@@ -68,6 +68,7 @@ const MenuOrderPage = ({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isShoutoutOpen, setIsShoutoutOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [packageSelections, setPackageSelections] = useState<
     Record<number, boolean>
@@ -362,22 +363,31 @@ const MenuOrderPage = ({
                   className="bg-card text-card-foreground p-3 rounded-xl shadow-sm border border-border flex gap-4 items-center active:scale-[0.98] transition-transform"
                   onClick={() => handelOpendetail(item.id)}
                 >
-                  <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                    {item.img ? (
-                      <Image
-                        src={item.img}
-                        alt={item.menuName}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100px, 150px"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                        <span className="text-xs">No Image</span>
-                      </div>
-                    )}
-                  </div>
-
+                <div 
+                  className={`relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted ${
+                    item.category?.categoryName === "Entertainer" && item.img ? "cursor-pointer ring-2 ring-primary/50" : ""
+                  }`}
+                  onClick={(e) => {
+                    if (item.category?.categoryName === "Entertainer" && item.img) {
+                      e.stopPropagation();
+                      setPreviewImage(item.img);
+                    }
+                  }}
+                >
+                  {item.img ? (
+                    <Image
+                      src={item.img}
+                      alt={item.menuName}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100px, 150px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
+                      <span className="text-xs">No Image</span>
+                    </div>
+                  )}
+                </div>
                   <div className="flex-1 flex flex-col justify-between min-h-[6rem] py-1">
                     <div>
                       <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1">
@@ -644,6 +654,42 @@ const MenuOrderPage = ({
         organizationId={organizationId ?? 1} 
       />
       
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+            onClick={() => setPreviewImage(null)}
+          >
+            <button
+              className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-colors z-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewImage(null);
+              }}
+            >
+              <X size={24} />
+            </button>
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md h-[70vh] md:h-[85vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={previewImage}
+                alt="Full preview"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
