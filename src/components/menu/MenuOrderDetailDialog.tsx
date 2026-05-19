@@ -433,8 +433,8 @@ const MenuOrderDetailDialog = ({
               disabled={!isValid}
             >
               {isEntertainer
-                ? `${isPackage ? "รับงานเหมา" : "เลือก Entertainer"} - ฿${totalPrice.toLocaleString()}`
-                : `เพิ่มลงตะกร้า - ฿${totalPrice.toLocaleString()}`}
+                ? `${isPackage ? "รับงานเหมา" : "เลือก Entertainer"} - ${totalPrice.toLocaleString()}`
+                : `เพิ่มลงตะกร้า - ${totalPrice.toLocaleString()}`}
             </Button>
           </div>
         </div>
