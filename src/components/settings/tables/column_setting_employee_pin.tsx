@@ -1,8 +1,10 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PositionType, SettingEmployee } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil, Lock } from "lucide-react";
+import { ArrowUpDown, Pencil } from "lucide-react";
 import status from "@/lib/data_temp";
 import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,7 +82,7 @@ const EditableCell = ({
   );
 };
 
-// ✅ เพิ่ม EditablePinCell สำหรับแก้ไขรหัส PIN ในตาราง
+// 🟢 ปรับปรุง EditablePinCell ให้ซ่อนรหัสลับ (Bcrypt) แต่โชว์เลขธรรมดาได้หากดึงมาตรงๆ
 const EditablePinCell = ({
   getValue,
   row,
@@ -92,8 +94,17 @@ const EditablePinCell = ({
 }) => {
   const initialValue = getValue();
   const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState("");
+  
+  // ตรวจสอบว่าค่านั้นเป็น Bcrypt Hash หรือไม่ (เช็คว่าขึ้นต้นด้วย $2b$)
+  const isBcryptHash = initialValue && String(initialValue).startsWith("$2b$");
+  
+  // ถ้าเป็นรหัสลับ ให้เคลียร์ช่องกรอกตอนกดแก้ไขเป็นค่าว่างเพื่อให้พิมพ์ใหม่ได้ง่ายๆ
+  const [value, setValue] = useState(isBcryptHash ? "" : (initialValue || ""));
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setValue(isBcryptHash ? "" : (initialValue || ""));
+  }, [initialValue, isBcryptHash]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -103,10 +114,11 @@ const EditablePinCell = ({
 
   const handleSave = () => {
     setIsEditing(false);
-    if (value.length >= 4 && onUpdate) {
+    if (value.length >= 4 && value !== initialValue && onUpdate) {
       onUpdate(row.original.id, value);
     }
-    setValue("");
+    // ถ้าเป็นรหัสลับและไม่ได้แก้ไขอะไร ให้ล้างค่าใน state เพื่อไม่ให้ค้างตอนกลับมาส่องใหม่
+    if (isBcryptHash) setValue("");
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -114,7 +126,7 @@ const EditablePinCell = ({
       handleSave();
     } else if (e.key === "Escape") {
       setIsEditing(false);
-      setValue("");
+      if (isBcryptHash) setValue("");
     }
   };
 
@@ -122,15 +134,14 @@ const EditablePinCell = ({
     return (
       <Input
         ref={inputRef}
-        type="password"
-        maxLength={4}
-        placeholder="รหัส 4 หลัก"
+        type="number" 
+        placeholder="0000"
         value={value}
-        onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
+        onChange={(e) => setValue(e.target.value.slice(0, 4))}
         onBlur={handleSave}
         onKeyDown={onKeyDown}
-        className="h-8 text-center font-bold text-sm tracking-[0.3em] w-28 mx-auto"
-        autoComplete="new-password"
+        className="h-8 text-center font-bold text-sm tracking-[0.3em] w-28 mx-auto [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        autoComplete="off"
       />
     );
   }
@@ -142,8 +153,9 @@ const EditablePinCell = ({
       title="คลิกเพื่อเปลี่ยน PIN"
     >
       {initialValue ? (
-        <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-300 font-medium text-sm tracking-widest">
-          <Lock className="w-3 h-3 text-emerald-500" /> ******
+        <span className="text-zinc-800 dark:text-zinc-200 font-mono font-bold text-sm tracking-widest">
+          {/* 🟢 ถ้าหลังบ้านส่ง Bcrypt มา ให้แปลงร่างเป็นจุดไข่ปลาแทน แต่ถ้าหลังบ้านเป็นเลขธรรมดา ก็จะโชว์เลขนั้นเลยครับ */}
+          {isBcryptHash ? "••••" : initialValue}
         </span>
       ) : (
         <span className="text-zinc-400 text-xs">ยังไม่ตั้งค่า</span>
@@ -158,7 +170,7 @@ const column_setting_employee_pin = (
   onUpdateName: (id: number, newName: string) => void,
   onUpdateSurName: (id: number, newSurname: string) => void,
   onUpdatePosition: (id: number, newPositionId: number) => void,
-  onUpdatePin: (id: number, newPin: string) => void, // ✅ เพิ่ม Parameter สำหรับอัปเดต PIN
+  onUpdatePin: (id: number, newPin: string) => void,
   organizationId: number,
   positions: PositionType[],
 ): ColumnDef<any>[] => [
@@ -198,7 +210,6 @@ const column_setting_employee_pin = (
       );
     },
   },
-  // ❌ นำ block ของ username ออกแล้ว
   {
     accessorKey: "pin",
     header: () => <div className="text-center">รหัส PIN</div>,
@@ -236,11 +247,7 @@ const column_setting_employee_pin = (
       return (
         <div className="flex justify-center items-center">
           <select
-            className="border rounded-md px-2 py-1 text-sm
-                       bg-white dark:bg-zinc-800
-                       text-zinc-900 dark:text-zinc-100
-                       border-zinc-300 dark:border-zinc-700
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={selectValue}
             onChange={(e) => {
               const newPositionId = parseInt(e.target.value, 10);
