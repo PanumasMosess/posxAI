@@ -59,6 +59,7 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
     ),
   },
 
+  // 🟢 แก้ไขคอลัมน์รายการอาหารให้แสดงรูปภาพคู่กับชื่อเมนู
   {
     id: "orders",
     header: "รายการอาหาร",
@@ -66,18 +67,43 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       const orders = row.original.runningRef?.order || [];
 
       if (orders.length === 0) {
-        return <div className="text-sm text-zinc-400">-</div>;
+        return <div className="text-sm text-zinc-400 pl-2">-</div>;
       }
 
       return (
-        <div className="flex flex-col gap-1 text-sm">
+        <div className="flex flex-col gap-2 my-1 text-sm max-h-[150px] overflow-y-auto pr-1">
           {orders.map((o) => (
             <div
               key={o.id}
-              className="flex justify-between items-center text-zinc-700 dark:text-zinc-300"
+              className="flex items-center justify-between gap-4 text-zinc-700 dark:text-zinc-300"
             >
-              <span>{o.menu.menuName}</span>
-              <span className="ml-2 text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+              {/* ส่วนด้านซ้าย: รูปภาพและชื่อเมนู */}
+              <div className="flex items-center gap-2">
+                {/* กรอบแสดงรูปภาพ */}
+                <div className="h-8 w-8 shrink-0 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 overflow-hidden shadow-sm">
+                  {o.menu.img ? (
+                    <img
+                      src={o.menu.img}
+                      alt={o.menu.menuName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-400 dark:text-zinc-600">
+                      รูป
+                    </div>
+                  )}
+                </div>
+                {/* ข้อความชื่อเมนู */}
+                <span
+                  className="font-medium truncate max-w-[120px]"
+                  title={o.menu.menuName}
+                >
+                  {o.menu.menuName}
+                </span>
+              </div>
+
+              {/* ส่วนด้านขวา: จำนวนที่สั่ง */}
+              <span className="text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded shrink-0">
                 x{o.quantity}
               </span>
             </div>
@@ -124,7 +150,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
     },
   },
 
-  // 🟢 คอลัมน์ที่เพิ่มใหม่ 1: กะการทำงาน (แสดงลำดับกะของวันนั้น)
   {
     id: "shift",
     accessorFn: (row) => {
@@ -149,7 +174,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
     },
   },
 
-  // 🟢 คอลัมน์ที่เพิ่มใหม่ 2: คนรับชำระ (ดึงข้อมูลชื่อ + นามสกุล)
   {
     id: "cashier",
     accessorFn: (row) =>
