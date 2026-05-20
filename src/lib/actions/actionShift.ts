@@ -10,7 +10,27 @@ export const checkActiveShift = async (organizationId: number) => {
       },
     });
 
-    return activeShift;
+    if (!activeShift) {
+      return null;
+    }
+
+    const startOfDay = new Date(activeShift.createdAt);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const shiftSequence = await prisma.shift.count({
+      where: {
+        organizationId: organizationId,
+        createdAt: {
+          gte: startOfDay, 
+          lte: activeShift.createdAt, 
+        },
+      },
+    });
+
+    return {
+      ...activeShift,
+      shiftSequence, 
+    };
   } catch (error) {
     console.error("Error checking active shift:", error);
     return null;

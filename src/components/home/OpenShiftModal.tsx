@@ -18,8 +18,6 @@ import { toast } from "react-toastify";
 import { openShift } from "@/lib/actions/actionShift";
 import { OpenShiftModalProps } from "@/lib/type";
 
-
-
 export function OpenShiftModal({
   isOpen,
   organizationId,
@@ -28,7 +26,7 @@ export function OpenShiftModal({
   onSuccess,
 }: OpenShiftModalProps) {
   const [startingCash, setStartingCash] = useState<string>("");
-  const [note, setNote] = useState<string>(""); 
+  const [note, setNote] = useState<string>("");
   const [isPending, setIsPending] = useState(false);
 
   const handleOpenShift = async () => {
@@ -47,6 +45,9 @@ export function OpenShiftModal({
         toast.success("เปิดกะสำเร็จ!");
         setStartingCash("");
         setNote("");
+
+        window.dispatchEvent(new Event("shift-updated"));
+
         onSuccess();
       } else {
         toast.error(result.message);
