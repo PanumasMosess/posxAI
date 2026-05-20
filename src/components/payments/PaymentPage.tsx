@@ -834,6 +834,7 @@ const PaymentPage = ({
         employeeName={employeeName || "พนักงานทั่วไป"}
         onSuccess={() => {
           setShowOpenShiftModal(false);
+          window.dispatchEvent(new Event("shift-updated"));
           toast.info("เปิดกะเรียบร้อยแล้ว กรุณากดยืนยันการชำระเงินอีกครั้ง");
         }}
         onClose={() => {
