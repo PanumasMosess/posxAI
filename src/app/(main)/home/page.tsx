@@ -24,7 +24,7 @@ const Home = async () => {
       order: {
         where: {
           status: {
-            notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+            notIn: ["CANCELLED", "PAY_COMPLETED"],
           },
         },
         include: {
