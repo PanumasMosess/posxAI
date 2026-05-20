@@ -923,6 +923,10 @@ const PaymentStatusPage = ({
           setShowOpenShiftModal(false);
           toast.info("เปิดกะเรียบร้อยแล้ว กรุณากดยืนยันการชำระเงินอีกครั้ง");
         }}
+        onClose={() => {
+          setShowOpenShiftModal(false);
+          window.dispatchEvent(new Event("shift-updated"));
+        }}
       />
     </div>
   );

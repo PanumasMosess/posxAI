@@ -114,8 +114,7 @@ export function CloseShiftModal({
             />
           </div>
         </div>
-
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0 mt-2">
           <Button
             variant="outline"
             onClick={onClose}
@@ -126,7 +125,7 @@ export function CloseShiftModal({
           </Button>
           <Button
             onClick={handleCloseShift}
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
             disabled={isPending || actualCash === ""}
           >
             {isPending ? (

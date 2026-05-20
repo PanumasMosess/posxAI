@@ -24,6 +24,7 @@ export function OpenShiftModal({
   employeeId,
   employeeName,
   onSuccess,
+  onClose
 }: OpenShiftModalProps) {
   const [startingCash, setStartingCash] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -60,7 +61,7 @@ export function OpenShiftModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] border-none shadow-2xl [&>button]:hidden">
         <DialogHeader className="flex flex-col items-center justify-center pt-4">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
