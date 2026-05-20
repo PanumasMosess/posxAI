@@ -75,9 +75,16 @@ const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
     id: "price_sum",
     header: () => <div className="text-center">ยอดสุทธิ</div>,
     cell: ({ row }) => {
+      // 🟢 เพิ่มการดึงค่าหน่วยเงินที่ส่งมาจาก Server
+      const currency = (row.original as any).currencyLabel || "";
+
       return (
-        <div className="text-center font-bold text-amber-600">
-          {row.original.price_sum.toLocaleString()}
+        <div className="text-center font-bold text-amber-600 dark:text-amber-500">
+          {row.original.price_sum.toLocaleString()}{" "}
+          {/* 🟢 แสดงหน่วยราคาตัวเล็กๆ ด้านหลัง */}
+          <span className="text-xs text-zinc-400 font-normal ml-1">
+            {currency}
+          </span>
         </div>
       );
     },
@@ -85,17 +92,20 @@ const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
   {
     id: "shift",
     accessorFn: (row) => {
-      const shiftId = row.paymentInfo?.shift?.id;
-      return shiftId ? `กะที่ ${shiftId}` : ""; 
+      const shift = row.paymentInfo?.shift;
+      const displaySeq = shift?.shiftSequence || shift?.id;
+      return displaySeq ? `กะที่ ${displaySeq}` : "";
     },
     header: () => <div className="text-center">กะการทำงาน</div>,
     cell: ({ row }) => {
-      const shiftId = row.original.paymentInfo?.shift?.id;
+      const shift = row.original.paymentInfo?.shift;
+      const displaySeq = shift?.shiftSequence || shift?.id;
+
       return (
         <div className="text-center">
-          {shiftId ? (
-            <span className="bg-zinc-100 text-zinc-700 px-2 py-1 rounded-md text-xs font-medium">
-              กะที่ {shiftId}
+          {displaySeq ? (
+            <span className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded-md text-xs font-medium border dark:border-zinc-800">
+              กะที่ {displaySeq}
             </span>
           ) : (
             <span className="text-zinc-400">-</span>

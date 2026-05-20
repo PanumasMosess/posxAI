@@ -10,7 +10,7 @@ const page = async () => {
   const rawOrders = await prisma.order.findMany({
     where: {
       status: {
-        in: ["CANCELLED", "PAY_COMPLETED"],
+        in: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
       },
       organizationId: organizationId,
     },
@@ -37,6 +37,7 @@ const page = async () => {
         quantity: 0,
         status: order.status,
         menusList: [],
+        currencyLabel: order.menu?.unitPrice?.label || "",
       });
     }
 
@@ -64,6 +65,32 @@ const page = async () => {
       creator: true,
     },
   });
+
+  const shiftSequenceCache = new Map();
+
+  for (const payment of payments) {
+    if (payment.shift) {
+      const shiftId = payment.shift.id;
+
+      if (!shiftSequenceCache.has(shiftId)) {
+        const startOfDay = new Date(payment.shift.createdAt);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const sequence = await prisma.shift.count({
+          where: {
+            organizationId: organizationId,
+            createdAt: {
+              gte: startOfDay,
+              lte: payment.shift.createdAt,
+            },
+          },
+        });
+
+        shiftSequenceCache.set(shiftId, sequence);
+      }
+      (payment.shift as any).shiftSequence = shiftSequenceCache.get(shiftId);
+    }
+  }
 
   const itemsData = groupedOrders.map((group) => {
     const matchingPayment = payments.find(
