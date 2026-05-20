@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { LogOut, Moon, Sun, User, Lock, Wallet } from "lucide-react";
+import { LogOut, Moon, Sun, User, Lock, Wallet, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
@@ -39,16 +39,30 @@ const Navbar = () => {
 
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [currentShiftId, setCurrentShiftId] = useState<number | null>(null);
+  const [shiftSequence, setShiftSequence] = useState<number | null>(null);
 
   const fetchActiveShift = useCallback(async () => {
     if (organizationId) {
       const shift = await checkActiveShift(Number(organizationId));
-      setCurrentShiftId(shift ? shift.id : null);
+      if (shift) {
+        setCurrentShiftId(shift.id);
+        setShiftSequence(shift.shiftSequence || shift.id);
+      } else {
+        setCurrentShiftId(null);
+        setShiftSequence(null);
+      }
     }
   }, [organizationId]);
 
   useEffect(() => {
     fetchActiveShift();
+    const handleShiftUpdate = () => {
+      fetchActiveShift();
+    };
+    window.addEventListener("shift-updated", handleShiftUpdate);
+    return () => {
+      window.removeEventListener("shift-updated", handleShiftUpdate);
+    };
   }, [fetchActiveShift]);
 
   return (
@@ -56,9 +70,22 @@ const Navbar = () => {
       <nav className="p-4 flex items-center justify-between">
         {/* LEFT */}
         <SidebarTrigger />
-
         {/* Right */}
         <div className="flex items-center gap-4">
+          {currentShiftId ? (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-800/50 shadow-sm transition-all">
+              <Clock className="w-4 h-4" />
+              <span className="whitespace-nowrap">
+                กะที่ {shiftSequence} ของวันนี้
+              </span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 rounded-full text-sm font-medium border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all">
+              <Clock className="w-4 h-4" />
+              <span className="whitespace-nowrap">ยังไม่เปิดกะ</span>
+            </div>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
@@ -107,7 +134,7 @@ const Navbar = () => {
                 <Lock className="h-[1.2rem] w-[1.2rem] mr-2" /> ล็อกหน้าจอ
               </DropdownMenuItem>
 
-              {/*  เมนูปิดกะ */}
+              {/* เมนูปิดกะ */}
               {currentShiftId && (
                 <DropdownMenuItem
                   onClick={() => {
@@ -158,7 +185,10 @@ const Navbar = () => {
 
       <CloseShiftModal
         isOpen={showCloseShiftModal}
-        onClose={() => setShowCloseShiftModal(false)}
+        onClose={() => {
+          setShowCloseShiftModal(false);
+          window.dispatchEvent(new Event("shift-updated"));
+        }}
         shiftId={currentShiftId}
         employeeId={Number(employeeId)}
       />
