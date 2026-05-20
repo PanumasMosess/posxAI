@@ -39,7 +39,7 @@ const MainPageComponentsHome = ({
 
   const onMoveTable = async (table: StatusTable) => {
     const activeOrders = table.order.filter(
-      (o) => !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(o.status),
+      (o) => !["CANCELLED", "PAY_COMPLETED"].includes(o.status),
     );
     const ids = activeOrders.map((o) => o.id);
     setActiveOrderIds(ids);
