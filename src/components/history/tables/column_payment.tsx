@@ -124,6 +124,52 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
     },
   },
 
+  // 🟢 คอลัมน์ที่เพิ่มใหม่ 1: กะการทำงาน (แสดงลำดับกะของวันนั้น)
+  {
+    id: "shift",
+    accessorFn: (row) => {
+      const seq = (row.shift as any)?.shiftSequence || row.shift?.id;
+      return seq ? `กะที่ ${seq}` : "";
+    },
+    header: () => <div className="text-center">กะการทำงาน</div>,
+    cell: ({ row }) => {
+      const seq =
+        (row.original.shift as any)?.shiftSequence || row.original.shift?.id;
+      return (
+        <div className="text-center">
+          {seq ? (
+            <span className="px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold border dark:border-zinc-700">
+              กะที่ {seq}
+            </span>
+          ) : (
+            <span className="text-zinc-400">-</span>
+          )}
+        </div>
+      );
+    },
+  },
+
+  // 🟢 คอลัมน์ที่เพิ่มใหม่ 2: คนรับชำระ (ดึงข้อมูลชื่อ + นามสกุล)
+  {
+    id: "cashier",
+    accessorFn: (row) =>
+      `${row.creator?.name || ""} ${row.creator?.surname || ""}`.trim(),
+    header: () => <div className="text-center">คนรับชำระ</div>,
+    cell: ({ row }) => {
+      const name = row.original.creator?.name;
+      const surname = row.original.creator?.surname;
+      return (
+        <div className="text-center text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          {name ? (
+            `${name} ${surname || ""}`
+          ) : (
+            <span className="text-zinc-400 dark:text-zinc-600">-</span>
+          )}
+        </div>
+      );
+    },
+  },
+
   {
     accessorKey: "createdAt",
     header: ({ column }) => <div className="text-center">เวลาชำระ</div>,

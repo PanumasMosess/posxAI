@@ -21,7 +21,8 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
     cell: ({ row }) => {
       const menus = row.original.menusList || [];
 
-      if (menus.length === 0) return <span className="text-zinc-400 dark:text-zinc-500 pl-2">-</span>;
+      if (menus.length === 0)
+        return <span className="text-zinc-400 dark:text-zinc-500 pl-2">-</span>;
 
       return (
         <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2">
@@ -32,7 +33,7 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
                   <img
                     src={menu.image}
                     alt={menu.name}
-                    className="h-full w-full object-cover grayscale" 
+                    className="h-full w-full object-cover grayscale"
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-[10px] text-zinc-400 dark:text-zinc-600">
@@ -57,38 +58,57 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
     id: "quantity",
     header: () => <div className="text-center">รวมจำนวน</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium text-zinc-500">{row.original.quantity}</div>;
+      return (
+        <div className="text-center font-medium text-zinc-500">
+          {row.original.quantity}
+        </div>
+      );
     },
   },
   {
     id: "table",
     header: () => <div className="text-center">ชื่อโต๊ะ</div>,
     cell: ({ row }) => {
-      return <div className="text-center text-zinc-500">{row.original.table?.tableName || "-"}</div>;
+      return (
+        <div className="text-center text-zinc-500">
+          {row.original.table?.tableName || "-"}
+        </div>
+      );
     },
   },
   {
     id: "price_sum",
     header: () => <div className="text-center">ยอดสุทธิ</div>,
     cell: ({ row }) => {
+      const currency = (row.original as any).currencyLabel || "";
       return (
-        <div className="text-center font-bold text-zinc-400 dark:text-zinc-600 line-through">
-          {row.original.price_sum.toLocaleString()} 
+        <div className="text-center font-bold text-amber-600 dark:text-amber-500">
+          {row.original.price_sum.toLocaleString()}{" "}
+          <span className="text-xs text-zinc-400 font-normal ml-1">
+            {currency}
+          </span>
         </div>
       );
     },
   },
   {
     id: "shift",
-    accessorFn: (row) => row.paymentInfo?.shift?.id,
+    accessorFn: (row) => {
+      const shift = row.paymentInfo?.shift;
+      // 🟢 ดึงลำดับกะ (shiftSequence) มาโชว์ ถ้าไม่มีให้ใช้ id แทนชั่วคราว
+      const displaySeq = shift?.shiftSequence || shift?.id;
+      return displaySeq ? `กะที่ ${displaySeq}` : "";
+    },
     header: () => <div className="text-center">กะการทำงาน</div>,
     cell: ({ row }) => {
-      const shiftId = row.original.paymentInfo?.shift?.id;
+      const shift = row.original.paymentInfo?.shift;
+      const displaySeq = shift?.shiftSequence || shift?.id;
+
       return (
         <div className="text-center">
-          {shiftId ? (
-            <span className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 px-2 py-1 rounded-md text-xs font-medium">
-              กะที่ {shiftId}
+          {displaySeq ? (
+            <span className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded-md text-xs font-medium border dark:border-zinc-800">
+              กะที่ {displaySeq}
             </span>
           ) : (
             <span className="text-zinc-400">-</span>
@@ -124,7 +144,11 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
         hour12: false,
       });
 
-      return <div className="text-center text-xs text-red-500 dark:text-red-400">{formatted}</div>;
+      return (
+        <div className="text-center text-xs text-red-500 dark:text-red-400">
+          {formatted}
+        </div>
+      );
     },
   },
 ];

@@ -422,7 +422,10 @@ export interface HistoryOrder {
   updatedAt: Date;
 
   paymentInfo?: {
-    shift: { id: number } | null;
+    shift: {
+      id: number;
+      shiftSequence?: number;
+    } | null;
     creator: { name: string } | null;
   } | null;
 }
@@ -470,6 +473,11 @@ export type HistoryPayment = {
   totalAmount: number;
   paymentMethod: string;
   createdAt: Date;
+  shift: {
+    id: number;
+    shiftSequence?: number;
+    createdAt?: Date;
+  } | null;
   creator: {
     name: string;
     surname: string;
