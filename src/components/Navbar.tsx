@@ -31,6 +31,7 @@ import Link from "next/link";
 import { checkActiveShift } from "@/lib/actions/actionShift";
 import { CloseShiftModal } from "./home/CloseShiftModal";
 import { useSession } from "next-auth/react";
+import { OpenShiftModal } from "./home/OpenShiftModal";
 
 const Navbar = () => {
   const { data: session } = useSession();
@@ -38,6 +39,7 @@ const Navbar = () => {
   const organizationId = session?.user?.organizationId || 0;
 
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [currentShiftId, setCurrentShiftId] = useState<number | null>(null);
   const [shiftSequence, setShiftSequence] = useState<number | null>(null);
 
@@ -65,6 +67,11 @@ const Navbar = () => {
     };
   }, [fetchActiveShift]);
 
+  const handleOpenShift = () => {
+    setShowOpenShiftModal(true);
+    window.dispatchEvent(new Event("shift-updated"));
+  };
+
   return (
     <>
       <nav className="p-4 flex items-center justify-between">
@@ -73,17 +80,25 @@ const Navbar = () => {
         {/* Right */}
         <div className="flex items-center gap-4">
           {currentShiftId ? (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-800/50 shadow-sm transition-all">
+            <Button
+              variant="outline"
+              onClick={() => setShowCloseShiftModal(true)}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 h-auto bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 rounded-full text-sm font-medium shadow-sm transition-all"
+            >
               <Clock className="w-4 h-4" />
               <span className="whitespace-nowrap">
-                กะที่ {shiftSequence} ของวันนี้
+                กะที่ {shiftSequence} (กำลังทำงาน)
               </span>
-            </div>
+            </Button>
           ) : (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 rounded-full text-sm font-medium border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all">
+            <Button
+              variant="outline"
+              onClick={handleOpenShift}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 h-auto bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full text-sm font-medium shadow-sm transition-all cursor-pointer"
+            >
               <Clock className="w-4 h-4" />
-              <span className="whitespace-nowrap">ยังไม่เปิดกะ</span>
-            </div>
+              <span className="whitespace-nowrap">คลิกเพื่อเปิดกะ</span>
+            </Button>
           )}
 
           <DropdownMenu>
@@ -133,20 +148,6 @@ const Navbar = () => {
               >
                 <Lock className="h-[1.2rem] w-[1.2rem] mr-2" /> ล็อกหน้าจอ
               </DropdownMenuItem>
-
-              {/* เมนูปิดกะ */}
-              {currentShiftId && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    setShowCloseShiftModal(true);
-                  }}
-                  className="cursor-pointer text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
-                >
-                  <Wallet className="h-[1.2rem] w-[1.2rem] mr-2" />
-                  ปิดกะการทำงาน (Close Shift)
-                </DropdownMenuItem>
-              )}
-
               {/* เมนูออกจากระบบ */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -191,6 +192,16 @@ const Navbar = () => {
         }}
         shiftId={currentShiftId}
         employeeId={Number(employeeId)}
+      />
+
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        organizationId={organizationId}
+        employeeId={Number(employeeId)}
+        employeeName={employeeName || "พนักงานทั่วไป"}
+        onSuccess={() => {
+          setShowOpenShiftModal(false);
+        }}
       />
     </>
   );

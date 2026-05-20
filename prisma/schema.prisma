@@ -149,15 +149,15 @@ model table {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  posX Float @default(0) // X = แนวนอน
-  posY Float @default(0) // Y = แนวตั้ง
-  width Float @default(120) // width = กว้าง
-  height Float @default(120) // height = สูง
-  rotation Float @default(0) // มุมหมุนโต๊ะ
+  posX            Float   @default(0) // X = แนวนอน
+  posY            Float   @default(0) // Y = แนวตั้ง
+  width           Float   @default(120) // width = กว้าง
+  height          Float   @default(120) // height = สูง
+  rotation        Float   @default(0) // มุมหมุนโต๊ะ
   floorPlanLocked Boolean @default(false) // ล็อคโต๊ะ
-  shape String @default("circle") // รูปทรงโต๊ะ
-  seatCount Int @default(4) // จำนวนที่นั่ง
-  
+  shape           String  @default("circle") // รูปทรงโต๊ะ
+  seatCount       Int     @default(4) // จำนวนที่นั่ง
+
   closeById Int
   creator   employeepin @relation(fields: [closeById], references: [id])
 
@@ -176,6 +176,7 @@ model order {
   orderDetail    String?
   note           String?
   status         String
+  employeeId     String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -568,13 +569,13 @@ model display_backdrop {
 
   imageUrl String
   title    String?
-  igName         String?       // เพิ่ม: สำหรับเก็บชื่อ IG ของลูกค้า
-  message        String?       // สำหรับข้อความที่ลูกค้าพิมพ์
+  igName   String? // เพิ่ม: สำหรับเก็บชื่อ IG ของลูกค้า
+  message  String? // สำหรับข้อความที่ลูกค้าพิมพ์
   isActive Boolean @default(true)
   sequence Int     @default(0)
   duration Int     @default(10)
 
-  isTemporary    Boolean       @default(false)
+  isTemporary Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
