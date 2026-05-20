@@ -9,6 +9,9 @@ const Home = async () => {
   const itemsData = await prisma.table.findMany({
     where: {
       organizationId: organizationId,
+      status: {
+        not: "DELETE", 
+      },
     },
     include: {
       creator: {
