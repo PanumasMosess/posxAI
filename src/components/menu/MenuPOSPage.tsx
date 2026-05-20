@@ -80,9 +80,9 @@ const MenuPOSPage = ({
           createdById: createdById,
         };
 
-        const update_status = await updateImageMenu(data);
+        const updateResult = await updateImageMenu(data);
 
-        if (update_status.success) {
+        if (updateResult.success) {
           toast.success("สร้างและอัปเดตรูปภาพสำเร็จ!");
           router.refresh();
         } else {

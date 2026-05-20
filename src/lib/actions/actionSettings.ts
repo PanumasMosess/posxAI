@@ -445,30 +445,25 @@ export const createEmployeePin = async (
   data: EmployeePinSchema,
 ) => {
   try {
-    const existingEmployees = await prisma.employeepin.findMany({
-      where: { organizationId: data.organizationId },
-      select: { pin: true, name: true },
+    const duplicateEmployee = await prisma.employeepin.findFirst({
+      where: {
+        organizationId: data.organizationId,
+        pin: data.pin, 
+      },
+      select: { name: true },
     });
 
-    for (const emp of existingEmployees) {
-      if (emp.pin) {
-        const isMatch = await bcrypt.compare(data.pin, emp.pin);
-        if (isMatch) {
-          return {
-            success: false,
-            error: true,
-            message: `รหัส PIN นี้ถูกใช้งานแล้วโดยพนักงานชื่อ: ${emp.name}`,
-          };
-        }
-      }
+    if (duplicateEmployee) {
+      return {
+        success: false,
+        error: true,
+        message: `รหัส PIN นี้ถูกใช้งานแล้วโดยพนักงานชื่อ: ${duplicateEmployee.name}`,
+      };
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPin = await bcrypt.hash(data.pin, salt);
 
     await prisma.employeepin.create({
       data: {
-        pin: hashedPin,
+        pin: data.pin, 
         name: data.name,
         surname: data.surname || "-",
         email: data.email || null,
@@ -632,34 +627,28 @@ export const updatePinEmpPin = async (id: number, newPin: string) => {
       return { success: false, error: true, message: "ไม่พบข้อมูลพนักงาน" };
     }
 
-    const otherEmployees = await prisma.employeepin.findMany({
+    const duplicateEmployee = await prisma.employeepin.findFirst({
       where: {
         organizationId: currentEmp.organizationId,
-        id: { not: id },
+        pin: newPin,      
+        id: { not: id }, 
       },
-      select: { pin: true, name: true },
+      select: { name: true },
     });
 
-    for (const emp of otherEmployees) {
-      if (emp.pin) {
-        const isMatch = await bcrypt.compare(newPin, emp.pin);
-        if (isMatch) {
-          return {
-            success: false,
-            error: true,
-            message: `รหัส PIN นี้ถูกใช้งานแล้วโดย: ${emp.name}`,
-          };
-        }
-      }
+    if (duplicateEmployee) {
+      return {
+        success: false,
+        error: true,
+        message: `รหัส PIN นี้ถูกใช้งานแล้วโดย: ${duplicateEmployee.name}`,
+      };
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPin = await bcrypt.hash(newPin, salt);
 
     await prisma.employeepin.update({
       where: { id },
-      data: { pin: hashedPin },
+      data: { pin: newPin },
     });
+
     return { success: true, error: false };
   } catch (err) {
     console.error("Error updatePinEmpPin:", err);

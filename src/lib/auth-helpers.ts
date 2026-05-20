@@ -66,7 +66,13 @@ export const verifyPositionPin = async (
       if (!emp.pin) continue;
 
       checkedCount++;
-      const isMatch = await bcrypt.compare(rawPin, emp.pin);
+      let isMatch = false;
+
+      if (emp.pin.startsWith("$2b$")) {
+        isMatch = await bcrypt.compare(rawPin, emp.pin);
+      } else {
+        isMatch = rawPin === emp.pin;
+      }
 
       if (isMatch) {
         const positionData = await prisma.posiotion.findUnique({

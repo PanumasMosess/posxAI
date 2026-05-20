@@ -3,18 +3,29 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Store, Zap, Instagram } from "lucide-react";
+import { Store, Zap, Instagram, Volume2, VolumeX } from "lucide-react"; // 🟢 เพิ่ม Volume2 และ VolumeX
 import { BackdropItem } from "@/lib/type";
-import { checkTemporaryShoutout, deleteTemporaryShoutout } from "@/lib/actions/actionBackdrop";
+import {
+  checkTemporaryShoutout,
+  deleteTemporaryShoutout,
+} from "@/lib/actions/actionBackdrop";
 
-const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizationId: number }) => {
+const DisplayTV = ({
+  items,
+  organizationId,
+}: {
+  items: BackdropItem[];
+  organizationId: number;
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [priorityItem, setPriorityItem] = useState<any>(null);
 
-  // 🌟 Effect 1: เช็คคิวด่วนจากลูกค้าทุกๆ 3 วินาที
+  // 🟢 เพิ่ม State สำหรับควบคุมการเปิด-ปิดเสียง (เริ่มต้นเป็น true เพื่อให้ Autoplay ทำงานได้)
+  const [isMuted, setIsMuted] = useState(true);
+
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (priorityItem) return; // ถ้ากำลังโชว์รูปลูกค้าอยู่ ไม่ต้องเช็คซ้ำ
+      if (priorityItem) return;
       const res = await checkTemporaryShoutout(organizationId);
       if (res.success && res.data) {
         setPriorityItem(res.data);
@@ -40,7 +51,7 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
   }, [priorityItem, organizationId]);
 
   useEffect(() => {
-    if (!items || items.length === 0 || priorityItem) return; // หยุดลูปนี้ถ้ารูปลูกค้ากำลังโชว์
+    if (!items || items.length === 0 || priorityItem) return;
 
     const currentDuration = (items[currentIndex]?.duration || 10) * 1000;
 
@@ -51,12 +62,11 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
     return () => clearTimeout(timer);
   }, [currentIndex, items, priorityItem]);
 
-  // 🌟 หน้าจอตอนยังไม่มีข้อมูล (คงเดิมไว้)
   if ((!items || items.length === 0) && !priorityItem) {
     return (
       <div className="relative flex flex-col items-center justify-center w-full h-screen bg-black text-white overflow-hidden">
         <Image
-          src="/default-bg.jpg" // ⚠️ อย่าลืมเอารูปไปใส่ในโฟลเดอร์ public นะครับ
+          src="/default-bg.jpg"
           alt="Default Technology Background"
           fill
           className="object-cover opacity-50"
@@ -75,10 +85,6 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
             <Store className="w-24 h-24 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.8)]" />
             <Zap className="absolute -bottom-2 -right-2 w-10 h-10 text-purple-400 animate-pulse drop-shadow-[0_0_15px_rgba(192,132,252,0.8)]" />
           </div>
-
-          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 tracking-[0.2em] drop-shadow-lg mb-2">
-            POSX SYSTEM
-          </h1>
 
           <div className="flex items-center gap-3 mt-4">
             <span className="relative flex h-3 w-3">
@@ -110,14 +116,30 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
           className="absolute inset-0 w-full h-full flex items-center justify-center"
         >
           {isVideo ? (
-            <video
-              src={currentItem.imageUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="object-contain w-full h-full"
-            />
+            // 🟢 ครอบกลุ่มวิดีโอด้วย div relative เพื่อวางปุ่มควบคุมเสียง
+            <div className="relative w-full h-full flex items-center justify-center">
+              <video
+                src={currentItem.imageUrl}
+                autoPlay
+                muted={isMuted} // 🟢 เปลี่ยนมาผูกกับ State แทนการ Hardcode
+                loop
+                playsInline
+                className="object-contain w-full h-full"
+              />
+
+              {/* 🟢 ปุ่มลอยเปิด-ปิดเสียง (โชว์เฉพาะสไลด์ที่เป็นวิดีโอ) */}
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="absolute top-8 right-8 z-50 p-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/20 text-white hover:bg-black/70 hover:scale-110 active:scale-95 transition-all shadow-2xl group"
+                title={isMuted ? "เปิดเสียง" : "ปิดเสียง"}
+              >
+                {isMuted ? (
+                  <VolumeX className="w-8 h-8 text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.6)] group-hover:animate-pulse" />
+                ) : (
+                  <Volume2 className="w-8 h-8 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                )}
+              </button>
+            </div>
           ) : (
             <>
               <Image
@@ -133,11 +155,11 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
                 <motion.div
                   initial={{ y: 80, opacity: 0, scale: 0.9 }}
                   animate={{ y: 0, opacity: 1, scale: 1 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 120, 
-                    damping: 20, 
-                    delay: 0.4 
+                  transition={{
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 20,
+                    delay: 0.4,
                   }}
                   className="absolute bottom-20 px-12 py-8 md:px-16 md:py-10 bg-black/40 backdrop-blur-xl rounded-[2rem] border border-white/20 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.6)] max-w-3xl text-center z-10 flex flex-col items-center"
                 >
@@ -154,7 +176,9 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
                     </div>
                   )}
                   {currentItem.message && (
-                    <p className={`text-2xl md:text-[1.75rem] font-medium text-white/90 leading-relaxed max-w-2xl relative z-10 drop-shadow-md ${currentItem.igName ? 'mt-5' : ''}`}>
+                    <p
+                      className={`text-2xl md:text-[1.75rem] font-medium text-white/90 leading-relaxed max-w-2xl relative z-10 drop-shadow-md ${currentItem.igName ? "mt-5" : ""}`}
+                    >
                       {currentItem.message}
                     </p>
                   )}
@@ -165,14 +189,7 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
         </motion.div>
       </AnimatePresence>
 
-      {/* โลโก้มุมขวาบน (คงเดิม แต่อยู่บนพื้นหลังสีดำ mix-blend ช่วยให้เด่น) */}
-      <div className="absolute top-8 right-8 z-50 mix-blend-difference">
-        <h2 className="text-white/80 font-bold text-2xl tracking-[0.2em] uppercase">
-          POSX<span className="text-primary">AI</span>
-        </h2>
-      </div>
-
-      {/* แถบ Progress Bar ด้านล่าง (คงเดิม แค่ปรับสีถ้ารูปลูกค้าเข้า) */}
+      {/* แถบ Progress Bar ด้านล่าง */}
       <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/10 z-50">
         <motion.div
           key={`progress-${currentItem.id}`}
@@ -182,10 +199,11 @@ const DisplayTV = ({ items, organizationId }: { items: BackdropItem[], organizat
             duration: currentItem.duration || (isCustomer ? 15 : 10),
             ease: "linear",
           }}
-          className={`h-full shadow-[0_0_10px_rgba(139,92,246,0.8)] ${isCustomer
-              ? "bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500" // 🌟 สีบาร์ถ้ารูปลูกค้าขึ้น
-              : "bg-gradient-to-r from-blue-500 to-purple-500" // สีบาร์ของร้านปกติ
-            }`}
+          className={`h-full shadow-[0_0_10px_rgba(139,92,246,0.8)] ${
+            isCustomer
+              ? "bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500"
+              : "bg-gradient-to-r from-blue-500 to-purple-500"
+          }`}
         />
       </div>
     </div>
