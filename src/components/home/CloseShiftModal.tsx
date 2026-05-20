@@ -114,7 +114,7 @@ export function CloseShiftModal({
             />
           </div>
         </div>
-        <DialogFooter className="gap-2 sm:gap-0 mt-2">
+        <DialogFooter className="gap-3 sm:gap-2 mt-4">
           <Button
             variant="outline"
             onClick={onClose}

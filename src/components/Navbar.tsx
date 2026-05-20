@@ -201,10 +201,10 @@ const Navbar = () => {
         employeeName={employeeName || "พนักงานทั่วไป"}
         onSuccess={() => {
           setShowOpenShiftModal(false);
+          window.dispatchEvent(new Event("shift-updated"));
         }}
         onClose={() => {
-          setShowCloseShiftModal(false);
-          window.dispatchEvent(new Event("shift-updated"));
+          setShowOpenShiftModal(false);
         }}
       />
     </>
