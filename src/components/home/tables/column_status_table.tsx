@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const tableStatuses = status.tableStatuses;
+const tableStatuses = status.tableStatusesHome;
 
 const column_status_table = (
   onUpdateStatus: (id: number, newStatus: string) => void,
@@ -99,7 +99,7 @@ const column_status_table = (
 
       const activeOrders = orders.filter(
         (o: any) =>
-          !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(o.status)
+          !["CANCELLED", "PAY_COMPLETED"].includes(o.status)
       );
 
       if (activeOrders.length === 0) {
@@ -235,7 +235,7 @@ const column_status_table = (
       const orders = (table as any).order || [];
       const hasActiveOrders = orders.some(
         (o: any) =>
-          !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(o.status)
+          !["CANCELLED", "PAY_COMPLETED"].includes(o.status)
       );
 
       return (

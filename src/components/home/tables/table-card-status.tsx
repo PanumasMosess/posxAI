@@ -26,7 +26,7 @@ export default function Table_card_status({ table, onClick }: TableCardProps) {
   const seatCount = table.seatCount || 4;
   const rotation = table.rotation || 0;
 
-  const statusMeta = status.tableStatuses.find((s) => s.value === table.status);
+  const statusMeta = status.tableStatusesHome.find((s) => s.value === table.status);
   const themeMap = {
     "bg-green-500": { dot: "bg-emerald-500", glow: "shadow-[0_0_20px_rgba(16,185,129,0.4)]", border: "border-emerald-600/50" },
     "bg-red-500": { dot: "bg-red-500", glow: "shadow-[0_0_20px_rgba(239,68,68,0.4)]", border: "border-red-600/50" },

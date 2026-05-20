@@ -387,7 +387,7 @@ export const moveTableFunction = async (
         where: {
           tableId: fromTableId,
           status: {
-            notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+            notIn: ["CANCELLED", "PAY_COMPLETED"],
           },
         },
       });

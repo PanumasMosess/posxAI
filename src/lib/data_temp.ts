@@ -352,6 +352,19 @@ const tableStatuses = [
     value: "WAIT_BOOKING",
     color: "bg-blue-500",
   },
+  { label: "ลบโต๊ะ (Delete)", value: "DELETE", color: "bg-zinc-800" },
+];
+
+const tableStatusesHome = [
+  { label: "ว่าง (Available)", value: "AVAILABLE", color: "bg-green-500" },
+  { label: "ไม่ว่าง (Occupied)", value: "OCCUPIED", color: "bg-red-500" },
+  { label: "จองแล้ว (Reserved)", value: "RESERVED", color: "bg-yellow-500" },
+  { label: "รอทำความสะอาด (Dirty)", value: "DIRTY", color: "bg-gray-500" },
+  {
+    label: "รอจอง (Wait Booking)",
+    value: "WAIT_BOOKING",
+    color: "bg-blue-500",
+  },
 ];
 
 const positionStatuses = [
@@ -363,6 +376,7 @@ export default {
   menuList,
   settingsMenu,
   tableStatuses,
+  tableStatusesHome,
   positionStatuses,
   statusColor,
   getButtonActionColor,
