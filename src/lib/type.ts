@@ -959,6 +959,7 @@ export interface OpenShiftModalProps {
   employeeId: number;
   employeeName: string;
   onSuccess: () => void;
+  onClose: () => void;
 }
 
 export interface CloseShiftModalProps {

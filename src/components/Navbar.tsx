@@ -202,6 +202,10 @@ const Navbar = () => {
         onSuccess={() => {
           setShowOpenShiftModal(false);
         }}
+        onClose={() => {
+          setShowCloseShiftModal(false);
+          window.dispatchEvent(new Event("shift-updated"));
+        }}
       />
     </>
   );
