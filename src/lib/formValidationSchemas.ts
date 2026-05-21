@@ -167,7 +167,7 @@ export const EmployeeSchema_ = z.object({
 export type EmployeeSchema = z.infer<typeof EmployeeSchema_>;
 
 export const MemberSchema_ = z.object({
-  phone: z.string().min(9, { message: "เบอร์โทรศัพท์ต้องมีอย่างน้อย 9 หลัก" }),
+  phone: z.string().min(3, { message: "เบอร์โทรศัพท์ต้องมีมากกว่า 2 หลัก" }),
   firstName: z.string().min(1, { message: "กรุณาระบุชื่อจริง" }),
   lastName: z.string().optional(),
   organizationId: z.number(),
