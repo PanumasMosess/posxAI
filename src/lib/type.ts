@@ -903,6 +903,7 @@ export interface CountdownTimerProps {
 
 export interface ProfilleMainProps {
   orders: any[];
+  allEmployees?: { id: number | string; name: string; surname: string }[];
 }
 
 export interface SettingBackdropProps {
@@ -974,4 +975,14 @@ export interface ShoutoutDialogProps {
   isOpen: boolean;
   onClose: () => void;
   organizationId: number;
+}
+
+export interface SalesSummaryProps {
+  dailyData: any[];
+  monthlyData: any[];
+  todayTotal: number;
+  yesterdayTotal: number;
+  thisMonthTotal: number;
+  lastMonthTotal: number;
+  currencyLabel?: string;
 }
