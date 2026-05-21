@@ -40,6 +40,16 @@ const page = async () => {
     },
   });
 
+  const allEmployees = await prisma.employeepin.findMany({
+    where: { organizationId: organizationId },
+    select: { id: true, name: true, surname: true },
+  });
+
+  const employeeMap = new Map();
+  for (const emp of allEmployees) {
+    employeeMap.set(String(emp.id), `${emp.name} ${emp.surname}`);
+  }
+
   const shiftSequenceCache = new Map();
 
   for (const payment of itemsData) {
@@ -65,6 +75,19 @@ const page = async () => {
 
       (payment.shift as any).shiftSequence = shiftSequenceCache.get(shiftId);
     }
+
+    let orderTakerName = "สั่งผ่านระบบ"; 
+    const ordersInBill = payment.runningRef?.order || [];
+    
+    if (ordersInBill.length > 0) {
+      const firstOrderWithEmp = ordersInBill.find((o) => o.employeeId);
+      
+      if (firstOrderWithEmp) {
+        orderTakerName = employeeMap.get(firstOrderWithEmp.employeeId) || "ไม่ทราบชื่อพนักงาน";
+      }
+    }
+
+    (payment as any).orderTakerName = orderTakerName;
   }
 
   return (

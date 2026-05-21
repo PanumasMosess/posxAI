@@ -1,7 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { HistoryOrder } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
 
 const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
   {
@@ -43,7 +41,7 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
               </div>
 
               <span
-                className="text-sm font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[160px] line-through" // 🟢 ขีดฆ่าชื่อเมนู
+                className="text-sm font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[160px] line-through"
                 title={menu.name}
               >
                 {menu.name}
@@ -95,7 +93,6 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
     id: "shift",
     accessorFn: (row) => {
       const shift = row.paymentInfo?.shift;
-      // 🟢 ดึงลำดับกะ (shiftSequence) มาโชว์ ถ้าไม่มีให้ใช้ id แทนชั่วคราว
       const displaySeq = shift?.shiftSequence || shift?.id;
       return displaySeq ? `กะที่ ${displaySeq}` : "";
     },
@@ -112,6 +109,22 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
             </span>
           ) : (
             <span className="text-zinc-400">-</span>
+          )}
+        </div>
+      );
+    },
+  },
+  // 🟢 เพิ่มคอลัมน์ คนรับออเดอร์ ตรงนี้
+  {
+    id: "orderTaker",
+    accessorFn: (row) => row.employeeName,
+    header: () => <div className="text-center">คนรับออเดอร์</div>,
+    cell: ({ row }) => {
+      const orderTakerName = row.original.employeeName;
+      return (
+        <div className="text-center text-sm font-medium">
+          {orderTakerName || (
+            <span className="text-zinc-400">สั่งผ่านระบบ</span>
           )}
         </div>
       );
