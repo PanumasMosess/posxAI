@@ -1,52 +1,113 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input"; 
+import { Input } from "@/components/ui/input";
 import {
   Receipt,
-  Clock,
   ChevronLeft,
   ChevronRight,
-  Search, 
+  Search,
+  Users,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useUser } from "@/components/providers/UserContext";
-import CountdownTimer from "./CountdownTimer";
 import { ProfilleMainProps } from "@/lib/type";
 
-const ProfilleMain = ({ orders }: ProfilleMainProps) => {
+import SalesSummary from "./SalesSummary";
+import OrderCard from "./OrderCard";
+
+const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
   const { employeeId, positionName } = useUser();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState(""); 
+  const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
 
   const isAdmin = ["Admin", "admin", "Spadmin", "spadmin"].includes(
     positionName || "",
   );
-  const isEntertainer = positionName === "Entertainer";
 
-  const displayOrders = useMemo(() => {
-    let filtered = [];
-    if (isAdmin) {
-      filtered = orders;
-    } else if (isEntertainer) {
-      filtered = orders.filter((order) =>
-        order.orderitems?.some(
-          (item: any) => item.menu?.mcEmployeeId === employeeId,
-        ),
-      );
-    }
+  const [selectedEmpId, setSelectedEmpId] = useState<string>(
+    isAdmin ? "ALL" : String(employeeId),
+  );
 
+  const {
+    displayOrders,
+    dailyData,
+    monthlyData,
+    todayTotal,
+    yesterdayTotal,
+    thisMonthTotal,
+    lastMonthTotal,
+  } = useMemo(() => {
     const groups: Record<string, any> = {};
+    const now = new Date();
 
-    filtered.forEach((order) => {
+    const today = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
+    const yesterday = today - 86400000;
+
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    const lastMonthDate = new Date(thisYear, thisMonth - 1, 1);
+    const lastMonth = lastMonthDate.getMonth();
+    const lastMonthYear = lastMonthDate.getFullYear();
+
+    let tTotal = 0;
+    let yTotal = 0;
+    let tmTotal = 0;
+    let lmTotal = 0;
+
+    const dData = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today - (6 - i) * 86400000);
+      return {
+        name: d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" }),
+        timestamp: d.getTime(),
+        total: 0,
+      };
+    });
+
+    const mData = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(thisYear, thisMonth - (5 - i), 1);
+      return {
+        name: d.toLocaleDateString("th-TH", {
+          month: "short",
+          year: "2-digit",
+        }),
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        total: 0,
+      };
+    });
+
+    orders.forEach((order) => {
+      let myItems: any[] = [];
+
+      if (isAdmin && selectedEmpId === "ALL") {
+        myItems = order.orderitems || [];
+      } else {
+        myItems = (order.orderitems || []).filter(
+          (item: any) =>
+            String(item.menu?.mcEmployeeId) === selectedEmpId ||
+            String(order.employeeId) === selectedEmpId,
+        );
+      }
+
+      if (myItems.length === 0) return;
+
       const key = order.order_running_code || `ORDER-${order.id}`;
-
       if (!groups[key]) {
         groups[key] = {
           id: key,
@@ -58,32 +119,55 @@ const ProfilleMain = ({ orders }: ProfilleMainProps) => {
           items: [],
         };
       }
-
-      groups[key].totalPrice += order.price_sum || 0;
-
-
-      if (order.status === "PAY_COMPLETED") {
+      if (order.status === "PAY_COMPLETED")
         groups[key].status = "PAY_COMPLETED";
-      }
 
-      if (order.orderitems) {
-        order.orderitems.forEach((item: any) => {
-          groups[key].items.push({
-            id: item.id,
-            quantity: item.quantity,
-            menuName: item.menu?.menuName,
-            note: item.note,
-            img: item.menu?.img || "/placeholder.png",
-            price_package: item.menu?.price_package,
-            price: item.price,
-            package_hours: item.menu?.package_hours || 0,
-            unit: item.menu?.unit,
-            mcEmployeeId: item.menu?.mcEmployeeId,
-            orderStatus: order.status,
-            orderCreatedAt: order.createdAt,
-          });
+      const orderDate = new Date(order.createdAt);
+      const orderTimeZero = new Date(
+        orderDate.getFullYear(),
+        orderDate.getMonth(),
+        orderDate.getDate(),
+      ).getTime();
+      const oMonth = orderDate.getMonth();
+      const oYear = orderDate.getFullYear();
+
+      myItems.forEach((item: any) => {
+        const itemPrice = item.price_package || item.price || 0;
+        const itemTotal = itemPrice * item.quantity;
+
+        groups[key].totalPrice += itemTotal;
+
+        if (order.status !== "CANCELLED") {
+          if (orderTimeZero === today) tTotal += itemTotal;
+          if (orderTimeZero === yesterday) yTotal += itemTotal;
+          if (oMonth === thisMonth && oYear === thisYear) tmTotal += itemTotal;
+          if (oMonth === lastMonth && oYear === lastMonthYear)
+            lmTotal += itemTotal;
+
+          const dIndex = dData.findIndex((d) => d.timestamp === orderTimeZero);
+          if (dIndex !== -1) dData[dIndex].total += itemTotal;
+
+          const mIndex = mData.findIndex(
+            (m) => m.month === oMonth && m.year === oYear,
+          );
+          if (mIndex !== -1) mData[mIndex].total += itemTotal;
+        }
+
+        groups[key].items.push({
+          id: item.id,
+          quantity: item.quantity,
+          menuName: item.menu?.menuName,
+          note: item.note,
+          img: item.menu?.img || "/placeholder.png",
+          price_package: item.menu?.price_package,
+          price: item.price,
+          package_hours: item.menu?.package_hours || 0,
+          unit: item.menu?.unit,
+          mcEmployeeId: item.menu?.mcEmployeeId,
+          orderStatus: order.status,
+          orderCreatedAt: order.createdAt,
         });
-      }
+      });
     });
 
     const groupedArray = Object.values(groups).sort(
@@ -91,21 +175,33 @@ const ProfilleMain = ({ orders }: ProfilleMainProps) => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
+    let finalArray = groupedArray;
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
-      return groupedArray.filter(
+      finalArray = groupedArray.filter(
         (bill) =>
           bill.tableName.toLowerCase().includes(term) ||
           bill.runningCode.toLowerCase().includes(term),
       );
     }
 
-    return groupedArray;
-  }, [orders, isAdmin, isEntertainer, employeeId, searchTerm]); 
+    return {
+      displayOrders: finalArray,
+      dailyData: dData,
+      monthlyData: mData,
+      todayTotal: tTotal,
+      yesterdayTotal: yTotal,
+      thisMonthTotal: tmTotal,
+      lastMonthTotal: lmTotal,
+    };
+  }, [orders, isAdmin, selectedEmpId, searchTerm]);
+
+  const currencyLabel =
+    orders[0]?.orderitems?.[0]?.menu?.unitPrice?.label || "฿";
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [displayOrders.length, searchTerm]);
+  }, [displayOrders.length, searchTerm, selectedEmpId]);
 
   const totalPages = Math.max(
     1,
@@ -124,12 +220,59 @@ const ProfilleMain = ({ orders }: ProfilleMainProps) => {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-3 sm:p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
+        {isAdmin && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-zinc-500" />
+              <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                มุมมองผู้ดูแล: เลือกพนักงาน
+              </h3>
+            </div>
+
+            <div className="w-full sm:w-64">
+              <Select
+                value={selectedEmpId}
+                onValueChange={(val) => setSelectedEmpId(val)}
+              >
+                <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
+                  <SelectValue placeholder="เลือกพนักงาน..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    value="ALL"
+                    className="font-semibold text-primary"
+                  >
+                    ดูภาพรวมทุกคน
+                  </SelectItem>
+                  {allEmployees.map((emp) => (
+                    <SelectItem key={emp.id} value={String(emp.id)}>
+                      {emp.name} {emp.surname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        <SalesSummary
+          dailyData={dailyData}
+          monthlyData={monthlyData}
+          todayTotal={todayTotal}
+          yesterdayTotal={yesterdayTotal}
+          thisMonthTotal={thisMonthTotal}
+          lastMonthTotal={lastMonthTotal}
+          currencyLabel={currencyLabel}
+        />
+
         <div>
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 px-2 gap-4">
             <div className="flex items-center gap-2 shrink-0">
               <Receipt className="w-6 h-6 text-primary" />
               <h3 className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
-                ประวัติการรับออเดอร์
+                {isAdmin && selectedEmpId === "ALL"
+                  ? "ประวัติบิลทั้งหมดของร้าน"
+                  : "ประวัติบิลของคุณ"}
               </h3>
             </div>
 
@@ -163,124 +306,14 @@ const ProfilleMain = ({ orders }: ProfilleMainProps) => {
             <div className="flex flex-col gap-4">
               <div className="grid gap-4">
                 {currentOrders.map((bill) => (
-                  <Card
+                  <OrderCard
                     key={bill.id}
-                    className="p-4 sm:p-5 hover:shadow-md transition-all duration-200 border-zinc-200 dark:border-zinc-800"
-                  >
-                    <div className="flex flex-col md:flex-row justify-between gap-4">
-                      {/* ข้อมูลหัวบิล */}
-                      <div>
-                        <div className="flex items-center gap-3 mb-2 flex-wrap">
-                          <Badge
-                            variant="secondary"
-                            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-mono text-xs"
-                          >
-                            โต๊ะ {bill.tableName}
-                          </Badge>
-                          <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 font-mono">
-                            {bill.runningCode}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-                          <Clock className="w-3.5 h-3.5" />
-                          {new Date(bill.createdAt).toLocaleString("th-TH")}
-                        </div>
-                      </div>
-
-                      <div className="md:text-right flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start">
-                        <div className="flex flex-col md:items-end">
-                          <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider mb-0.5">
-                            ยอดรวมทั้งบิล
-                          </span>
-                          <p className="text-xl sm:text-2xl font-black text-primary dark:text-primary">
-                            ฿{bill.totalPrice?.toLocaleString() || 0}
-                          </p>
-                        </div>
-                        <Badge
-                          className={`text-[10px] px-2 py-0.5 mt-0 md:mt-1 shadow-sm ${
-                            bill.status === "PAY_COMPLETED"
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : bill.status === "CANCELLED"
-                                ? "bg-red-100 text-red-700 border-red-200"
-                                : "bg-blue-100 text-blue-700 border-blue-200"
-                          }`}
-                          variant="outline"
-                        >
-                          {bill.status === "PAY_COMPLETED"
-                            ? "ชำระแล้ว"
-                            : bill.status === "CANCELLED"
-                              ? "ยกเลิก"
-                              : "กำลังใช้งาน"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* รายการเมนูย่อยในบิลนี้ */}
-                    <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-                      {bill.items?.map((item: any, idx: number) => {
-                        const itemTotal =
-                          item.note && item.price_package
-                            ? item.price_package * item.quantity
-                            : item.price * item.quantity;
-
-                        return (
-                          <div
-                            key={`${item.id}-${idx}`}
-                            className="flex justify-between items-start text-sm p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group transition-colors"
-                          >
-                            <div className="flex gap-3 items-start flex-1">
-                              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm shrink-0">
-                                <AvatarImage
-                                  src={item.img}
-                                  className="object-cover"
-                                />
-                                <AvatarFallback className="text-xs bg-zinc-100 text-zinc-400">
-                                  IMG
-                                </AvatarFallback>
-                              </Avatar>
-
-                              <div className="flex flex-col">
-                                <p className="text-zinc-800 dark:text-zinc-200 font-semibold leading-tight flex items-center gap-2">
-                                  <span className="text-primary font-black text-xs sm:text-sm bg-primary/10 px-1.5 py-0.5 rounded">
-                                    {item.quantity}x
-                                  </span>
-                                  {item.menuName}
-                                </p>
-
-                                {item.note && (
-                                  <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
-                                    * {item.note}
-                                  </p>
-                                )}
-
-                                {item.orderStatus === "COMPLETED" &&
-                                  item.mcEmployeeId && (
-                                    <div className="mt-1">
-                                      <CountdownTimer
-                                        startTime={item.orderCreatedAt}
-                                        packageHours={item.package_hours}
-                                        quantity={item.quantity}
-                                        unit={item.unit}
-                                      />
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col items-end shrink-0 ml-2">
-                              <span className="text-zinc-900 dark:text-white text-xs sm:text-sm font-bold mt-1">
-                                ฿{itemTotal.toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
+                    bill={bill}
+                    currencyLabel={currencyLabel}
+                  />
                 ))}
               </div>
 
-              {/* Pagination Controls */}
               {displayOrders.length > itemsPerPage && (
                 <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm gap-4">
                   <p className="text-xs sm:text-sm text-zinc-500 font-medium">
@@ -288,7 +321,6 @@ const ProfilleMain = ({ orders }: ProfilleMainProps) => {
                     {Math.min(startIndex + itemsPerPage, displayOrders.length)}{" "}
                     จากทั้งหมด {displayOrders.length} บิล
                   </p>
-
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
