@@ -310,6 +310,7 @@ export interface CartItemPayload {
   price_pre_unit: number;
   organizationId: number | null;
   note: string | null;
+  employeeId?: string | null;
   modifiers?: {
     modifierItemId: number;
     name: string;
@@ -420,7 +421,7 @@ export interface HistoryOrder {
     tableName: string;
   } | null;
   updatedAt: Date;
-
+  employeeName?: string;
   paymentInfo?: {
     shift: {
       id: number;

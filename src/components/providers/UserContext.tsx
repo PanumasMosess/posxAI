@@ -50,7 +50,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error("useUser ต้องถูกเรียกใช้ภายใต้ UserProvider");
+    return {
+      employeeId: null,
+      employeeName: "ลูกค้า",
+      positionId: null,
+      positionName: null,
+      img: null,
+      setUser: () => {},
+      clearUser: () => {},
+    };
   }
   return context;
 };

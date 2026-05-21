@@ -42,6 +42,7 @@ import { MenuOrderHistorySheet } from "./MenuOrderHistorySheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "../ui/input";
 import ShoutoutDialog from "./ShoutoutDialog";
+import { useUser } from "../providers/UserContext";
 
 const MenuOrderPage = ({
   relatedData,
@@ -51,6 +52,8 @@ const MenuOrderPage = ({
 }: MenuPOSPageClientProps) => {
   const router = useRouter();
   const itemsPerPage = 10;
+
+  const { employeeId } = useUser();
 
   // State
   const [page, setPage] = useState(1);
@@ -169,7 +172,12 @@ const MenuOrderPage = ({
         return;
       }
 
-      const result = await createOrder(relatedData.cartdatas);
+      const cartDataWithEmployee = relatedData.cartdatas.map((item: any) => ({
+        ...item,
+        employeeId: employeeId ? String(employeeId) : null,
+      }));
+
+      const result = await createOrder(cartDataWithEmployee);
       if (result.success) {
         await updateCartStatusNEW(relatedData.cartdatas);
         await updateTableStatus(relatedData.cartdatas, "OCCUPIED");
@@ -254,7 +262,7 @@ const MenuOrderPage = ({
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40 opacity-90 z-10" />
         </div>
 
-      <div className="relative -mt-16 mx-4 mb-4 z-10">
+        <div className="relative -mt-16 mx-4 mb-4 z-10">
           <div className="bg-card text-card-foreground rounded-2xl shadow-lg p-4 flex flex-col gap-3 border border-border/50">
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-full border-2 border-primary overflow-hidden flex-shrink-0 bg-muted relative">
@@ -268,13 +276,15 @@ const MenuOrderPage = ({
 
               {/* ส่วนข้อมูลโต๊ะ */}
               <div className="flex-1 min-w-0">
-                <h1 className="font-bold text-lg text-foreground truncate">POSX</h1>
+                <h1 className="font-bold text-lg text-foreground truncate">
+                  POSX
+                </h1>
                 <div className="text-muted-foreground text-sm flex items-center gap-1 overflow-hidden">
                   <span className="flex-shrink-0">โต๊ะ:</span>
-                    <span 
-                      className="font-bold text-primary text-lg truncate cursor-default hover:underline decoration-primary/50 underline-offset-4"
-                      title={String(currentTableName || "-")}
-                    >
+                  <span
+                    className="font-bold text-primary text-lg truncate cursor-default hover:underline decoration-primary/50 underline-offset-4"
+                    title={String(currentTableName || "-")}
+                  >
                     {currentTableName || "-"}
                   </span>
                 </div>
@@ -286,9 +296,10 @@ const MenuOrderPage = ({
                 className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full hover:bg-primary hover:text-primary-foreground transition-all active:scale-95 flex-shrink-0"
               >
                 <MonitorUp size={16} />
-                <span className="text-xs font-bold whitespace-nowrap">โชว์ขึ้นจอ</span>
+                <span className="text-xs font-bold whitespace-nowrap">
+                  โชว์ขึ้นจอ
+                </span>
               </button>
-
             </div>
           </div>
         </div>
@@ -363,31 +374,36 @@ const MenuOrderPage = ({
                   className="bg-card text-card-foreground p-3 rounded-xl shadow-sm border border-border flex gap-4 items-center active:scale-[0.98] transition-transform"
                   onClick={() => handelOpendetail(item.id)}
                 >
-                <div 
-                  className={`relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted ${
-                    item.category?.categoryName === "Entertainer" && item.img ? "cursor-pointer ring-2 ring-primary/50" : ""
-                  }`}
-                  onClick={(e) => {
-                    if (item.category?.categoryName === "Entertainer" && item.img) {
-                      e.stopPropagation();
-                      setPreviewImage(item.img);
-                    }
-                  }}
-                >
-                  {item.img ? (
-                    <Image
-                      src={item.img}
-                      alt={item.menuName}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100px, 150px"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                      <span className="text-xs">No Image</span>
-                    </div>
-                  )}
-                </div>
+                  <div
+                    className={`relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted ${
+                      item.category?.categoryName === "Entertainer" && item.img
+                        ? "cursor-pointer ring-2 ring-primary/50"
+                        : ""
+                    }`}
+                    onClick={(e) => {
+                      if (
+                        item.category?.categoryName === "Entertainer" &&
+                        item.img
+                      ) {
+                        e.stopPropagation();
+                        setPreviewImage(item.img);
+                      }
+                    }}
+                  >
+                    {item.img ? (
+                      <Image
+                        src={item.img}
+                        alt={item.menuName}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100px, 150px"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
+                        <span className="text-xs">No Image</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 flex flex-col justify-between min-h-[6rem] py-1">
                     <div>
                       <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1">
@@ -648,12 +664,12 @@ const MenuOrderPage = ({
         )}
       </AnimatePresence>
 
-      <ShoutoutDialog 
-        isOpen={isShoutoutOpen} 
-        onClose={() => setIsShoutoutOpen(false)} 
-        organizationId={organizationId ?? 1} 
+      <ShoutoutDialog
+        isOpen={isShoutoutOpen}
+        onClose={() => setIsShoutoutOpen(false)}
+        organizationId={organizationId ?? 1}
       />
-      
+
       <AnimatePresence>
         {previewImage && (
           <motion.div
@@ -672,7 +688,7 @@ const MenuOrderPage = ({
             >
               <X size={24} />
             </button>
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}

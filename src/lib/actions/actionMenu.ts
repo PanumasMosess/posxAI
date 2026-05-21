@@ -142,7 +142,6 @@ export const updateImageMenu = async (data: any) => {
 };
 
 export const createMenuToCart = async (data: any) => {
- 
   try {
     const modifiers = data.modifiers || [];
     await prisma.cart.create({
@@ -298,12 +297,15 @@ export const createOrder = async (items: CartItemPayload[]) => {
     const transactionOperations: any[] = items.map((item) => {
       const modifiersList = item.modifiers || [];
       const categoryInfo = menuCategoryMap.get(item.menuId);
-      
+
       let orderStatus = "NEW";
       if (categoryInfo?.categoryName === "Entertainer") {
         orderStatus = "COMPLETED";
-      } else if (categoryInfo?.requiresKitchen === false || categoryInfo?.requiresKitchen === 0) {
-        orderStatus = "READY"; 
+      } else if (
+        categoryInfo?.requiresKitchen === false ||
+        categoryInfo?.requiresKitchen === 0
+      ) {
+        orderStatus = "READY";
       }
 
       return prisma.order.create({
@@ -313,10 +315,11 @@ export const createOrder = async (items: CartItemPayload[]) => {
           price_pre_unit: item.price_pre_unit,
           menuId: item.menuId,
           tableId: item.tableId,
-          status: orderStatus, 
+          status: orderStatus,
           organizationId: item.organizationId,
           order_running_code: runningCode,
-          note: item.note || null, 
+          note: item.note || null,
+          employeeId: item.employeeId || null,
           orderitems: {
             create: {
               menuId: item.menuId,

@@ -40,12 +40,12 @@ const menuList = [
     icon: Computer,
     subItems: [
       {
-        title: "เมนู (POS)",
+        title: "จัดการเมนู (POS)",
         url: "/menu/pos",
       },
       {
-        title: "เมนู (สั่งอาหาร) *ตัวอย่าง",
-        url: "/orders?table=0",
+        title: "หน้าสั่งอาหาร *โดยพนักงาน",
+        url: "/orders_?table=0",
         target: "_blank",
       },
       {

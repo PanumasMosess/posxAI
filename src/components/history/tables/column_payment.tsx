@@ -39,7 +39,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       </div>
     ),
   },
-
   {
     accessorKey: "table.tableName",
     header: ({ column }) => (
@@ -58,8 +57,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       </div>
     ),
   },
-
-  // 🟢 แก้ไขคอลัมน์รายการอาหารให้แสดงรูปภาพคู่กับชื่อเมนู
   {
     id: "orders",
     header: "รายการอาหาร",
@@ -77,9 +74,7 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
               key={o.id}
               className="flex items-center justify-between gap-4 text-zinc-700 dark:text-zinc-300"
             >
-              {/* ส่วนด้านซ้าย: รูปภาพและชื่อเมนู */}
               <div className="flex items-center gap-2">
-                {/* กรอบแสดงรูปภาพ */}
                 <div className="h-8 w-8 shrink-0 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 overflow-hidden shadow-sm">
                   {o.menu.img ? (
                     <img
@@ -93,7 +88,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
                     </div>
                   )}
                 </div>
-                {/* ข้อความชื่อเมนู */}
                 <span
                   className="font-medium truncate max-w-[120px]"
                   title={o.menu.menuName}
@@ -101,8 +95,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
                   {o.menu.menuName}
                 </span>
               </div>
-
-              {/* ส่วนด้านขวา: จำนวนที่สั่ง */}
               <span className="text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded shrink-0">
                 x{o.quantity}
               </span>
@@ -112,7 +104,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       );
     },
   },
-
   {
     accessorKey: "paymentMethod",
     header: ({ column }) => <div className="text-center">ชำระโดย</div>,
@@ -124,7 +115,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       </div>
     ),
   },
-
   {
     accessorKey: "totalAmount",
     header: ({ column }) => (
@@ -149,7 +139,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       );
     },
   },
-
   {
     id: "shift",
     accessorFn: (row) => {
@@ -173,7 +162,22 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       );
     },
   },
-
+  // 🟢 คอลัมน์ที่เพิ่มใหม่: คนรับออเดอร์
+  {
+    id: "orderTaker",
+    accessorFn: (row) => (row as any).orderTakerName,
+    header: () => <div className="text-center">คนรับออเดอร์</div>,
+    cell: ({ row }) => {
+      const orderTakerName = (row.original as any).orderTakerName;
+      return (
+        <div className="text-center text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          {orderTakerName || (
+            <span className="text-zinc-400">สั่งผ่านระบบ</span>
+          )}
+        </div>
+      );
+    },
+  },
   {
     id: "cashier",
     accessorFn: (row) =>
@@ -193,7 +197,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       );
     },
   },
-
   {
     accessorKey: "createdAt",
     header: ({ column }) => <div className="text-center">เวลาชำระ</div>,

@@ -1,7 +1,7 @@
 import { HistoryOrder } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
 
-const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
+export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
   {
     id: "id",
     header: () => <div className="text-center font-bold">รหัสบิล</div>,
@@ -75,13 +75,11 @@ const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
     id: "price_sum",
     header: () => <div className="text-center">ยอดสุทธิ</div>,
     cell: ({ row }) => {
-      // 🟢 เพิ่มการดึงค่าหน่วยเงินที่ส่งมาจาก Server
       const currency = (row.original as any).currencyLabel || "";
 
       return (
         <div className="text-center font-bold text-amber-600 dark:text-amber-500">
           {row.original.price_sum.toLocaleString()}{" "}
-          {/* 🟢 แสดงหน่วยราคาตัวเล็กๆ ด้านหลัง */}
           <span className="text-xs text-zinc-400 font-normal ml-1">
             {currency}
           </span>
@@ -109,6 +107,21 @@ const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
             </span>
           ) : (
             <span className="text-zinc-400">-</span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    id: "orderTaker",
+    accessorFn: (row) => row.employeeName,
+    header: () => <div className="text-center">คนรับออเดอร์</div>,
+    cell: ({ row }) => {
+      const orderTakerName = row.original.employeeName;
+      return (
+        <div className="text-center text-sm font-medium">
+          {orderTakerName || (
+            <span className="text-zinc-400">สั่งผ่านระบบ</span>
           )}
         </div>
       );
