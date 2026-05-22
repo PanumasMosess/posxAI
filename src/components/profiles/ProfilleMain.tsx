@@ -227,6 +227,9 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
 
   useEffect(() => {
     setCurrentPage(1);
+    if (isAdmin) {
+      setSelectedEmpId("ALL");
+    }
   }, [displayOrders.length, searchTerm, selectedEmpId]);
 
   const totalPages = Math.max(
@@ -261,7 +264,15 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
                 onValueChange={(val) => setSelectedEmpId(val)}
               >
                 <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
-                  <SelectValue placeholder="เลือกพนักงาน..." />
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    {selectedEmpId === "ALL"
+                      ? "ดูภาพรวมทุกคน"
+                      : allEmployees.find(
+                            (emp) => String(emp.id) === selectedEmpId,
+                          )
+                        ? `${allEmployees.find((emp) => String(emp.id) === selectedEmpId)?.name} ${allEmployees.find((emp) => String(emp.id) === selectedEmpId)?.surname}`
+                        : "เลือกพนักงาน..."}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem
@@ -281,7 +292,6 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
           </div>
         )}
 
-        {/* 🟢 อัปเดตส่งตัวแปรรายปีและยอดรวมปีเข้าไปให้ Component SalesSummary เรียบร้อย */}
         <SalesSummary
           dailyData={dailyData}
           monthlyData={monthlyData}

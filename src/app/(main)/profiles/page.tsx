@@ -9,7 +9,9 @@ const page = async () => {
   const itemsDataOrder = await prisma.order.findMany({
     where: {
       organizationId: Number(organizationId),
-      status: "PAY_COMPLETED",
+      status: {
+        notIn: ["CANCELLED", "PAY_COMPLETED"],
+      },
     },
     include: {
       table: true,
@@ -35,7 +37,7 @@ const page = async () => {
 
   const allEmployees = await prisma.employeepin.findMany({
     where: { organizationId: Number(organizationId) },
-    select: { id: true, name: true, surname: true }, 
+    select: { id: true, name: true, surname: true },
   });
 
   const employeeMap = new Map();
@@ -53,10 +55,7 @@ const page = async () => {
   });
 
   return (
-    <ProfilleMain
-      orders={ordersWithEmployee}
-      allEmployees={allEmployees} 
-    />
+    <ProfilleMain orders={ordersWithEmployee} allEmployees={allEmployees} />
   );
 };
 
