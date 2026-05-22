@@ -16,7 +16,7 @@ import {
   Printer,
   Loader2,
   Settings,
-  X, 
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusTableProps } from "@/lib/type";
@@ -97,11 +97,21 @@ export default function OrderStatusPage({
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const [isAutoPrint, setIsAutoPrint] = useState(false);
+  const printedGroupsRef = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
+  const selectedPrinterRef = useRef(selectedPrinter);
+
   useEffect(() => {
     const savedPrinter = localStorage.getItem("kitchen_preferred_printer");
     if (savedPrinter) {
       setSelectedPrinter(savedPrinter);
+      selectedPrinterRef.current = savedPrinter;
     }
+
+    const savedAutoPrint =
+      localStorage.getItem("kitchen_auto_print") === "true";
+    setIsAutoPrint(savedAutoPrint);
   }, []);
 
   const initQZSecurity = () => {
@@ -176,12 +186,15 @@ export default function OrderStatusPage({
 
   const handlePrinterChange = (value: string) => {
     setSelectedPrinter(value);
+    selectedPrinterRef.current = value;
     localStorage.setItem("kitchen_preferred_printer", value);
   };
 
-  const handlePrint = async (group: any) => {
-    if (!selectedPrinter) {
-      toast.warn("กรุณาเลือกเครื่องพิมพ์ก่อน");
+  const handlePrint = async (group: any, autoPrintPrinter?: string) => {
+    const targetPrinter = autoPrintPrinter || selectedPrinterRef.current;
+
+    if (!targetPrinter) {
+      toast.warn("กรุณาเลือกเครื่องพิมพ์ก่อนพิมพ์");
       setIsSettingsOpen(true);
       fetchPrinters();
       return;
@@ -198,20 +211,20 @@ export default function OrderStatusPage({
           menuName: group.menu.menuName,
           totalQuantity: group.totalQuantity,
           orders: group.orders || [],
-          printerName: selectedPrinter,
+          printerName: targetPrinter,
           modifiers: modifiersText,
           createdAt: group.firstCreatedAt,
         },
-        organizationId!
+        organizationId!,
       );
 
       if (result.success) {
-        toast.success(result.message);
+        // เงียบไว้ ไม่รบกวนหน้าจอ
       } else {
         toast.error("QZ Tray Error: " + result.message);
       }
     } catch (error: any) {
-      toast.error("เกิดข้อผิดพลาด: " + error.message);
+      toast.error("เกิดข้อผิดพลาดในการพิมพ์: " + error.message);
     } finally {
       setIsPrinting(false);
     }
@@ -220,7 +233,7 @@ export default function OrderStatusPage({
   const rawOrders = relatedData?.orderRunning || [];
   const activeOrders = rawOrders.filter(
     (order) =>
-      !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status)
+      !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status),
   );
 
   const prevOrderCountRef = useRef(activeOrders.length);
@@ -228,7 +241,7 @@ export default function OrderStatusPage({
     if (activeOrders.length > prevOrderCountRef.current) {
       try {
         const audio = new Audio(
-          "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3"
+          "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3",
         );
         audio.play().catch((e) => console.error("Audio play failed", e));
       } catch (e) {
@@ -281,9 +294,52 @@ export default function OrderStatusPage({
     return Object.values(groups).sort(
       (a: any, b: any) =>
         new Date(a.firstCreatedAt).getTime() -
-        new Date(b.firstCreatedAt).getTime()
+        new Date(b.firstCreatedAt).getTime(),
     );
   }, [activeOrders]);
+
+  // 🟢 ดักจับ Auto Print เฉพาะออเดอร์ใหม่ (NEW และ READY ที่ไม่เคยพิมพ์มาก่อน)
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      // โหลดครั้งแรก: จดจำออเดอร์ทั้งหมดลงใน Ref โดยไม่ปรินท์
+      groupedOrders.forEach((g) => {
+        // ใช้แค่ Order IDs เป็น Key (ไม่จำสถานะ) เพื่อให้ปริ้นแค่รอบเดียวตลอดชีวิตบิล
+        const printKey = g.orderIds.sort().join(",");
+        printedGroupsRef.current.add(printKey);
+      });
+      isInitialLoad.current = false;
+      return;
+    }
+
+    // หารายการใหม่ที่ยังไม่เคยถูกบันทึก (Key ไม่เคยมีใน Ref)
+    // และต้องเป็นสถานะ NEW (ออเดอร์ผ่านครัว) หรือ READY (ออเดอร์ไม่ผ่านครัว) เท่านั้น
+    const newGroups = groupedOrders.filter((g) => {
+      const printKey = g.orderIds.sort().join(",");
+      return (
+        !printedGroupsRef.current.has(printKey) &&
+        ["NEW", "READY"].includes(g.status)
+      );
+    });
+
+    // อัปเดต Ref ให้จำออเดอร์ทั้งหมดที่ดึงมาแล้ว (เพื่อกันไม่ให้ปริ้นซ้ำเวลาเปลี่ยนสถานะ)
+    groupedOrders.forEach((g) => {
+      const printKey = g.orderIds.sort().join(",");
+      printedGroupsRef.current.add(printKey);
+    });
+
+    if (newGroups.length > 0) {
+      newGroups.forEach((g) => {
+        if (isAutoPrint) {
+          handlePrint(g, selectedPrinterRef.current);
+
+          const tableName = g.orders[0]?.tableName || "ไม่ระบุโต๊ะ";
+          toast.info(
+            `ออเดอร์ใหม่ (${g.status}): โต๊ะ ${tableName} (พิมพ์อัตโนมัติ)`,
+          );
+        }
+      });
+    }
+  }, [groupedOrders, isAutoPrint]);
 
   const displayOrders =
     filter === "ALL"
@@ -308,6 +364,15 @@ export default function OrderStatusPage({
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
+  const toggleAutoPrint = () => {
+    const newState = !isAutoPrint;
+    setIsAutoPrint(newState);
+    localStorage.setItem("kitchen_auto_print", String(newState));
+    toast.info(
+      newState ? "เปิดพิมพ์อัตโนมัติ (NEW, READY)" : "ปิดพิมพ์อัตโนมัติ",
+    );
+  };
+
   useEffect(() => {
     const interval = setInterval(() => router.refresh(), 10000);
     return () => clearInterval(interval);
@@ -325,6 +390,7 @@ export default function OrderStatusPage({
               <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                 สถานะครัว
               </h1>
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -336,7 +402,22 @@ export default function OrderStatusPage({
                   className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
                 />
               </Button>
-              {/* Printer Settings Button */}
+
+              <Button
+                variant={isAutoPrint ? "default" : "ghost"}
+                size="icon"
+                className={cn(
+                  "h-6 w-6 rounded-full transition-all",
+                  isAutoPrint
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                    : "text-zinc-400 hover:text-zinc-900",
+                )}
+                onClick={toggleAutoPrint}
+                title={isAutoPrint ? "ปิดพิมพ์อัตโนมัติ" : "เปิดพิมพ์อัตโนมัติ"}
+              >
+                <Printer className="h-3.5 w-3.5" />
+              </Button>
+
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -355,7 +436,7 @@ export default function OrderStatusPage({
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="flex flex-col gap-2">
-                      <Label htmlFor="printer">เลือกเครื่องพิมพ์</Label>
+                      <Label htmlFor="printer">เลือกเครื่องพิมพ์ห้องครัว</Label>
                       <div className="flex gap-2">
                         <Select
                           value={selectedPrinter}
@@ -388,7 +469,7 @@ export default function OrderStatusPage({
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        * การตั้งค่านี้จะถูกบันทึกไว้ในเครื่องนี้
+                        * การตั้งค่านี้จะถูกบันทึกไว้ในเบราว์เซอร์นี้
                       </p>
                     </div>
                   </div>
@@ -413,15 +494,12 @@ export default function OrderStatusPage({
                   "px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5",
                   isActive
                     ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600"
-                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50"
+                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50",
                 )}
               >
                 {status === "COOKING" && (
                   <Flame
-                    className={cn(
-                      "h-3 w-3",
-                      isActive ? "text-orange-500" : ""
-                    )}
+                    className={cn("h-3 w-3", isActive ? "text-orange-500" : "")}
                   />
                 )}
                 {status === "NEW" && (
@@ -449,7 +527,7 @@ export default function OrderStatusPage({
             {displayOrders.map((group: any) => {
               const startTime = new Date(group.firstCreatedAt);
               const elapsedMins = Math.floor(
-                (new Date().getTime() - startTime.getTime()) / 60000
+                (new Date().getTime() - startTime.getTime()) / 60000,
               );
               const isLate = elapsedMins > 20 && group.status !== "COMPLETED";
 
@@ -462,7 +540,7 @@ export default function OrderStatusPage({
                   className={cn(
                     "flex flex-col bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all hover:shadow-md",
                     borderStyle,
-                    isLate ? "ring-2 ring-red-500/30" : ""
+                    isLate ? "ring-2 ring-red-500/30" : "",
                   )}
                 >
                   <div className="p-4 flex gap-3">
@@ -474,8 +552,8 @@ export default function OrderStatusPage({
                             group.status === "NEW"
                               ? "bg-blue-100 text-blue-700"
                               : group.status === "COOKING"
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-zinc-100 text-zinc-700"
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-zinc-100 text-zinc-700",
                           )}
                         >
                           {group.status}
@@ -483,7 +561,7 @@ export default function OrderStatusPage({
                         <div
                           className={cn(
                             "flex items-center text-xs font-mono",
-                            isLate ? "text-red-600 font-bold" : "text-zinc-400"
+                            isLate ? "text-red-600 font-bold" : "text-zinc-400",
                           )}
                         >
                           <Clock className="h-3 w-3 mr-1" />
@@ -513,7 +591,7 @@ export default function OrderStatusPage({
                       <div
                         className={cn(
                           "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 text-xl font-black shadow-inner",
-                          statusColor
+                          statusColor,
                         )}
                       >
                         {group.totalQuantity}

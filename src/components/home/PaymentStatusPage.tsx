@@ -96,6 +96,8 @@ const PaymentStatusPage = ({
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const [isAutoPrint, setIsAutoPrint] = useState(false);
+
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   useEffect(() => {
@@ -103,6 +105,9 @@ const PaymentStatusPage = ({
     if (savedPrinter) {
       setSelectedPrinter(savedPrinter);
     }
+    const savedAutoPrint =
+      localStorage.getItem("receipt_auto_print") === "true";
+    setIsAutoPrint(savedAutoPrint);
   }, []);
 
   useEffect(() => {
@@ -112,13 +117,23 @@ const PaymentStatusPage = ({
     setMemberData(null);
   }, [selectedOrder, paymentMethod]);
 
-  // ✅ คำนวณยอดเงินที่หายไป
   const originalTotal = selectedOrder ? selectedOrder.total : 0;
   const discountAmount = parseFloat(discount) || 0;
   const finalTotal = Math.max(0, originalTotal - discountAmount);
 
   const change = parseFloat(cashReceived || "0") - finalTotal;
   const isCashSufficient = change >= 0;
+
+  const toggleAutoPrint = () => {
+    const newState = !isAutoPrint;
+    setIsAutoPrint(newState);
+    localStorage.setItem("receipt_auto_print", String(newState));
+    toast.info(
+      newState
+        ? "เปิดใช้งาน: พิมพ์ใบเสร็จอัตโนมัติ"
+        : "ปิดใช้งาน: พิมพ์ใบเสร็จอัตโนมัติ",
+    );
+  };
 
   const handleCheckMember = async () => {
     if (memberPhone.length < 9) {
@@ -408,6 +423,10 @@ const PaymentStatusPage = ({
 
       toast.success("ชำระเงินเรียบร้อย!");
 
+      if (isAutoPrint) {
+        handlePrintReceipt(selectedOrder);
+      }
+
       setSelectedOrder(null);
       router.refresh();
     } else {
@@ -439,7 +458,6 @@ const PaymentStatusPage = ({
   };
 
   return (
-    // ✅ จุดแก้ไข CSS Layout ให้เหมือนต้นฉบับ Dark Theme
     <div className="flex h-screen bg-zinc-50/50 dark:bg-zinc-950 w-full overflow-hidden">
       {/* LEFT: Dashboard Area */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -476,6 +494,24 @@ const PaymentStatusPage = ({
                 </button>
               )}
             </div>
+
+            <Button
+              variant={isAutoPrint ? "default" : "outline"}
+              size="icon"
+              className={`h-10 w-10 rounded-xl transition-colors ${
+                isAutoPrint
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                  : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+              }`}
+              onClick={toggleAutoPrint}
+              title={
+                isAutoPrint
+                  ? "เปิดใช้งาน: พิมพ์ใบเสร็จอัตโนมัติ"
+                  : "ปิดใช้งาน: พิมพ์ใบเสร็จอัตโนมัติ"
+              }
+            >
+              <Printer className="h-5 w-5" />
+            </Button>
 
             <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
               <DialogTrigger asChild>
@@ -672,7 +708,6 @@ const PaymentStatusPage = ({
         </main>
       </div>
 
-      {/* RIGHT: Payment Sidebar Drawer */}
       <AnimatePresence mode="wait">
         {selectedOrder && (
           <motion.div
@@ -724,7 +759,6 @@ const PaymentStatusPage = ({
               </div>
             </div>
 
-            {/* ✅ พื้นที่เนื้อหา ปรับลด Padding ให้กระชับขึ้น จะได้เห็น Numpad เต็มๆ */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <div className="p-5 space-y-5 pb-10">
                 <div className="text-center relative pt-2 pb-4">
@@ -786,7 +820,6 @@ const PaymentStatusPage = ({
                     {selectedOrder.items.map((item: any, idx: number) => (
                       <div
                         key={idx}
-                        // ✅ ปรับจาก items-center เป็น items-start เผื่อ note ยาวหลายบรรทัด
                         className="flex justify-between items-start p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
                       >
                         <div className="flex gap-2 items-start">
@@ -805,7 +838,6 @@ const PaymentStatusPage = ({
                               x{item.qty}
                             </p>
 
-                            {/* ✅ เพิ่มการแสดงผล Note ตรงนี้ */}
                             {item.note && (
                               <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
                                 * {item.note}
@@ -921,7 +953,7 @@ const PaymentStatusPage = ({
         employeeName={employeeName || "พนักงานทั่วไป"}
         onSuccess={() => {
           setShowOpenShiftModal(false);
-           window.dispatchEvent(new Event("shift-updated"));
+          window.dispatchEvent(new Event("shift-updated"));
           toast.info("เปิดกะเรียบร้อยแล้ว กรุณากดยืนยันการชำระเงินอีกครั้ง");
         }}
         onClose={() => {
