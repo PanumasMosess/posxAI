@@ -9,26 +9,32 @@ import {
 import React from "react";
 
 const RECEIPT_STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
-  @page { margin: 0; size: 80mm auto; }
+  @page { margin: 0; }
   body { 
-     margin: 0; 
-     padding: 10px; 
-     font-family: 'Noto Sans Lao', 'Phetsarath OT', 'Saysettha OT', sans-serif;
-     width: 75mm; 
-     color: #000000 !important;
-     -webkit-font-smoothing: none; /* ปิด Font เบลอ */
-   }
-   
-   /* บังคับตัวหนาทุกตัว */
-   div, span, p, td, th {
-     font-weight: bold; 
-   }
+      background-color: #ffffff; 
+      color: #000000 !important; 
+      margin: 0; 
+      padding: 5px; 
+      /* 🟢 เรียกใช้ฟอนต์ลาวมาตรฐาน (เครื่องคอมพิวเตอร์ที่ต่อปริ้นเตอร์ต้องติดตั้งฟอนต์นี้ไว้ด้วยนะครับ) */
+      font-family: 'Phetsarath OT', 'Saysettha OT', 'Noto Sans Lao', sans-serif;
+      width: 75mm; 
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+  }
+    
+  div, span, p, td, th {
+      font-weight: normal; /* 🟢 เอาตัวหนาออก เพื่อไม่ให้หัวตัวอักษรลาวบอดเวลาโดนความร้อน */
+      font-size: 13px; /* 🟢 ปรับขนาดให้พอดีสายตา */
+      line-height: 1.5; /* 🟢 เพิ่มระยะห่างบรรทัด ป้องกันสระบน-ล่าง ทับกัน */
+  }
   
-  /* Utilities mimic Tailwind */
+  /* Utilities */
   .text-center { text-align: center; }
   .text-right { text-align: right; }
-  .font-bold { font-weight: bold; }
+  
+  /* 🟢 ให้เป็นตัวหนาเฉพาะจุดที่เรียกใช้คลาส .font-bold จริงๆ เท่านั้น */
+  .font-bold, h1 { font-weight: bold; }
+  
   .uppercase { text-transform: uppercase; }
   .flex { display: flex; }
   .flex-col { flex-direction: column; }
@@ -36,7 +42,11 @@ const RECEIPT_STYLES = `
   .items-center { align-items: center; }
   .border-b { border-bottom: 1px solid #000; }
   .border-t { border-top: 1px solid #000; }
-  .border-dashed { border-style: dashed; }
+  
+  .border-dashed { 
+      border-bottom: 1px dashed #000 !important; 
+  }
+  
   .mb-1 { margin-bottom: 4px; }
   .mb-2 { margin-bottom: 8px; }
   .mb-4 { margin-bottom: 16px; }
@@ -45,34 +55,30 @@ const RECEIPT_STYLES = `
   .pb-2 { padding-bottom: 8px; }
   .pt-2 { padding-top: 8px; }
   
-  /* Specific sizes */
-  h1 { font-size: 24px; margin: 0 0 5px 0; font-weight: 900; }
-  .text-xs { font-size: 10px; }
+  h1 { font-size: 22px; margin: 0 0 5px 0; }
+  .text-xs { font-size: 11px; }
   .text-sm { font-size: 12px; }
-  .text-3xl { font-size: 24px; }
+  .text-3xl { font-size: 22px; }
   
-  /* Grid System mock */
   .grid { display: grid; }
   .grid-cols-2 { grid-template-columns: 1fr 1fr; }
-  .grid-cols-12 { display: flex; width: 100%; } /* ใช้ flex แทน grid 12 col ในการพิมพ์ใบเสร็จจะง่ายกว่า */
+  .grid-cols-12 { display: flex; width: 100%; } 
   
-  /* Custom Grid Layout for Items */
   .col-qty { width: 10%; font-weight: bold; }
   .col-name { width: 60%; padding-right: 5px; word-wrap: break-word; }
   .col-price { width: 30%; text-align: right; }
   
   .footer-dots { 
-     border-top: 4px dotted #000; 
-     opacity: 0.5; 
-     width: 80%; 
-     margin: 10px auto; 
+      border-top: 1px dashed #000; 
+      width: 100%; 
+      margin: 10px auto; 
   }
 `;
 
 export const printReceiptQZ = async (
   data: ReceiptProps,
   printerName: string,
-  organizationId: number
+  organizationId: number,
 ) => {
   try {
     qz.security.setCertificatePromise((resolve: any, reject: any) => {
@@ -100,12 +106,13 @@ export const printReceiptQZ = async (
     }
 
     const receiptHtml = renderToStaticMarkup(
-      React.createElement(ReceiptPage, data)
+      React.createElement(ReceiptPage, data),
     );
 
     const finalHtml = `
       <html>
       <head>
+        <meta charset="UTF-8">
         <style>${RECEIPT_STYLES}</style>
       </head>
       <body>
@@ -114,20 +121,23 @@ export const printReceiptQZ = async (
       </html>
     `;
 
+    // 🟢 กำหนด Config แค่ชื่อปริ้นเตอร์และตั้งให้เป็นขาวดำ (ป้องกันสีจาง)
     const config = qz.configs.create(printerName || "POS-80", {
-      size: { width: 80 },
-      units: "mm",
-      rasterize: true,
-      scaleContent: true,
+      colorType: "blackwhite",
       margins: 0,
-      density: 150,
+      copies: 1,
     });
 
+    // 🟢 กำหนด Format ของ QZ Tray
     const printData = [
       {
-        type: "html",
-        format: "plain",
+        type: "pixel",
+        format: "html",
+        flavor: "plain",
         data: finalHtml,
+        options: {
+          pageWidth: 3.15, // 🟢 สำคัญมาก! หน่วยเป็น นิ้ว (80mm = ~3.15 นิ้ว)
+        },
       },
     ];
 
