@@ -10,7 +10,7 @@ const page = async () => {
     where: {
       organizationId: Number(organizationId),
       status: {
-        notIn: ["CANCELLED", "PAY_COMPLETED"],
+        in: ["CANCELLED", "PAY_COMPLETED"],
       },
     },
     include: {
