@@ -44,10 +44,13 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     displayOrders,
     dailyData,
     monthlyData,
+    yearlyData, // 🟢 ดึงข้อมูลรายปีเพิ่มออกไปใช้ด้านล่าง
     todayTotal,
     yesterdayTotal,
     thisMonthTotal,
     lastMonthTotal,
+    thisYearTotal, // 🟢 ดึงยอดรวมปีนี้
+    lastYearTotal, // 🟢 ดึงยอดรวมปีที่แล้ว
   } = useMemo(() => {
     const groups: Record<string, any> = {};
     const now = new Date();
@@ -69,6 +72,8 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     let yTotal = 0;
     let tmTotal = 0;
     let lmTotal = 0;
+    let tyTotal = 0; // 🟢 ยอดรวมปีนี้
+    let lyTotal = 0; // 🟢 ยอดรวมปีที่แล้ว
 
     const dData = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(today - (6 - i) * 86400000);
@@ -88,6 +93,16 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
         }),
         month: d.getMonth(),
         year: d.getFullYear(),
+        total: 0,
+      };
+    });
+
+    // 🟢 โครงสร้างข้อมูลกราฟรายปี (ย้อนหลัง 3 ปี)
+    const yData = Array.from({ length: 3 }, (_, i) => {
+      const yearTarget = thisYear - (2 - i);
+      return {
+        name: `${yearTarget + 543}`, // แสดงผลเป็น พ.ศ. ให้สวยและอ่านง่ายตามไทยสไตล์
+        year: yearTarget,
         total: 0,
       };
     });
@@ -144,6 +159,10 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
           if (oMonth === lastMonth && oYear === lastMonthYear)
             lmTotal += itemTotal;
 
+          // 🟢 สะสมยอดเปรียบเทียบปีนี้ และปีที่แล้ว
+          if (oYear === thisYear) tyTotal += itemTotal;
+          if (oYear === thisYear - 1) lyTotal += itemTotal;
+
           const dIndex = dData.findIndex((d) => d.timestamp === orderTimeZero);
           if (dIndex !== -1) dData[dIndex].total += itemTotal;
 
@@ -151,6 +170,10 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
             (m) => m.month === oMonth && m.year === oYear,
           );
           if (mIndex !== -1) mData[mIndex].total += itemTotal;
+
+          // 🟢 สะสมยอดใส่ลงกราฟรายปี
+          const yIndex = yData.findIndex((y) => y.year === oYear);
+          if (yIndex !== -1) yData[yIndex].total += itemTotal;
         }
 
         groups[key].items.push({
@@ -189,10 +212,13 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
       displayOrders: finalArray,
       dailyData: dData,
       monthlyData: mData,
+      yearlyData: yData, // 🟢 ส่งออกอาเรย์ข้อมูลปีไปใช้ต่อ
       todayTotal: tTotal,
       yesterdayTotal: yTotal,
       thisMonthTotal: tmTotal,
       lastMonthTotal: lmTotal,
+      thisYearTotal: tyTotal, // 🟢 ส่งออกยอดรวมปีนี้
+      lastYearTotal: lyTotal, // 🟢 ส่งออกยอดรวมปีที่แล้ว
     };
   }, [orders, isAdmin, selectedEmpId, searchTerm]);
 
@@ -255,13 +281,17 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
           </div>
         )}
 
+        {/* 🟢 อัปเดตส่งตัวแปรรายปีและยอดรวมปีเข้าไปให้ Component SalesSummary เรียบร้อย */}
         <SalesSummary
           dailyData={dailyData}
           monthlyData={monthlyData}
+          yearlyData={yearlyData}
           todayTotal={todayTotal}
           yesterdayTotal={yesterdayTotal}
           thisMonthTotal={thisMonthTotal}
           lastMonthTotal={lastMonthTotal}
+          thisYearTotal={thisYearTotal}
+          lastYearTotal={lastYearTotal}
           currencyLabel={currencyLabel}
         />
 
