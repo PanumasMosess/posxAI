@@ -29,9 +29,9 @@ import {
 import { useUser } from "./providers/UserContext";
 import Link from "next/link";
 import { checkActiveShift } from "@/lib/actions/actionShift";
-import { CloseShiftModal } from "./home/CloseShiftModal";
+import { CloseShiftModal } from "./forms/CloseShiftModal";
 import { useSession } from "next-auth/react";
-import { OpenShiftModal } from "./home/OpenShiftModal";
+import { OpenShiftModal } from "./forms/OpenShiftModal";
 
 const Navbar = () => {
   const { data: session } = useSession();

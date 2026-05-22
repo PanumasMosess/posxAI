@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Banknote, Loader2 } from "lucide-react";
+import { Banknote, QrCode, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { openShift } from "@/lib/actions/actionShift";
 import { OpenShiftModalProps } from "@/lib/type";
@@ -27,24 +27,38 @@ export function OpenShiftModal({
   onSuccess,
 }: OpenShiftModalProps) {
   const [startingCash, setStartingCash] = useState<string>("");
+  const [amountQr, setAmountQr] = useState<string>(""); // 🟢 เปลี่ยนชื่อ State ให้ตรงกับ Schema
   const [note, setNote] = useState<string>("");
   const [isPending, setIsPending] = useState(false);
 
   const handleOpenShift = async () => {
-    const amount = startingCash === "" ? 0 : parseFloat(startingCash);
+    const parsedCash = startingCash === "" ? 0 : parseFloat(startingCash);
+    const parsedQr = amountQr === "" ? 0 : parseFloat(amountQr);
 
-    if (isNaN(amount) || amount < 0) {
+    if (
+      isNaN(parsedCash) ||
+      parsedCash < 0 ||
+      isNaN(parsedQr) ||
+      parsedQr < 0
+    ) {
       toast.error("กรุณาระบุจำนวนเงินเริ่มต้นให้ถูกต้อง");
       return;
     }
 
     setIsPending(true);
     try {
-      const result = await openShift(organizationId, employeeId, amount, note);
+      const result = await openShift(
+        organizationId,
+        employeeId,
+        parsedCash,
+        parsedQr,
+        note,
+      );
 
       if (result.success) {
         toast.success("เปิดกะสำเร็จ!");
         setStartingCash("");
+        setAmountQr("");
         setNote("");
 
         window.dispatchEvent(new Event("shift-updated"));
@@ -71,7 +85,7 @@ export function OpenShiftModal({
             เปิดกะการทำงาน
           </DialogTitle>
           <DialogDescription>
-            กรุณาระบุจำนวนเงินทอนเริ่มต้นที่มีอยู่ในลิ้นชัก
+            กรุณาระบุจำนวนเงินทอนเริ่มต้นที่มีอยู่ในระบบ
           </DialogDescription>
         </DialogHeader>
 
@@ -83,20 +97,45 @@ export function OpenShiftModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="startingCash" className="text-sm font-semibold">
-              เงินทอนเริ่มต้น (บาท) <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="startingCash"
-              type="number"
-              value={startingCash}
-              onChange={(e) => setStartingCash(e.target.value)}
-              className="text-2xl h-14 text-center font-bold text-primary focus-visible:ring-primary"
-              placeholder="0.00"
-              autoFocus
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="startingCash"
+                className="text-sm font-semibold flex items-center gap-1"
+              >
+                <Banknote className="w-4 h-4 text-emerald-600" />
+                เงินสด (บาท) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="startingCash"
+                type="number"
+                value={startingCash}
+                onChange={(e) => setStartingCash(e.target.value)}
+                className="text-xl h-12 text-center font-bold text-emerald-600 focus-visible:ring-emerald-500"
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="amountQr"
+                className="text-sm font-semibold flex items-center gap-1"
+              >
+                <QrCode className="w-4 h-4 text-blue-600" />
+                เงินโอน/QR (บาท)
+              </Label>
+              <Input
+                id="amountQr"
+                type="number"
+                value={amountQr}
+                onChange={(e) => setAmountQr(e.target.value)}
+                className="text-xl h-12 text-center font-bold text-blue-600 focus-visible:ring-blue-500"
+                placeholder="0.00"
+              />
+            </div>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="note" className="text-sm font-medium text-zinc-500">
               หมายเหตุ (ถ้ามี)

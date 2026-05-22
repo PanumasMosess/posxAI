@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Wallet, Loader2 } from "lucide-react";
+import { Wallet, QrCode, Banknote, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { CloseShiftModalProps } from "@/lib/type";
 import { closeShift } from "@/lib/actions/actionShift";
@@ -25,6 +25,7 @@ export function CloseShiftModal({
   employeeId,
 }: CloseShiftModalProps) {
   const [actualCash, setActualCash] = useState<string>("");
+  const [actualQr, setActualQr] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [isPending, setIsPending] = useState(false);
 
@@ -35,27 +36,40 @@ export function CloseShiftModal({
     }
 
     const endingCash = actualCash === "" ? 0 : parseFloat(actualCash);
+    const endingQr = actualQr === "" ? 0 : parseFloat(actualQr);
 
-    if (isNaN(endingCash) || endingCash < 0) {
+    if (
+      isNaN(endingCash) ||
+      endingCash < 0 ||
+      isNaN(endingQr) ||
+      endingQr < 0
+    ) {
       toast.error("กรุณาระบุจำนวนเงินให้ถูกต้อง");
       return;
     }
 
     setIsPending(true);
     try {
-      const result = await closeShift(shiftId, employeeId, endingCash, note);
+      const result = await closeShift(
+        shiftId,
+        employeeId,
+        endingCash,
+        endingQr,
+        note,
+      );
 
       if (result.success) {
-        const diff = result.data!.diff;
-        if (diff === 0) {
-          // toast.success("ปิดกะสำเร็จ ยอดเงินตรง 🎉");
-        } else if (diff < 0) {
-          // toast.warning(`ปิดกะสำเร็จ แต่เงินขาดไป ${Math.abs(diff)} บาท`);
+        const totalDiff = result.data!.totalDiff;
+        if (totalDiff === 0) {
+          toast.success("ปิดกะสำเร็จ ยอดเงินตรง 🎉");
+        } else if (totalDiff < 0) {
+          toast.warning(`ปิดกะสำเร็จ แต่เงินขาดไป ${Math.abs(totalDiff)} บาท`);
         } else {
-          // toast.info(`ปิดกะสำเร็จ เงินเกินมา ${diff} บาท`);
+          toast.info(`ปิดกะสำเร็จ เงินเกินมา ${totalDiff} บาท`);
         }
 
         setActualCash("");
+        setActualQr("");
         setNote("");
         onClose();
         window.dispatchEvent(new Event("manual-lock"));
@@ -80,25 +94,49 @@ export function CloseShiftModal({
             ปิดกะการทำงาน
           </DialogTitle>
           <DialogDescription className="text-center">
-            กรุณานับเงินสดทั้งหมดในลิ้นชักแล้วระบุยอดด้านล่าง <br />
+            กรุณาระบุยอดที่นับได้จริงทั้งหมด <br />
             (ระบบจะคำนวณกระทบยอดให้โดยอัตโนมัติ)
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-5 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="actualCash" className="text-sm font-semibold">
-              เงินสดที่นับได้จริง (บาท) <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="actualCash"
-              type="number"
-              value={actualCash}
-              onChange={(e) => setActualCash(e.target.value)}
-              className="text-2xl h-14 text-center font-bold border-zinc-300 focus-visible:ring-red-500"
-              placeholder="0.00"
-              autoFocus
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="actualCash"
+                className="text-sm font-semibold flex items-center gap-1"
+              >
+                <Banknote className="w-4 h-4 text-emerald-600" />
+                นับเงินสดได้ (บาท) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="actualCash"
+                type="number"
+                value={actualCash}
+                onChange={(e) => setActualCash(e.target.value)}
+                className="text-xl h-12 text-center font-bold border-zinc-300 focus-visible:ring-emerald-500 text-emerald-600"
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="actualQr"
+                className="text-sm font-semibold flex items-center gap-1"
+              >
+                <QrCode className="w-4 h-4 text-blue-600" />
+                ยอด QR ตรวจได้ (บาท)
+              </Label>
+              <Input
+                id="actualQr"
+                type="number"
+                value={actualQr}
+                onChange={(e) => setActualQr(e.target.value)}
+                className="text-xl h-12 text-center font-bold border-zinc-300 focus-visible:ring-blue-500 text-blue-600"
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

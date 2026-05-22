@@ -66,7 +66,7 @@ import {
 import PaymentMethodsPanel from "./PaymentMethodsPanel";
 import { useUser } from "../providers/UserContext";
 import { checkActiveShift } from "@/lib/actions/actionShift";
-import { OpenShiftModal } from "../home/OpenShiftModal";
+import { OpenShiftModal } from "../forms/OpenShiftModal";
 
 const PaymentPage = ({
   initialItems,
