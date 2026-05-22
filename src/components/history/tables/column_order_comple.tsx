@@ -1,3 +1,5 @@
+"use client";
+
 import { HistoryOrder } from "@/lib/type";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -13,19 +15,21 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
       );
     },
   },
+  // 🟢 คอลัมน์รายการอาหาร
   {
-    id: "menus",
+    id: "food",
     header: () => <div className="text-left ml-2">รายการอาหาร</div>,
     cell: ({ row }) => {
-      const menus = row.original.menusList || [];
+      // ดึงจากถัง foodList
+      const menus = (row.original as any).foodList || [];
 
       if (menus.length === 0)
         return <span className="text-zinc-400 dark:text-zinc-500 pl-2">-</span>;
 
       return (
-        <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2">
-          {menus.map((menu, idx) => (
-            <div key={idx} className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2 min-w-[160px]">
+          {menus.map((menu: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-3 h-8">
               <div className="h-8 w-8 shrink-0 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 overflow-hidden shadow-sm">
                 {menu.image ? (
                   <img
@@ -45,6 +49,53 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
               >
                 {menu.name}
               </span>
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+  {
+    id: "entertainer",
+    accessorFn: (row) => {
+      const entertainers = (row as any).entertainerList || [];
+      return entertainers.map((ent: any) => ent.prName || ent.name).join(" ");
+    },
+    header: () => <div className="text-left ml-2">Entertainer</div>,
+    cell: ({ row }) => {
+      const entertainers = (row.original as any).entertainerList || [];
+
+      if (entertainers.length === 0)
+        return <span className="text-zinc-400 dark:text-zinc-500 pl-2">-</span>;
+
+      return (
+        <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2 min-w-[160px]">
+          {entertainers.map((ent: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-3 h-8">
+              <div className="h-8 w-8 shrink-0 rounded-full border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 overflow-hidden shadow-sm">
+                {ent.image ? (
+                  <img
+                    src={ent.image}
+                    alt={ent.prName || ent.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-[10px] text-amber-600 dark:text-amber-500 font-bold">
+                    PR
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col truncate">
+                <span
+                  className="text-sm font-bold text-amber-700 dark:text-amber-400 truncate"
+                  title={ent.prName || ent.name}
+                >
+                  {ent.prName || ent.name}
+                </span>
+                {/* (ซ่อนชื่อแพ็กเกจอาหารไว้ เผื่ออยากโชว์ลบ comment ออกได้)
+                <span className="text-[10px] text-zinc-500 truncate">{ent.name}</span>
+                */}
+              </div>
             </div>
           ))}
         </div>
