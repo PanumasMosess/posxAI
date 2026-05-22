@@ -76,18 +76,55 @@ const page = async () => {
       (payment.shift as any).shiftSequence = shiftSequenceCache.get(shiftId);
     }
 
-    let orderTakerName = "สั่งผ่านระบบ"; 
+    let orderTakerName = "สั่งผ่านระบบ";
     const ordersInBill = payment.runningRef?.order || [];
-    
+
     if (ordersInBill.length > 0) {
       const firstOrderWithEmp = ordersInBill.find((o) => o.employeeId);
-      
       if (firstOrderWithEmp) {
-        orderTakerName = employeeMap.get(firstOrderWithEmp.employeeId) || "ไม่ทราบชื่อพนักงาน";
+        orderTakerName =
+          employeeMap.get(String(firstOrderWithEmp.employeeId)) ||
+          "ไม่ทราบชื่อพนักงาน";
+      }
+    }
+    (payment as any).orderTakerName = orderTakerName;
+
+    const foodList: any[] = [];
+    const entertainerList: any[] = [];
+    let currencyLabel = "";
+
+    for (const order of ordersInBill) {
+      if (!currencyLabel && order.menu?.unitPrice?.label) {
+        currencyLabel = order.menu.unitPrice.label;
+      }
+
+      const isEntertainerItem = !!order.menu?.mcEmployeeId;
+      const prName = isEntertainerItem
+        ? employeeMap.get(String(order.menu.mcEmployeeId)) || null
+        : null;
+
+      const itemData = {
+        name: order.menu?.menuName || "ไม่ทราบชื่อ",
+        image: order.menu?.img || null,
+        prName: prName,
+        quantity: order.quantity || 1,
+      };
+
+      if (isEntertainerItem) {
+        const isDuplicate = entertainerList.some(
+          (ent) => ent.prName === prName,
+        );
+        if (!isDuplicate) {
+          entertainerList.push(itemData);
+        }
+      } else {
+        foodList.push(itemData);
       }
     }
 
-    (payment as any).orderTakerName = orderTakerName;
+    (payment as any).foodList = foodList;
+    (payment as any).entertainerList = entertainerList;
+    (payment as any).currencyLabel = currencyLabel || "บาท";
   }
 
   return (

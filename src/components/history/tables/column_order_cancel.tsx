@@ -13,19 +13,20 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
       );
     },
   },
+  // 🟢 1. คอลัมน์รายการอาหาร (ดึงจาก foodList) คงสไตล์ขีดฆ่าและรูปสีเทาไว้
   {
-    id: "menus",
+    id: "food",
     header: () => <div className="text-left ml-2">รายการอาหาร</div>,
     cell: ({ row }) => {
-      const menus = row.original.menusList || [];
+      const menus = (row.original as any).foodList || [];
 
       if (menus.length === 0)
         return <span className="text-zinc-400 dark:text-zinc-500 pl-2">-</span>;
 
       return (
-        <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2">
-          {menus.map((menu, idx) => (
-            <div key={idx} className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2 min-w-[160px]">
+          {menus.map((menu: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-3 h-8">
               <div className="h-8 w-8 shrink-0 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 overflow-hidden shadow-sm opacity-60">
                 {menu.image ? (
                   <img
@@ -39,13 +40,57 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
                   </div>
                 )}
               </div>
-
               <span
                 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[160px] line-through"
                 title={menu.name}
               >
                 {menu.name}
               </span>
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+  // 🟢 2. คอลัมน์ Entertainer (ดึงจาก entertainerList) ปรับให้ดูเป็นรายการยกเลิก (โทนแดง/เทา ขีดฆ่า)
+  {
+    id: "entertainer",
+    accessorFn: (row) => {
+      const entertainers = (row as any).entertainerList || [];
+      return entertainers.map((ent: any) => ent.prName || ent.name).join(" ");
+    },
+    header: () => <div className="text-left ml-2">Entertainer</div>,
+    cell: ({ row }) => {
+      const entertainers = (row.original as any).entertainerList || [];
+
+      if (entertainers.length === 0)
+        return <span className="text-zinc-400 dark:text-zinc-500 pl-2">-</span>;
+
+      return (
+        <div className="flex flex-col gap-2 my-1 ml-2 max-h-[150px] overflow-y-auto pr-2 min-w-[160px]">
+          {entertainers.map((ent: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-3 h-8 opacity-60">
+              <div className="h-8 w-8 shrink-0 rounded-full border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 overflow-hidden shadow-sm">
+                {ent.image ? (
+                  <img
+                    src={ent.image}
+                    alt={ent.prName || ent.name}
+                    className="h-full w-full object-cover grayscale"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-[10px] text-red-400 dark:text-red-600 font-bold">
+                    PR
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col truncate">
+                <span
+                  className="text-sm font-bold text-red-500 dark:text-red-400/70 truncate line-through"
+                  title={ent.prName || ent.name}
+                >
+                  {ent.prName || ent.name}
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -114,7 +159,6 @@ const column_order_cancel = (): ColumnDef<HistoryOrder>[] => [
       );
     },
   },
-  // 🟢 เพิ่มคอลัมน์ คนรับออเดอร์ ตรงนี้
   {
     id: "orderTaker",
     accessorFn: (row) => row.employeeName,

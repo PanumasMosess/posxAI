@@ -415,7 +415,7 @@ export interface HistoryOrder {
   order_running_code: string;
   price_sum: number;
   quantity: number;
-  menusList?: { name: string; image: string | null }[];
+  menusList?: { name: string; image: string | null; prName?: string | null }[];
   status: string;
   table?: {
     tableName: string;
@@ -432,7 +432,7 @@ export interface HistoryOrder {
 }
 
 export interface HistoryOrderProps {
-  initialItems: HistoryOrder[];
+  initialItems: any[];
   id_user: number;
   organizationId: number;
 }
@@ -980,12 +980,12 @@ export interface ShoutoutDialogProps {
 export interface SalesSummaryProps {
   dailyData: any[];
   monthlyData: any[];
-  yearlyData?: any[]; 
+  yearlyData?: any[];
   todayTotal: number;
   yesterdayTotal: number;
   thisMonthTotal: number;
   lastMonthTotal: number;
-  thisYearTotal?: number; 
-  lastYearTotal?: number; 
+  thisYearTotal?: number;
+  lastYearTotal?: number;
   currencyLabel?: string;
 }

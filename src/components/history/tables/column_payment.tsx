@@ -57,29 +57,30 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       </div>
     ),
   },
+  // 🟢 คอลัมน์ที่ 1: รายการอาหาร (ใส่จำนวนกลับมาแล้ว)
   {
-    id: "orders",
-    header: "รายการอาหาร",
+    id: "food",
+    header: () => <div className="text-left ml-2">รายการอาหาร</div>,
     cell: ({ row }) => {
-      const orders = row.original.runningRef?.order || [];
+      const menus = (row.original as any).foodList || [];
 
-      if (orders.length === 0) {
+      if (menus.length === 0) {
         return <div className="text-sm text-zinc-400 pl-2">-</div>;
       }
 
       return (
-        <div className="flex flex-col gap-2 my-1 text-sm max-h-[150px] overflow-y-auto pr-1">
-          {orders.map((o) => (
+        <div className="flex flex-col gap-2 my-1 ml-2 text-sm max-h-[150px] overflow-y-auto pr-1 min-w-[160px]">
+          {menus.map((menu: any, idx: number) => (
             <div
-              key={o.id}
-              className="flex items-center justify-between gap-4 text-zinc-700 dark:text-zinc-300"
+              key={idx}
+              className="flex items-center justify-between gap-4 text-zinc-700 dark:text-zinc-300 h-8"
             >
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 shrink-0 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 overflow-hidden shadow-sm">
-                  {o.menu.img ? (
+                  {menu.image ? (
                     <img
-                      src={o.menu.img}
-                      alt={o.menu.menuName}
+                      src={menu.image}
+                      alt={menu.name}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -90,13 +91,69 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
                 </div>
                 <span
                   className="font-medium truncate max-w-[120px]"
-                  title={o.menu.menuName}
+                  title={menu.name}
                 >
-                  {o.menu.menuName}
+                  {menu.name}
                 </span>
               </div>
+              {/* 🟢 คืนค่าจำนวนชิ้น (x) กลับมา */}
               <span className="text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded shrink-0">
-                x{o.quantity}
+                x{menu.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+  // 🟢 คอลัมน์ที่ 2: พนักงาน Entertainer (ใส่จำนวนกลับมาแล้ว)
+  {
+    id: "entertainer",
+    accessorFn: (row) => {
+      const entertainers = (row as any).entertainerList || [];
+      return entertainers.map((ent: any) => ent.prName || ent.name).join(" ");
+    },
+    header: () => <div className="text-left ml-2">Entertainer</div>,
+    cell: ({ row }) => {
+      const entertainers = (row.original as any).entertainerList || [];
+
+      if (entertainers.length === 0) {
+        return <div className="text-sm text-zinc-400 pl-2">-</div>;
+      }
+
+      return (
+        <div className="flex flex-col gap-2 my-1 ml-2 text-sm max-h-[150px] overflow-y-auto pr-1 min-w-[160px]">
+          {entertainers.map((ent: any, idx: number) => (
+            <div
+              key={idx}
+              className="flex items-center justify-between gap-4 text-zinc-700 dark:text-zinc-300 h-8"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 shrink-0 rounded-full border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 overflow-hidden shadow-sm">
+                  {ent.image ? (
+                    <img
+                      src={ent.image}
+                      alt={ent.prName || ent.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-[10px] text-amber-600 dark:text-amber-500 font-bold">
+                      PR
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col truncate">
+                  <span
+                    className="text-sm font-bold text-amber-700 dark:text-amber-400 truncate max-w-[120px]"
+                    title={ent.prName || ent.name}
+                  >
+                    {ent.prName || ent.name}
+                  </span>
+                </div>
+              </div>
+              {/* 🟢 คืนค่าจำนวนรอบ/ดริ้งค์ (x) กลับมา */}
+              <span className="text-xs font-mono text-amber-600 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded shrink-0">
+                x{ent.quantity}
               </span>
             </div>
           ))}
@@ -129,8 +186,7 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("totalAmount"));
-      const currency =
-        row.original.runningRef?.order[0]?.menu.unitPrice.label || "";
+      const currency = (row.original as any).currencyLabel || "";
       return (
         <div className="text-right font-bold text-green-600 dark:text-green-400">
           {amount.toLocaleString()}{" "}
@@ -162,7 +218,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       );
     },
   },
-  // 🟢 คอลัมน์ที่เพิ่มใหม่: คนรับออเดอร์
   {
     id: "orderTaker",
     accessorFn: (row) => (row as any).orderTakerName,

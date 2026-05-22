@@ -73,16 +73,35 @@ export function Data_table_order_comple<TData, TValue>({
     },
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 30,
       },
     },
   });
 
+  // 🟢 คำนวณยอดรวมของตาราง (เปลี่ยนไปตาม Filter)
   const totalSum = useMemo(() => {
     return table.getFilteredRowModel().rows.reduce((sum, row) => {
       return sum + (Number((row.original as any).price_sum) || 0);
     }, 0);
   }, [table.getFilteredRowModel().rows]);
+
+  // 🟢 คำนวณยอดขายเฉพาะ "วันนี้" (ค่าคงที่ของวันปัจจุบันเสมอ)
+  const todayTotal = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    return data.reduce((sum, item: any) => {
+      if (!item.updatedAt) return sum;
+
+      const itemDate = new Date(item.updatedAt);
+      const itemDateStr = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, "0")}-${String(itemDate.getDate()).padStart(2, "0")}`;
+
+      if (itemDateStr === todayStr) {
+        return sum + (Number(item.price_sum) || 0);
+      }
+      return sum;
+    }, 0);
+  }, [data]);
 
   const currencyLabel = useMemo(() => {
     const firstRow = table.getFilteredRowModel().rows[0]?.original as any;
@@ -91,7 +110,7 @@ export function Data_table_order_comple<TData, TValue>({
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row items-center justify-between py-6 gap-4">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between py-6 gap-4">
         {/* หัวข้อ */}
         <div className="flex items-center gap-3 w-full lg:w-auto">
           <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/50">
@@ -107,15 +126,27 @@ export function Data_table_order_comple<TData, TValue>({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-wrap justify-end">
+          {/* 🟢 กล่องแสดงยอดขาย "วันนี้" (แยกมาให้เห็นชัดเจน) */}
+          <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 w-full sm:w-auto justify-center">
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+              ยอดขายวันนี้:
+            </span>
+            <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
+              {todayTotal.toLocaleString()}
+            </span>
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-normal">
+              {currencyLabel}
+            </span>
+          </div>
+
           <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full sm:w-auto justify-center">
             <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              ยอดรวม:
+              ยอดตามการค้นหา:
             </span>
             <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
               {totalSum.toLocaleString()}
             </span>
-            {/* 🟢 แสดงหน่วยเงินที่นี่ */}
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-normal">
               {currencyLabel}
             </span>
@@ -150,7 +181,7 @@ export function Data_table_order_comple<TData, TValue>({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -169,7 +200,7 @@ export function Data_table_order_comple<TData, TValue>({
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -187,7 +218,6 @@ export function Data_table_order_comple<TData, TValue>({
             )}
           </TableBody>
 
-          {/* 🟢 แสดงแถว TableFooter สรุปหน่วยเงินท้ายตารางเมื่อมีข้อมูล */}
           {table.getRowModel().rows?.length > 0 && (
             <TableFooter>
               <TableRow>
@@ -196,7 +226,7 @@ export function Data_table_order_comple<TData, TValue>({
                   className="text-right py-4 bg-zinc-50/50 dark:bg-zinc-900/50"
                 >
                   <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">
-                    ยอดสุทธิรวม:{" "}
+                    ยอดสุทธิรวม (ที่แสดงอยู่):{" "}
                   </span>
                   <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 ml-2">
                     {totalSum.toLocaleString()}

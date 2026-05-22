@@ -595,6 +595,10 @@ model shift {
   expectedCash Float?
   endingCash   Float?
 
+  amountQr   Float? @default(0)
+  expectedQr Float? @default(0)
+  endingQr   Float?
+
   note String?
 
   openedAt DateTime  @default(now())

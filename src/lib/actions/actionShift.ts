@@ -21,15 +21,15 @@ export const checkActiveShift = async (organizationId: number) => {
       where: {
         organizationId: organizationId,
         createdAt: {
-          gte: startOfDay, 
-          lte: activeShift.createdAt, 
+          gte: startOfDay,
+          lte: activeShift.createdAt,
         },
       },
     });
 
     return {
       ...activeShift,
-      shiftSequence, 
+      shiftSequence,
     };
   } catch (error) {
     console.error("Error checking active shift:", error);
@@ -41,6 +41,7 @@ export const openShift = async (
   organizationId: number,
   employeeId: number,
   startingCash: number,
+  amountQr: number, // 🟢 เพิ่มพารามิเตอร์รับค่ายอด QR
   note?: string,
 ) => {
   try {
@@ -60,6 +61,7 @@ export const openShift = async (
         organizationId: organizationId,
         openedById: employeeId,
         startingCash: startingCash,
+        amountQr: amountQr,
         note: note || null,
         status: "OPEN",
       },
@@ -72,12 +74,12 @@ export const openShift = async (
   }
 };
 
-
 export const closeShift = async (
   shiftId: number,
   employeeId: number,
   actualEndingCash: number,
-  note?: string
+  actualEndingQr: number,
+  note?: string,
 ) => {
   try {
     const currentShift = await prisma.shift.findUnique({
@@ -94,13 +96,24 @@ export const closeShift = async (
       },
       where: {
         shiftId: shiftId,
-        paymentMethod: "CASH", 
+        paymentMethod: "CASH",
       },
     });
-
     const totalCashSales = cashSalesAgg._sum.totalAmount || 0;
-
     const expectedCashInDrawer = currentShift.startingCash + totalCashSales;
+
+    const qrSalesAgg = await prisma.paymentorder.aggregate({
+      _sum: {
+        totalAmount: true,
+      },
+      where: {
+        shiftId: shiftId,
+        paymentMethod: { not: "CASH" },
+      },
+    });
+    const totalQrSales = qrSalesAgg._sum.totalAmount || 0;
+    const startingQr = (currentShift as any).amountQr || 0;
+    const expectedQrInBank = startingQr + totalQrSales;
 
     const closedShift = await prisma.shift.update({
       where: { id: shiftId },
@@ -110,19 +123,27 @@ export const closeShift = async (
         closedById: employeeId,
         expectedCash: expectedCashInDrawer,
         endingCash: actualEndingCash,
+        expectedQr: expectedQrInBank,
+        endingQr: actualEndingQr,
         note: note || null,
       },
     });
 
-    const diffAmount = actualEndingCash - expectedCashInDrawer;
+    const diffCash = actualEndingCash - expectedCashInDrawer;
+    const diffQr = actualEndingQr - expectedQrInBank;
+    const totalDiff = diffCash + diffQr;
 
     return {
       success: true,
       message: "ปิดกะและสรุปยอดสำเร็จ",
       data: {
-        expected: expectedCashInDrawer,
-        actual: actualEndingCash,
-        diff: diffAmount, 
+        expectedCash: expectedCashInDrawer,
+        actualCash: actualEndingCash,
+        diffCash: diffCash,
+        expectedQr: expectedQrInBank,
+        actualQr: actualEndingQr,
+        diffQr: diffQr,
+        totalDiff: totalDiff,
       },
     };
   } catch (error) {

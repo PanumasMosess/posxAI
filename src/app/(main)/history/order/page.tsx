@@ -23,14 +23,13 @@ const page = async () => {
 
   const allEmployees = await prisma.employeepin.findMany({
     where: { organizationId: organizationId },
-    select: { id: true, name: true, surname: true }
+    select: { id: true, name: true, surname: true },
   });
 
   const employeeMap = new Map();
   for (const emp of allEmployees) {
     employeeMap.set(String(emp.id), `${emp.name} ${emp.surname}`);
   }
-
 
   const groupedMap = new Map();
 
@@ -47,9 +46,13 @@ const page = async () => {
         price_sum: 0,
         quantity: 0,
         status: order.status,
-        menusList: [],
+        // 🟢 แยก Array ออกเป็น 2 ถังในบิลเดียว
+        foodList: [],
+        entertainerList: [],
         currencyLabel: order.menu?.unitPrice?.label || "",
-        employeeName: order.employeeId ? (employeeMap.get(order.employeeId) || "ไม่ทราบชื่อพนักงาน") : "สั่งผ่านระบบ",
+        employeeName: order.employeeId
+          ? employeeMap.get(String(order.employeeId)) || "ไม่ทราบชื่อพนักงาน"
+          : "สั่งผ่านระบบ",
       });
     }
 
@@ -57,10 +60,22 @@ const page = async () => {
     group.price_sum += order.price_sum;
     group.quantity += order.quantity;
 
-    group.menusList.push({
+    const isEntertainerItem = !!order.menu?.mcEmployeeId;
+    const prName = isEntertainerItem
+      ? employeeMap.get(String(order.menu.mcEmployeeId)) || null
+      : null;
+
+    const itemData = {
       name: order.menu?.menuName || "ไม่ทราบชื่อ",
-      image: order.menu?.img || null,
-    });
+      image: order.menu?.img || null, 
+      prName: prName,
+    };
+
+    if (isEntertainerItem) {
+      group.entertainerList.push(itemData);
+    } else {
+      group.foodList.push(itemData);
+    }
 
     if (new Date(order.updatedAt) > new Date(group.updatedAt)) {
       group.updatedAt = order.updatedAt;
@@ -108,11 +123,7 @@ const page = async () => {
     const matchingPayment = payments.find(
       (p) => p.order_running_code === group.order_running_code,
     );
-
-    return {
-      ...group,
-      paymentInfo: matchingPayment || null,
-    };
+    return { ...group, paymentInfo: matchingPayment || null };
   });
 
   itemsData.sort(
@@ -122,7 +133,7 @@ const page = async () => {
   return (
     <div>
       <HistoryOrderPage
-        initialItems={itemsData}
+        initialItems={itemsData} 
         id_user={userId}
         organizationId={organizationId}
       />
@@ -131,5 +142,3 @@ const page = async () => {
 };
 
 export default page;
-
-
