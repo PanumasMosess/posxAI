@@ -28,13 +28,18 @@ const CHART_COLORS = [
 const SalesSummary = ({
   dailyData,
   monthlyData,
+  yearlyData = [],
   todayTotal,
   yesterdayTotal,
   thisMonthTotal,
   lastMonthTotal,
+  thisYearTotal = 0,
+  lastYearTotal = 0,
   currencyLabel = "฿",
 }: SalesSummaryProps) => {
-  const [chartView, setChartView] = useState<"daily" | "monthly">("daily");
+  const [chartView, setChartView] = useState<"daily" | "monthly" | "yearly">(
+    "daily",
+  );
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -96,7 +101,13 @@ const SalesSummary = ({
     return number.toString();
   };
 
-  const currentData = chartView === "daily" ? dailyData : monthlyData;
+  // 🟢 สลับการดึงชุดข้อมูลตามปุ่มที่เลือก (เพิ่มของรายปี)
+  const currentData =
+    chartView === "daily"
+      ? dailyData
+      : chartView === "monthly"
+        ? monthlyData
+        : yearlyData;
 
   return (
     <Card className="p-4 sm:p-6 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm font-sans w-full overflow-hidden">
@@ -108,14 +119,17 @@ const SalesSummary = ({
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1 truncate">
             {chartView === "daily"
               ? "ยอดขาย 7 วันล่าสุด"
-              : "ยอดขาย 6 เดือนล่าสุด"}
+              : chartView === "monthly"
+                ? "ยอดขาย 6 เดือนล่าสุด"
+                : "ยอดขายรายปี"}
           </p>
         </div>
 
+        {/* 🟢 ปรับแถบปุ่มกดให้เป็น 3 ปุ่มเพื่อรองรับ รายปี */}
         <div className="flex w-full sm:w-auto p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-lg shrink-0">
           <button
             onClick={() => setChartView("daily")}
-            className={`flex-1 sm:flex-none px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
               chartView === "daily"
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -125,7 +139,7 @@ const SalesSummary = ({
           </button>
           <button
             onClick={() => setChartView("monthly")}
-            className={`flex-1 sm:flex-none px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
               chartView === "monthly"
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -133,22 +147,37 @@ const SalesSummary = ({
           >
             รายเดือน
           </button>
+          <button
+            onClick={() => setChartView("yearly")}
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
+              chartView === "yearly"
+                ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            }`}
+          >
+            รายปี
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="col-span-1 flex flex-col h-full bg-primary/5 dark:bg-primary/10 p-5 sm:p-6 rounded-2xl border border-primary/10 dark:border-primary/20 min-w-0">
           <p className="text-zinc-600 dark:text-zinc-300 text-sm font-bold mb-auto">
-            {chartView === "daily" ? "ยอดขายวันนี้" : "ยอดขายเดือนนี้"}
+            {chartView === "daily"
+              ? "ยอดขายวันนี้"
+              : chartView === "monthly"
+                ? "ยอดขายเดือนนี้"
+                : "ยอดขายปีนี้"}
           </p>
 
           <div className="flex items-baseline w-full flex-wrap gap-x-1 py-4">
             <h3 className="text-xl sm:text-2xl lg:text-xl xl:text-2xl font-black text-primary tracking-tight break-words">
               {chartView === "daily"
                 ? todayTotal.toLocaleString()
-                : thisMonthTotal.toLocaleString()}
+                : chartView === "monthly"
+                  ? thisMonthTotal.toLocaleString()
+                  : thisYearTotal.toLocaleString()}
             </h3>
-            {/* 🟢 เรียกใช้ตัวแปร currencyLabel ตรงนี้ */}
             <span className="text-base font-bold text-primary mr-1">
               {currencyLabel}
             </span>
@@ -157,7 +186,9 @@ const SalesSummary = ({
           <div className="mt-auto border-t border-primary/10 pt-3">
             {chartView === "daily"
               ? renderTrend(todayTotal, yesterdayTotal, "เมื่อวาน")
-              : renderTrend(thisMonthTotal, lastMonthTotal, "เดือนก่อน")}
+              : chartView === "monthly"
+                ? renderTrend(thisMonthTotal, lastMonthTotal, "เดือนก่อน")
+                : renderTrend(thisYearTotal, lastYearTotal, "ปีก่อน")}
           </div>
         </div>
 

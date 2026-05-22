@@ -980,9 +980,12 @@ export interface ShoutoutDialogProps {
 export interface SalesSummaryProps {
   dailyData: any[];
   monthlyData: any[];
+  yearlyData?: any[]; 
   todayTotal: number;
   yesterdayTotal: number;
   thisMonthTotal: number;
   lastMonthTotal: number;
+  thisYearTotal?: number; 
+  lastYearTotal?: number; 
   currencyLabel?: string;
 }
