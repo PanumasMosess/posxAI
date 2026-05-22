@@ -264,7 +264,6 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
                 onValueChange={(val) => setSelectedEmpId(val)}
               >
                 <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
-                  {/* 🟢 ดักจับเงื่อนไข: ถ้าเลือก ALL ให้โชว์คำว่า "ดูภาพรวมทุกคน" ถ้าเลือกรายคนให้วิ่งไปหาชื่อจากอาเรย์มาโชว์ */}
                   <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {selectedEmpId === "ALL"
                       ? "ดูภาพรวมทุกคน"
