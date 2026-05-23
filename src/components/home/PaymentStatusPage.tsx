@@ -208,7 +208,7 @@ const PaymentStatusPage = ({
         return;
       }
 
-      const key = order.order_running_code || `ORDER-${order.id}`;
+      const key = order.table?.tableName || order.tableId || `ORDER-${order.id}`;
 
       if (!groups[key]) {
         groups[key] = {
@@ -230,7 +230,7 @@ const PaymentStatusPage = ({
 
       groups[key].allOrderIds.push(order.id);
 
-      groups[key].total += order.price_sum || 0;
+      // groups[key].total += order.price_sum || 0;
 
       if (order.orderitems && Array.isArray(order.orderitems)) {
         order.orderitems.forEach((item: any) => {
@@ -258,6 +258,7 @@ const PaymentStatusPage = ({
           const basePrice = item.menu?.price_sale || 0;
           const finalUnitPrice = basePrice + modifiersTotal;
           const totalPriceForItem = finalUnitPrice * item.quantity;
+          groups[key].total += totalPriceForItem;
 
           groups[key].items.push({
             id: item.id,
