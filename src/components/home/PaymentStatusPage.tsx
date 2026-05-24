@@ -208,7 +208,8 @@ const PaymentStatusPage = ({
         return;
       }
 
-      const key = order.table?.tableName || order.tableId || `ORDER-${order.id}`;
+      const key =
+        order.table?.tableName || order.tableId || `ORDER-${order.id}`;
 
       if (!groups[key]) {
         groups[key] = {
@@ -229,8 +230,6 @@ const PaymentStatusPage = ({
       }
 
       groups[key].allOrderIds.push(order.id);
-
-      // groups[key].total += order.price_sum || 0;
 
       if (order.orderitems && Array.isArray(order.orderitems)) {
         order.orderitems.forEach((item: any) => {
@@ -401,7 +400,7 @@ const PaymentStatusPage = ({
     }
 
     const paymentPayload = {
-      orderId: selectedOrder.id,
+      orderId: selectedOrder.runningCode,
       table: selectedOrder.table,
       tableId: selectedOrder.tableId,
       paymentMethod: paymentMethod,
@@ -419,19 +418,27 @@ const PaymentStatusPage = ({
     const create_status = await createPaymentOrder(paymentPayload);
 
     if (create_status.success) {
-      await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
-      await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+      try {
+        await updateStatusOrder(selectedOrder.runningCode, "PAY_COMPLETED");
 
-      toast.success("ชำระเงินเรียบร้อย!");
+        await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
 
-      if (isAutoPrint) {
-        handlePrintReceipt(selectedOrder);
+        toast.success("ชำระเงินเรียบร้อย!");
+
+        if (isAutoPrint) {
+          handlePrintReceipt(selectedOrder);
+        }
+
+        setSelectedOrder(null);
+        router.refresh();
+      } catch (updateError) {
+        console.error("เกิดข้อผิดพลาดตอนอัปเดตสถานะ:", updateError);
+        toast.error("บันทึกเงินสำเร็จ แต่อัปเดตสถานะบิล/โต๊ะล้มเหลว");
       }
-
-      setSelectedOrder(null);
-      router.refresh();
     } else {
-      toast.error(create_status.message || "ไม่สามารถบันทึกข้อมูลได้");
+      toast.error(
+        create_status.message || "ไม่สามารถบันทึกข้อมูลการรับเงินได้",
+      );
     }
 
     setIsProcessing(false);
@@ -784,7 +791,6 @@ const PaymentStatusPage = ({
                   </div>
                 </div>
 
-                {/* ✅ ส่ง Props ที่เพิ่มมาไปให้ Component ลูก */}
                 <PaymentMethodsPanel
                   paymentMethod={paymentMethod}
                   setPaymentMethod={setPaymentMethod}
