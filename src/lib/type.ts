@@ -989,3 +989,22 @@ export interface SalesSummaryProps {
   lastYearTotal?: number;
   currencyLabel?: string;
 }
+
+export interface EmployeeStat {
+  id: string;
+  name: string;
+  todaySales: number;
+  monthSales: number;
+  yearSales: number;
+  totalSales: number;
+  todayItems: number;
+  monthItems: number;
+  yearItems: number;
+  totalItems: number;
+}
+
+export interface OrderCardProps {
+  employee: EmployeeStat;
+  currencyLabel: string;
+  period: "daily" | "monthly" | "yearly";
+}
