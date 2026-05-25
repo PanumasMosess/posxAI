@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -5,24 +6,111 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, ChefHat, Check, X } from "lucide-react";
+import { MoreHorizontal, ChefHat, Check, X, Printer } from "lucide-react";
 
 export type Categories = {
   id: number;
   categoryCode?: string | null;
   categoryName: string;
   requiresKitchen: boolean;
+  printerName?: string | null;
+};
+
+// 🟢 สร้าง Component ย่อยเพื่อจัดการ State ภายใน Cell
+const PrinterSelectCell = ({
+  category,
+  printers,
+  handleUpdatePrinter,
+}: {
+  category: Categories;
+  printers: string[];
+  handleUpdatePrinter: (cat: Categories, val: string | null) => void;
+}) => {
+  // ดึงค่าจาก DB มาตรวจสอบ ถ้าเป็นช่องว่าง/null ให้ใช้ "NONE"
+  const dbPrinter =
+    category.printerName && category.printerName.trim() !== ""
+      ? category.printerName
+      : "NONE";
+
+  const [localValue, setLocalValue] = useState(dbPrinter);
+
+  useEffect(() => {
+    const currentDbPrinter =
+      category.printerName && category.printerName.trim() !== ""
+        ? category.printerName
+        : "NONE";
+    setLocalValue(currentDbPrinter);
+  }, [category.printerName]);
+
+  // 🟢 เช็คว่าชื่อเครื่องปริ้นใน DB มีอยู่ใน List ที่ QZ Tray ดึงมาได้หรือไม่
+  const hasValidPrinter = localValue !== "NONE";
+  const isPrinterInList = printers.includes(localValue);
+
+  return (
+    <div className="flex justify-center w-[180px] mx-auto">
+      <Select
+        value={localValue}
+        onValueChange={(val) => {
+          setLocalValue(val);
+          handleUpdatePrinter(category, val === "NONE" ? null : val);
+        }}
+      >
+        <SelectTrigger className="h-8 text-xs bg-white dark:bg-zinc-950">
+          <SelectValue placeholder="ไม่ได้ตั้งค่า" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="NONE" className="text-xs text-zinc-500">
+            -- ไม่ระบุ (ไม่พิมพ์) --
+          </SelectItem>
+
+          {/* 🟢 ถ้ามีชื่อใน DB แต่เครื่องพิมพ์นั้นหาไม่เจอ (ออฟไลน์/โหลดไม่เสร็จ) ให้โชว์ค้างไว้ก่อน */}
+          {hasValidPrinter && !isPrinterInList && (
+            <SelectItem
+              value={localValue}
+              className="text-xs font-medium text-amber-600"
+            >
+              {localValue} (ออฟไลน์)
+            </SelectItem>
+          )}
+
+          {printers.map((printer) => (
+            <SelectItem
+              key={printer}
+              value={printer}
+              className="text-xs font-medium"
+            >
+              {printer}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 };
 
 export const CategoriesColumns = ({
   handleEditCat,
   handleDeleteCat,
-  handleToggleKitchen, // ✅ 1. เพิ่ม handler สำหรับจัดการการกด Checkbox
+  handleToggleKitchen,
+  handleUpdatePrinter,
+  printers = [],
 }: {
   handleEditCat: (category: Categories) => void;
   handleDeleteCat: (category: Categories) => void;
-  handleToggleKitchen: (category: Categories, newStatus: boolean) => void; // ✅ กำหนด Type
+  handleToggleKitchen: (category: Categories, newStatus: boolean) => void;
+  handleUpdatePrinter: (
+    category: Categories,
+    printerName: string | null,
+  ) => void;
+  printers: string[];
 }): ColumnDef<Categories>[] => [
   {
     id: "sequence",
@@ -100,6 +188,26 @@ export const CategoriesColumns = ({
             )}
           </button>
         </div>
+      );
+    },
+  },
+  {
+    accessorKey: "printerName",
+    header: () => (
+      <div className="flex items-center justify-center gap-1">
+        <Printer className="w-4 h-4" />
+        <span>เครื่องพิมพ์ปลายทาง</span>
+      </div>
+    ),
+    cell: ({ row }) => {
+      const category = row.original;
+
+      return (
+        <PrinterSelectCell
+          category={category}
+          printers={printers}
+          handleUpdatePrinter={handleUpdatePrinter}
+        />
       );
     },
   },

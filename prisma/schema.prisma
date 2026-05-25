@@ -37,6 +37,7 @@ model categorystock {
   id              Int      @id @default(autoincrement())
   categoryName    String
   requiresKitchen Boolean  @default(true)
+  printerName     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
