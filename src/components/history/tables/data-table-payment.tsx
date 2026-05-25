@@ -43,9 +43,13 @@ export function Data_table_payment<TData, TValue>({
     if (!dateFilter) return data;
 
     return data.filter((item: any) => {
-      if (!item.createdAt) return false;
+      const shiftData = item.shift || {};
+      const businessDateRaw =
+        shiftData.createdAt || shiftData.startTime || item.createdAt;
 
-      const itemDate = new Date(item.createdAt);
+      if (!businessDateRaw) return false;
+
+      const itemDate = new Date(businessDateRaw);
       const year = itemDate.getFullYear();
       const month = String(itemDate.getMonth() + 1).padStart(2, "0");
       const day = String(itemDate.getDate()).padStart(2, "0");
@@ -84,14 +88,19 @@ export function Data_table_payment<TData, TValue>({
     }, 0);
   }, [table.getFilteredRowModel().rows]);
 
+
   const todayTotal = useMemo(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     return data.reduce((sum, item: any) => {
-      if (!item.createdAt) return sum;
+      const shiftData = item.shift || {};
+      const businessDateRaw =
+        shiftData.createdAt || shiftData.startTime || item.createdAt;
 
-      const itemDate = new Date(item.createdAt);
+      if (!businessDateRaw) return sum;
+
+      const itemDate = new Date(businessDateRaw);
       const itemDateStr = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, "0")}-${String(itemDate.getDate()).padStart(2, "0")}`;
 
       if (itemDateStr === todayStr) {

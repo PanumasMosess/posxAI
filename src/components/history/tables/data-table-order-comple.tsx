@@ -43,9 +43,13 @@ export function Data_table_order_comple<TData, TValue>({
     if (!dateFilter) return data;
 
     return data.filter((item: any) => {
-      if (!item.updatedAt) return false;
+      const shiftData = item.paymentInfo?.shift || {};
+      const businessDateRaw =
+        shiftData.createdAt || shiftData.startTime || item.updatedAt;
 
-      const itemDate = new Date(item.updatedAt);
+      if (!businessDateRaw) return false;
+
+      const itemDate = new Date(businessDateRaw);
       const year = itemDate.getFullYear();
       const month = String(itemDate.getMonth() + 1).padStart(2, "0");
       const day = String(itemDate.getDate()).padStart(2, "0");
@@ -78,22 +82,24 @@ export function Data_table_order_comple<TData, TValue>({
     },
   });
 
-  // 🟢 คำนวณยอดรวมของตาราง (เปลี่ยนไปตาม Filter)
   const totalSum = useMemo(() => {
     return table.getFilteredRowModel().rows.reduce((sum, row) => {
       return sum + (Number((row.original as any).price_sum) || 0);
     }, 0);
   }, [table.getFilteredRowModel().rows]);
 
-  // 🟢 คำนวณยอดขายเฉพาะ "วันนี้" (ค่าคงที่ของวันปัจจุบันเสมอ)
   const todayTotal = useMemo(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     return data.reduce((sum, item: any) => {
-      if (!item.updatedAt) return sum;
+      const shiftData = item.paymentInfo?.shift || {};
+      const businessDateRaw =
+        shiftData.createdAt || shiftData.startTime || item.updatedAt;
 
-      const itemDate = new Date(item.updatedAt);
+      if (!businessDateRaw) return sum;
+
+      const itemDate = new Date(businessDateRaw);
       const itemDateStr = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, "0")}-${String(itemDate.getDate()).padStart(2, "0")}`;
 
       if (itemDateStr === todayStr) {
