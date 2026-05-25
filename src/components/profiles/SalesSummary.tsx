@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
@@ -25,6 +25,12 @@ const CHART_COLORS = [
   "#f43f5e",
 ];
 
+// 🟢 เพิ่ม Props chartView และ onViewChange เข้าไป
+type ExtendedSalesSummaryProps = SalesSummaryProps & {
+  chartView: "daily" | "monthly" | "yearly";
+  onViewChange: (view: "daily" | "monthly" | "yearly") => void;
+};
+
 const SalesSummary = ({
   dailyData,
   monthlyData,
@@ -36,10 +42,9 @@ const SalesSummary = ({
   thisYearTotal = 0,
   lastYearTotal = 0,
   currencyLabel = "฿",
-}: SalesSummaryProps) => {
-  const [chartView, setChartView] = useState<"daily" | "monthly" | "yearly">(
-    "daily",
-  );
+  chartView,
+  onViewChange,
+}: ExtendedSalesSummaryProps) => {
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -101,7 +106,6 @@ const SalesSummary = ({
     return number.toString();
   };
 
-  // 🟢 สลับการดึงชุดข้อมูลตามปุ่มที่เลือก (เพิ่มของรายปี)
   const currentData =
     chartView === "daily"
       ? dailyData
@@ -125,10 +129,9 @@ const SalesSummary = ({
           </p>
         </div>
 
-        {/* 🟢 ปรับแถบปุ่มกดให้เป็น 3 ปุ่มเพื่อรองรับ รายปี */}
         <div className="flex w-full sm:w-auto p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-lg shrink-0">
           <button
-            onClick={() => setChartView("daily")}
+            onClick={() => onViewChange("daily")}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
               chartView === "daily"
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
@@ -138,7 +141,7 @@ const SalesSummary = ({
             รายวัน
           </button>
           <button
-            onClick={() => setChartView("monthly")}
+            onClick={() => onViewChange("monthly")}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
               chartView === "monthly"
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
@@ -148,7 +151,7 @@ const SalesSummary = ({
             รายเดือน
           </button>
           <button
-            onClick={() => setChartView("yearly")}
+            onClick={() => onViewChange("yearly")}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${
               chartView === "yearly"
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"

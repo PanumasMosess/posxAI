@@ -1,16 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Receipt,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  Users,
-} from "lucide-react";
+import { Users, BarChart3, UserCircle2, Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,13 +14,10 @@ import { ProfilleMainProps } from "@/lib/type";
 
 import SalesSummary from "./SalesSummary";
 import OrderCard from "./OrderCard";
+import { Input } from "../ui/input";
 
 const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
   const { employeeId, positionName } = useUser();
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
 
   const isAdmin = ["Admin", "admin", "Spadmin", "spadmin"].includes(
     positionName || "",
@@ -39,19 +27,28 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     isAdmin ? "ALL" : String(employeeId),
   );
 
+  const [empSearch, setEmpSearch] = useState("");
+
+  const filteredEmployees = allEmployees.filter((emp) =>
+    `${emp.name} ${emp.surname}`
+      .toLowerCase()
+      .includes(empSearch.toLowerCase()),
+  );
+
+  const [period, setPeriod] = useState<"daily" | "monthly" | "yearly">("daily");
+
   const {
-    displayOrders,
     dailyData,
     monthlyData,
-    yearlyData, 
+    yearlyData,
     todayTotal,
     yesterdayTotal,
     thisMonthTotal,
     lastMonthTotal,
-    thisYearTotal, 
-    lastYearTotal, 
+    thisYearTotal,
+    lastYearTotal,
+    employeeStats,
   } = useMemo(() => {
-    const groups: Record<string, any> = {};
     const now = new Date();
 
     const today = new Date(
@@ -71,8 +68,24 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     let yTotal = 0;
     let tmTotal = 0;
     let lmTotal = 0;
-    let tyTotal = 0; 
-    let lyTotal = 0; 
+    let tyTotal = 0;
+    let lyTotal = 0;
+
+    const empStatsMap = new Map();
+    allEmployees.forEach((emp) => {
+      empStatsMap.set(String(emp.id), {
+        id: String(emp.id),
+        name: `${emp.name} ${emp.surname}`,
+        todaySales: 0,
+        monthSales: 0,
+        yearSales: 0,
+        totalSales: 0,
+        todayItems: 0,
+        monthItems: 0,
+        yearItems: 0,
+        totalItems: 0,
+      });
+    });
 
     const dData = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(today - (6 - i) * 86400000);
@@ -99,41 +112,14 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     const yData = Array.from({ length: 3 }, (_, i) => {
       const yearTarget = thisYear - (2 - i);
       return {
-        name: `${yearTarget + 543}`, 
+        name: `${yearTarget + 543}`,
         year: yearTarget,
         total: 0,
       };
     });
 
     orders.forEach((order) => {
-      let myItems: any[] = [];
-
-      if (isAdmin && selectedEmpId === "ALL") {
-        myItems = order.orderitems || [];
-      } else {
-        myItems = (order.orderitems || []).filter(
-          (item: any) =>
-            String(item.menu?.mcEmployeeId) === selectedEmpId ||
-            String(order.employeeId) === selectedEmpId,
-        );
-      }
-
-      if (myItems.length === 0) return;
-
-      const key = order.order_running_code || `ORDER-${order.id}`;
-      if (!groups[key]) {
-        groups[key] = {
-          id: key,
-          runningCode: order.order_running_code || `ID: ${order.id}`,
-          tableName: order.table?.tableName || "ไม่ระบุ",
-          createdAt: order.createdAt,
-          status: order.status,
-          totalPrice: 0,
-          items: [],
-        };
-      }
-      if (order.status === "PAY_COMPLETED")
-        groups[key].status = "PAY_COMPLETED";
+      if (order.status === "CANCELLED") return;
 
       const orderDate = new Date(order.createdAt);
       const orderTimeZero = new Date(
@@ -144,19 +130,40 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
       const oMonth = orderDate.getMonth();
       const oYear = orderDate.getFullYear();
 
-      myItems.forEach((item: any) => {
+      (order.orderitems || []).forEach((item: any) => {
         const itemPrice = item.price_package || item.price || 0;
         const itemTotal = itemPrice * item.quantity;
 
-        groups[key].totalPrice += itemTotal;
+        const empId = String(item.menu?.mcEmployeeId || order.employeeId);
 
-        if (order.status !== "CANCELLED") {
+        if (empStatsMap.has(empId)) {
+          const stat = empStatsMap.get(empId);
+          stat.totalSales += itemTotal;
+          stat.totalItems += item.quantity;
+
+          if (orderTimeZero === today) {
+            stat.todaySales += itemTotal;
+            stat.todayItems += item.quantity;
+          }
+          if (oMonth === thisMonth && oYear === thisYear) {
+            stat.monthSales += itemTotal;
+            stat.monthItems += item.quantity;
+          }
+          if (oYear === thisYear) {
+            stat.yearSales += itemTotal;
+            stat.yearItems += item.quantity;
+          }
+        }
+
+        const isSelectedMatch =
+          isAdmin && selectedEmpId === "ALL" ? true : empId === selectedEmpId;
+
+        if (isSelectedMatch) {
           if (orderTimeZero === today) tTotal += itemTotal;
           if (orderTimeZero === yesterday) yTotal += itemTotal;
           if (oMonth === thisMonth && oYear === thisYear) tmTotal += itemTotal;
           if (oMonth === lastMonth && oYear === lastMonthYear)
             lmTotal += itemTotal;
-          
           if (oYear === thisYear) tyTotal += itemTotal;
           if (oYear === thisYear - 1) lyTotal += itemTotal;
 
@@ -171,83 +178,60 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
           const yIndex = yData.findIndex((y) => y.year === oYear);
           if (yIndex !== -1) yData[yIndex].total += itemTotal;
         }
-
-        groups[key].items.push({
-          id: item.id,
-          quantity: item.quantity,
-          menuName: item.menu?.menuName,
-          note: item.note,
-          img: item.menu?.img || "/placeholder.png",
-          price_package: item.menu?.price_package,
-          price: item.price,
-          package_hours: item.menu?.package_hours || 0,
-          unit: item.menu?.unit,
-          mcEmployeeId: item.menu?.mcEmployeeId,
-          orderStatus: order.status,
-          orderCreatedAt: order.createdAt,
-        });
       });
     });
 
-    const groupedArray = Object.values(groups).sort(
-      (a: any, b: any) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    const statsArray = Array.from(empStatsMap.values()).sort(
+      (a, b) => b.totalSales - a.totalSales,
     );
 
-    let finalArray = groupedArray;
-    if (searchTerm.trim() !== "") {
-      const term = searchTerm.toLowerCase();
-      finalArray = groupedArray.filter(
-        (bill) =>
-          bill.tableName.toLowerCase().includes(term) ||
-          bill.runningCode.toLowerCase().includes(term),
-      );
-    }
-
     return {
-      displayOrders: finalArray,
       dailyData: dData,
       monthlyData: mData,
-      yearlyData: yData, 
+      yearlyData: yData,
       todayTotal: tTotal,
       yesterdayTotal: yTotal,
       thisMonthTotal: tmTotal,
       lastMonthTotal: lmTotal,
-      thisYearTotal: tyTotal, 
-      lastYearTotal: lyTotal, 
+      thisYearTotal: tyTotal,
+      lastYearTotal: lyTotal,
+      employeeStats: statsArray,
     };
-  }, [orders, isAdmin, selectedEmpId, searchTerm]);
+  }, [orders, isAdmin, selectedEmpId, allEmployees]);
 
   const currencyLabel =
     orders[0]?.orderitems?.[0]?.menu?.unitPrice?.label || "฿";
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedEmpId]);
-
-  useEffect(() => {
     if (isAdmin) {
       setSelectedEmpId("ALL");
+    } else if (employeeId) {
+      setSelectedEmpId(String(employeeId));
     }
-  }, [orders, isAdmin]);
+  }, [isAdmin, employeeId]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(displayOrders.length / itemsPerPage),
-  );
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentOrders = displayOrders.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
-
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
-  const handleNextPage = () =>
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  const displayEmployeeCards =
+    isAdmin && selectedEmpId === "ALL"
+      ? employeeStats
+      : employeeStats.filter((emp) => emp.id === selectedEmpId);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-3 sm:p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 p-3 rounded-xl text-primary">
+            <BarChart3 className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 leading-none">
+              สรุปรายได้
+            </h1>
+            <p className="text-xs text-zinc-500 font-medium mt-1">
+              Sales Summary Overview
+            </p>
+          </div>
+        </div>
+
         {isAdmin && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm gap-4">
             <div className="flex items-center gap-2">
@@ -260,10 +244,13 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
             <div className="w-full sm:w-64">
               <Select
                 value={selectedEmpId}
-                onValueChange={(val) => setSelectedEmpId(val)}
+                onValueChange={(val) => {
+                  setSelectedEmpId(val);
+                  setEmpSearch("");
+                }}
               >
                 <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
-                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                     {selectedEmpId === "ALL"
                       ? "ดูภาพรวมทุกคน"
                       : allEmployees.find(
@@ -274,17 +261,37 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
                   </span>
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="p-2 sticky top-0 bg-white dark:bg-zinc-950 z-10 border-b border-zinc-100 dark:border-zinc-800 mb-1">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                      <Input
+                        placeholder="พิมพ์ชื่อเพื่อค้นหา..."
+                        value={empSearch}
+                        onChange={(e) => setEmpSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()} // ป้องกันบั๊กเวลาพิมพ์เว้นวรรค
+                        className="h-8 pl-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-none focus-visible:ring-1"
+                      />
+                    </div>
+                  </div>
+
                   <SelectItem
                     value="ALL"
                     className="font-semibold text-primary"
                   >
                     ดูภาพรวมทุกคน
                   </SelectItem>
-                  {allEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={String(emp.id)}>
-                      {emp.name} {emp.surname}
-                    </SelectItem>
-                  ))}
+
+                  {filteredEmployees.length > 0 ? (
+                    filteredEmployees.map((emp) => (
+                      <SelectItem key={emp.id} value={String(emp.id)}>
+                        {emp.name} {emp.surname}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-xs text-zinc-500">
+                      ไม่พบชื่อที่ค้นหา
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -302,89 +309,56 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
           thisYearTotal={thisYearTotal}
           lastYearTotal={lastYearTotal}
           currencyLabel={currencyLabel}
+          chartView={period}
+          onViewChange={setPeriod}
         />
 
-        <div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 px-2 gap-4">
-            <div className="flex items-center gap-2 shrink-0">
-              <Receipt className="w-6 h-6 text-primary" />
-              <h3 className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
+        <div className="space-y-4 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
+            <div className="flex items-center gap-2">
+              <UserCircle2 className="w-5 h-5 text-zinc-500" />
+              <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-100">
                 {isAdmin && selectedEmpId === "ALL"
-                  ? "ประวัติบิลทั้งหมดของร้าน"
-                  : "ประวัติบิลของคุณ"}
+                  ? "ผลงานแต่ละบุคคล"
+                  : "สรุปผลงานของคุณ"}
               </h3>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                <Input
-                  placeholder="ค้นหาโต๊ะ หรือ เลขบิล..."
-                  className="pl-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-10 shadow-sm rounded-xl focus-visible:ring-1"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Badge
-                variant="secondary"
-                className="text-xs h-10 px-4 flex items-center justify-center whitespace-nowrap rounded-xl shadow-sm"
-              >
-                ทั้งหมด {displayOrders.length} บิล
-              </Badge>
+            <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl self-start sm:self-center">
+              {(["daily", "monthly", "yearly"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    period === p
+                      ? "bg-white dark:bg-zinc-700 text-primary shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  {p === "daily"
+                    ? "รายวัน"
+                    : p === "monthly"
+                      ? "รายเดือน"
+                      : "รายปี"}
+                </button>
+              ))}
             </div>
           </div>
 
-          {displayOrders.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 shadow-sm">
-              <Receipt className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-              <p className="text-zinc-500 font-medium">
-                {searchTerm ? "ไม่พบข้อมูลที่ค้นหา" : "ยังไม่มีประวัติการทำงาน"}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-4">
-                {currentOrders.map((bill) => (
-                  <OrderCard
-                    key={bill.id}
-                    bill={bill}
-                    currencyLabel={currencyLabel}
-                  />
-                ))}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayEmployeeCards.map((emp) => (
+              <OrderCard
+                key={emp.id}
+                employee={emp}
+                currencyLabel={currencyLabel}
+                period={period}
+              />
+            ))}
+          </div>
 
-              {displayOrders.length > itemsPerPage && (
-                <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm gap-4">
-                  <p className="text-xs sm:text-sm text-zinc-500 font-medium">
-                    แสดง {startIndex + 1} ถึง{" "}
-                    {Math.min(startIndex + itemsPerPage, displayOrders.length)}{" "}
-                    จากทั้งหมด {displayOrders.length} บิล
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 1}
-                      className="h-8 px-3 text-xs sm:text-sm"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" /> ก่อนหน้า
-                    </Button>
-                    <span className="text-xs sm:text-sm font-medium mx-2 min-w-[70px] text-center text-zinc-600 dark:text-zinc-300">
-                      หน้า {currentPage} / {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages}
-                      className="h-8 px-3 text-xs sm:text-sm"
-                    >
-                      ถัดไป <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+          {displayEmployeeCards.length === 0 && (
+            <div className="text-center py-10 bg-white dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+              <p className="text-zinc-500 text-sm">ไม่พบข้อมูลพนักงาน</p>
             </div>
           )}
         </div>
