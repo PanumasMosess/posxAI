@@ -237,8 +237,8 @@ export const crearteCategories = async (
   try {
     const lastCategory = await prisma.categorystock.findFirst({
       where: { organizationId: data.organizationId },
-      orderBy: { id: 'desc' },
-      select: { categoryCode: true }
+      orderBy: { id: "desc" },
+      select: { categoryCode: true },
     });
     let nextCode = "A";
     if (lastCategory && lastCategory.categoryCode) {
@@ -452,5 +452,21 @@ export const updateFormularStock = async (data: any) => {
   } catch (err) {
     console.log(err);
     return { success: false, error: true, data: "" };
+  }
+};
+
+export const updateCategoryPrinter = async (
+  categoryId: number,
+  printerName: string | null,
+) => {
+  try {
+    await prisma.categorystock.update({
+      where: { id: categoryId },
+      data: { printerName: printerName },
+    });
+    return { success: true, message: "อัปเดตเครื่องพิมพ์สำเร็จ" };
+  } catch (error) {
+    console.error("Update Printer Error:", error);
+    return { success: false, message: "ไม่สามารถอัปเดตเครื่องพิมพ์ได้" };
   }
 };

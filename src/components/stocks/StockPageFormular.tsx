@@ -26,6 +26,7 @@ import {
   deleteCategories,
   deleteSupplier,
   updateCategoryKitchenStatus,
+  updateCategoryPrinter, // 🟢 1. Import Server Action ตัวใหม่
 } from "@/lib/actions/actionStocks";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -48,6 +49,11 @@ import {
   ModifierItemColumns,
 } from "./tables/column_modifieritem";
 import { useUser } from "../providers/UserContext";
+import qz from "qz-tray";
+import {
+  getCertContentFromS3,
+  signDataWithS3Key,
+} from "@/lib/actions/actionIndex";
 
 const StockPageFormular = ({
   initialItems,
@@ -73,9 +79,59 @@ const StockPageFormular = ({
   const [openSheetItemUpdate, setOpenSheetItemUpdate] = useState(false);
   const [editingItemItem, setEditingItemItem] = useState<any | null>(null);
   const [deleteItemItem, setDeleteItemItem] = useState<any | null>(null);
-  const { employeeId } = useUser();
 
+  const [printerList, setPrinterList] = useState<string[]>([]);
+
+  const { employeeId } = useUser();
   const router = useRouter();
+
+  const initQZSecurity = () => {
+    qz.security.setCertificatePromise((resolve: any, reject: any) => {
+      getCertContentFromS3(`digital-certificate_${organizationId}.txt`)
+        .then((res) => {
+          if (res.success && res.data) resolve(res.data);
+          else reject("Load Cert Failed");
+        })
+        .catch(reject);
+    });
+
+    qz.security.setSignaturePromise((toSign: string) => {
+      return function (resolve: any, reject: any) {
+        signDataWithS3Key(toSign, organizationId!.toString())
+          .then((res) => {
+            if (res.success && res.data) resolve(res.data);
+            else reject("Sign Failed");
+          })
+          .catch(reject);
+      };
+    });
+  };
+
+  const fetchPrinters = async () => {
+    try {
+      initQZSecurity();
+      if (!qz.websocket.isActive()) {
+        try {
+          await qz.websocket.connect();
+        } catch (e) {
+          try {
+            await qz.websocket.disconnect();
+          } catch (err) {}
+          await qz.websocket.connect();
+        }
+      }
+      const printers = await qz.printers.find();
+      setPrinterList(printers);
+    } catch (err) {
+      console.error("QZ Tray Error:", err);
+      // ไม่ต้อง toast error กวนใจผู้ใช้ถ้าเค้าไม่ได้ต่อปริ้นเตอร์
+    }
+  };
+
+  useEffect(() => {
+    fetchPrinters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEditCat = (category: Categories) => {
     setEditingItemCat(category);
@@ -154,6 +210,7 @@ const StockPageFormular = ({
       throw new Error("ไม่สามารถอัปเดตฐานข้อมูลได้");
     }
   };
+
   const handleToggleKitchen = async (
     category: Categories,
     newStatus: boolean,
@@ -168,11 +225,34 @@ const StockPageFormular = ({
     }
   };
 
+  const handleUpdatePrinter = async (
+    category: Categories,
+    printerName: string | null,
+  ) => {
+    try {
+      const result = await updateCategoryPrinter(category.id, printerName);
+      if (result.success) {
+        toast.success(
+          `อัปเดตเครื่องพิมพ์หมวด "${category.categoryName}" สำเร็จ`,
+        );
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("เกิดข้อผิดพลาดในการอัปเดตเครื่องพิมพ์");
+    }
+  };
+
   const columns_categories = CategoriesColumns({
     handleEditCat,
     handleDeleteCat,
     handleToggleKitchen,
+    handleUpdatePrinter, 
+    printers: printerList, 
   });
+
   const columns_supplier = SupplierColumns({ handleEditSup, handleDeleteSup });
   const columns_modifiergroup = ModifierGroupColumns({
     handleEdit: handleEditModifierGroup,
@@ -201,22 +281,7 @@ const StockPageFormular = ({
         <div className="w-full xl:w-3/3 space-y-6">
           <div className="bg-primary-foreground p-4 rounded-lg flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* <Select
-                value={filterCategory}
-                onValueChange={(value) => setFilterCategory(value)}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="กรองตามหมวดหมู่" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">ทั้งหมด</SelectItem>
-                  {relatedData?.categories.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.categoryName}>
-                      {cat.categoryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select> */}
+              {/* Select Filter Omitted */}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Sheet open={openSheetCata} onOpenChange={setOpenSheetCata}>
@@ -363,24 +428,7 @@ const StockPageFormular = ({
       <div className="mt-4 flex flex-col gap-4">
         <div className="w-full xl:w-3/3 space-y-6">
           <div className="bg-primary-foreground p-4 rounded-lg flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* <Select
-                value={filterCategory}
-                onValueChange={(value) => setFilterCategory(value)}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="กรองตามหมวดหมู่" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">ทั้งหมด</SelectItem>
-                  {relatedData?.categories.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.categoryName}>
-                      {cat.categoryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select> */}
-            </div>
+            <div className="flex items-center gap-2 flex-wrap"></div>
             <div className="flex items-center gap-2 flex-wrap">
               <Sheet open={openGroupSheet} onOpenChange={setOpenGroupSheet}>
                 <SheetTrigger asChild>

@@ -10,7 +10,7 @@ const Home = async () => {
     where: {
       organizationId: organizationId,
       status: {
-        not: "DELETE", 
+        not: "DELETE",
       },
     },
     include: {
@@ -52,6 +52,7 @@ const Home = async () => {
           menu: {
             include: {
               unitPrice: true,
+              category: true,
             },
           },
           selectedModifiers: {

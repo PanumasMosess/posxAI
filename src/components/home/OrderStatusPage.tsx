@@ -15,7 +15,6 @@ import {
   BellRing,
   Printer,
   Loader2,
-  Settings,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,13 +28,6 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -46,14 +38,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -90,25 +74,17 @@ export default function OrderStatusPage({
   const router = useRouter();
   const [filter, setFilter] = useState("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
-
   const [isPrinting, setIsPrinting] = useState(false);
-  const [printerList, setPrinterList] = useState<string[]>([]);
-  const [selectedPrinter, setSelectedPrinter] = useState<string>("");
-  const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [isAutoPrint, setIsAutoPrint] = useState(false);
-  const printedGroupsRef = useRef<Set<string>>(new Set());
+
+  // บันทึกรหัสสินค้าที่พิมพ์เพื่อคุมเฉพาะออเดอร์ใหม่
+  const printedItemsRef = useRef<Set<number>>(new Set());
+  // 🟢 เพิ่มตัวแปรสำหรับป้องกันการเรียกฟังก์ชันซ้อนกันในเสี้ยววินาที (Race Condition Locker)
+  const printingLockRef = useRef<Set<string>>(new Set());
   const isInitialLoad = useRef(true);
-  const selectedPrinterRef = useRef(selectedPrinter);
 
   useEffect(() => {
-    const savedPrinter = localStorage.getItem("kitchen_preferred_printer");
-    if (savedPrinter) {
-      setSelectedPrinter(savedPrinter);
-      selectedPrinterRef.current = savedPrinter;
-    }
-
     const savedAutoPrint =
       localStorage.getItem("kitchen_auto_print") === "true";
     setIsAutoPrint(savedAutoPrint);
@@ -136,100 +112,6 @@ export default function OrderStatusPage({
     });
   };
 
-  const fetchPrinters = async () => {
-    if (isLoadingPrinters) return;
-    setIsLoadingPrinters(true);
-
-    try {
-      initQZSecurity();
-
-      if (!qz.websocket.isActive()) {
-        try {
-          await qz.websocket.connect();
-        } catch (e) {
-          try {
-            await qz.websocket.disconnect();
-          } catch (err) {}
-          await qz.websocket.connect();
-        }
-      }
-
-      const printers = await qz.printers.find();
-      setPrinterList(printers);
-
-      if (!selectedPrinter && printers.length > 0) {
-        try {
-          const def = await qz.printers.getDefault();
-          handlePrinterChange(def);
-        } catch (e) {
-          handlePrinterChange(printers[0]);
-        }
-      }
-    } catch (err: any) {
-      console.error(err);
-      if (err.message && err.message.includes("sendData is not a function")) {
-        try {
-          if (qz.websocket.isActive()) await qz.websocket.disconnect();
-          await qz.websocket.connect();
-          const printers = await qz.printers.find();
-          setPrinterList(printers);
-        } catch (retryErr) {
-          console.error("Retry failed", retryErr);
-        }
-      } else {
-        toast.error("ไม่สามารถดึงรายชื่อเครื่องพิมพ์ได้");
-      }
-    } finally {
-      setIsLoadingPrinters(false);
-    }
-  };
-
-  const handlePrinterChange = (value: string) => {
-    setSelectedPrinter(value);
-    selectedPrinterRef.current = value;
-    localStorage.setItem("kitchen_preferred_printer", value);
-  };
-
-  const handlePrint = async (group: any, autoPrintPrinter?: string) => {
-    const targetPrinter = autoPrintPrinter || selectedPrinterRef.current;
-
-    if (!targetPrinter) {
-      toast.warn("กรุณาเลือกเครื่องพิมพ์ก่อนพิมพ์");
-      setIsSettingsOpen(true);
-      fetchPrinters();
-      return;
-    }
-
-    setIsPrinting(true);
-    try {
-      const modifiersText = group.modifiers
-        ?.map((m: any) => m.modifierItem.name)
-        .join(", ");
-
-      const result = await printToKitchen(
-        {
-          menuName: group.menu.menuName,
-          totalQuantity: group.totalQuantity,
-          orders: group.orders || [],
-          printerName: targetPrinter,
-          modifiers: modifiersText,
-          createdAt: group.firstCreatedAt,
-        },
-        organizationId!,
-      );
-
-      if (result.success) {
-        // เงียบไว้ ไม่รบกวนหน้าจอ
-      } else {
-        toast.error("QZ Tray Error: " + result.message);
-      }
-    } catch (error: any) {
-      toast.error("เกิดข้อผิดพลาดในการพิมพ์: " + error.message);
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-
   const rawOrders = relatedData?.orderRunning || [];
   const activeOrders = rawOrders.filter(
     (order) =>
@@ -253,44 +135,58 @@ export default function OrderStatusPage({
 
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
+
     activeOrders.forEach((order) => {
+      const groupKey = order.order_running_code || `${order.id}`;
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          uniqueKey: groupKey,
+          order_running_code: order.order_running_code,
+          tableName: order.table?.tableName || "ไม่ระบุโต๊ะ",
+          status: order.status,
+          totalQuantity: 0,
+          orderIds: [],
+          items: [],
+          firstCreatedAt: order.createdAt,
+        };
+      }
+
+      if (!groups[groupKey].orderIds.includes(order.id)) {
+        groups[groupKey].orderIds.push(order.id);
+      }
+
       if (order.orderitems) {
         order.orderitems.forEach((item) => {
-          const modifierKey = item.selectedModifiers
-            ? item.selectedModifiers
-                .map((m) => m.modifierItem.name)
-                .sort()
-                .join("|")
-            : "";
-          const groupKey = `${item.menu.menuName}-${order.status}-${modifierKey}`;
+          const categoryData = (item.menu as any)?.category;
+          const printerName =
+            categoryData?.printerName || "ไม่ระบุเครื่องพิมพ์";
+          const categoryName =
+            categoryData?.name ||
+            categoryData?.categoryName ||
+            "ไม่ระบุหมวดหมู่";
 
-          if (!groups[groupKey]) {
-            groups[groupKey] = {
-              uniqueKey: groupKey,
-              menu: item.menu,
-              status: order.status,
-              modifiers: item.selectedModifiers || [],
-              totalQuantity: 0,
-              orders: [],
-              orderIds: [],
-              firstCreatedAt: order.createdAt,
-            };
-          }
+          const modifierText = item.selectedModifiers
+            ? item.selectedModifiers
+                .map((m: any) => m.modifierItem.name)
+                .join(", ")
+            : "";
+
           groups[groupKey].totalQuantity += item.quantity;
-          if (!groups[groupKey].orderIds.includes(order.id)) {
-            groups[groupKey].orderIds.push(order.id);
-          }
-          groups[groupKey].orders.push({
-            id: order.id,
-            tableName: order.table.tableName,
+
+          groups[groupKey].items.push({
+            orderItemId: item.id,
+            orderId: order.id,
+            menuName: item.menu.menuName,
             quantity: item.quantity,
-            status: order.status,
-            order_running_code: order.order_running_code,
-            createdAt: order.createdAt,
+            category: categoryName,
+            printerName: printerName,
+            modifiersText: modifierText,
           });
         });
       }
     });
+
     return Object.values(groups).sort(
       (a: any, b: any) =>
         new Date(a.firstCreatedAt).getTime() -
@@ -298,44 +194,157 @@ export default function OrderStatusPage({
     );
   }, [activeOrders]);
 
-  // 🟢 ดักจับ Auto Print เฉพาะออเดอร์ใหม่ (NEW และ READY ที่ไม่เคยพิมพ์มาก่อน)
+  // 🟢 ฟังก์ชันสั่งพิมพ์: ปรับปรุงระบบป้องกันพิมพ์เบิ้ลพิมพ์ซ้ำ 100%
+  const handlePrint = async (
+    group: any,
+    isAutoPrintTrigger: boolean = false,
+  ) => {
+    // 🔒 1. ตรวจสอบ Lock ของออเดอร์นี้ ป้องกันเสี้ยววินาทีที่มีคำสั่งซ้อนวิ่งเข้ามา
+    if (printingLockRef.current.has(group.uniqueKey)) {
+      return;
+    }
+
+    // ตั้งค่าล็อกไอดีออเดอร์นี้ไว้ทันที
+    printingLockRef.current.add(group.uniqueKey);
+
+    // คัดกรองหารายการสินค้าที่ยังไม่เคยถูกสั่งพิมพ์ออกสเตชั่น
+    const itemsToPrint = group.items.filter(
+      (item: any) => !printedItemsRef.current.has(item.orderItemId),
+    );
+
+    // หากเป็นการกดพิมพ์เอง และไม่มีของใหม่เพิ่ม ให้ดึงรายการทั้งหมดขึ้นมาเพื่อพิมพ์ซ้ำ
+    const finalItems =
+      itemsToPrint.length === 0 && !isAutoPrintTrigger
+        ? group.items
+        : itemsToPrint;
+
+    if (finalItems.length === 0) {
+      printingLockRef.current.delete(group.uniqueKey);
+      return;
+    }
+
+    // 🔒 2. มาร์คบันทึกรายการสินค้าเหล่านี้ลงประวัติพิมพ์แล้วทันที (ยึดโควตาไว้ก่อน ไม่รอประมวลผลเสร็จ เพื่อตัดปัญหาพิมพ์ซ้ำ)
+    if (isAutoPrintTrigger || itemsToPrint.length > 0) {
+      finalItems.forEach((item: any) => {
+        printedItemsRef.current.add(item.orderItemId);
+      });
+    }
+
+    setIsPrinting(true);
+    try {
+      initQZSecurity();
+
+      // แยกแผนก/เครื่องพิมพ์
+      const itemsByPrinter: Record<string, any[]> = {};
+      finalItems.forEach((item: any) => {
+        const pName = item.printerName;
+        if (!pName || pName === "ไม่ระบุเครื่องพิมพ์" || pName === "NONE")
+          return;
+
+        if (!itemsByPrinter[pName]) {
+          itemsByPrinter[pName] = [];
+        }
+        itemsByPrinter[pName].push(item);
+      });
+
+      const printerNames = Object.keys(itemsByPrinter);
+
+      if (printerNames.length === 0) {
+        setIsPrinting(false);
+        printingLockRef.current.delete(group.uniqueKey);
+        return;
+      }
+
+      if (!qz.websocket.isActive()) {
+        try {
+          await qz.websocket.connect();
+        } catch (e) {
+          try {
+            await qz.websocket.disconnect();
+          } catch (err) {}
+          await qz.websocket.connect();
+        }
+      }
+
+      // เริ่มส่งคำสั่งพิมพ์ไปยังเครื่องพิมพ์ต่างๆ รวบเป็นบิลเดียวต่อเครื่องพิมพ์
+      const printPromises = printerNames.map(async (pName) => {
+        const printerItems = itemsByPrinter[pName];
+        const totalQtyForPrinter = printerItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
+
+        const combinedMenuNames = printerItems
+          .map(
+            (item) =>
+              `${item.menuName} x${item.quantity}${item.modifiersText ? ` (${item.modifiersText})` : ""}`,
+          )
+          .join("\n");
+
+        const combinedModifiers = printerItems
+          .map((item) => item.modifiersText)
+          .filter(Boolean)
+          .join(" | ");
+
+        await printToKitchen(
+          {
+            menuName: combinedMenuNames,
+            totalQuantity: totalQtyForPrinter,
+            orders: [
+              {
+                tableName: group.tableName,
+                quantity: totalQtyForPrinter,
+                status: group.status,
+                order_running_code: group.order_running_code,
+                createdAt: group.firstCreatedAt,
+              },
+            ],
+            printerName: pName,
+            modifiers: combinedModifiers,
+            createdAt: group.firstCreatedAt,
+          },
+          organizationId!,
+        );
+      });
+
+      await Promise.all(printPromises);
+
+      if (!isAutoPrintTrigger) {
+        toast.success("พิมพ์ใบงานรวมรายการแยกแผนกเรียบร้อยแล้ว");
+      }
+    } catch (error: any) {
+      // 🔓 ในกรณีที่พิมพ์ล้มเหลว ลบประวัติออกเพื่อให้ระบบสามารถกดพิมพ์ซ้ำได้อีกครั้ง
+      finalItems.forEach((item: any) => {
+        printedItemsRef.current.delete(item.orderItemId);
+      });
+      toast.error("เกิดข้อผิดพลาดในการพิมพ์: " + error.message);
+    } finally {
+      setIsPrinting(false);
+      // ปลดล็อกเพื่อให้ตัวการ์ดออเดอร์นี้รองรับคำสั่งพิมพ์ครั้งถัดไปเมื่อมีเมนูเพิ่มเข้ามาใหม่
+      printingLockRef.current.delete(group.uniqueKey);
+    }
+  };
+
   useEffect(() => {
     if (isInitialLoad.current) {
-      // โหลดครั้งแรก: จดจำออเดอร์ทั้งหมดลงใน Ref โดยไม่ปรินท์
+      // ครั้งแรกมาร์คของเก่าค้างจอทั้งหมดว่าพิมพ์แล้ว
       groupedOrders.forEach((g) => {
-        // ใช้แค่ Order IDs เป็น Key (ไม่จำสถานะ) เพื่อให้ปริ้นแค่รอบเดียวตลอดชีวิตบิล
-        const printKey = g.orderIds.sort().join(",");
-        printedGroupsRef.current.add(printKey);
+        g.items.forEach((item: any) =>
+          printedItemsRef.current.add(item.orderItemId),
+        );
       });
       isInitialLoad.current = false;
       return;
     }
 
-    // หารายการใหม่ที่ยังไม่เคยถูกบันทึก (Key ไม่เคยมีใน Ref)
-    // และต้องเป็นสถานะ NEW (ออเดอร์ผ่านครัว) หรือ READY (ออเดอร์ไม่ผ่านครัว) เท่านั้น
-    const newGroups = groupedOrders.filter((g) => {
-      const printKey = g.orderIds.sort().join(",");
-      return (
-        !printedGroupsRef.current.has(printKey) &&
-        ["NEW", "READY"].includes(g.status)
-      );
-    });
-
-    // อัปเดต Ref ให้จำออเดอร์ทั้งหมดที่ดึงมาแล้ว (เพื่อกันไม่ให้ปริ้นซ้ำเวลาเปลี่ยนสถานะ)
-    groupedOrders.forEach((g) => {
-      const printKey = g.orderIds.sort().join(",");
-      printedGroupsRef.current.add(printKey);
-    });
-
-    if (newGroups.length > 0) {
-      newGroups.forEach((g) => {
-        if (isAutoPrint) {
-          handlePrint(g, selectedPrinterRef.current);
-
-          const tableName = g.orders[0]?.tableName || "ไม่ระบุโต๊ะ";
-          toast.info(
-            `ออเดอร์ใหม่ (${g.status}): โต๊ะ ${tableName} (พิมพ์อัตโนมัติ)`,
-          );
+    // ตรวจจับพิมพ์อัตโนมัติเฉพาะรายการใหม่
+    if (isAutoPrint) {
+      groupedOrders.forEach((g) => {
+        const hasNewItem = g.items.some(
+          (item: any) => !printedItemsRef.current.has(item.orderItemId),
+        );
+        if (hasNewItem && ["NEW", "READY"].includes(g.status)) {
+          handlePrint(g, true);
         }
       });
     }
@@ -369,7 +378,9 @@ export default function OrderStatusPage({
     setIsAutoPrint(newState);
     localStorage.setItem("kitchen_auto_print", String(newState));
     toast.info(
-      newState ? "เปิดพิมพ์อัตโนมัติ (NEW, READY)" : "ปิดพิมพ์อัตโนมัติ",
+      newState
+        ? "เปิดพิมพ์อัตโนมัติ (NEW, READY) เฉพาะรายการใหม่"
+        : "ปิดพิมพ์อัตโนมัติ",
     );
   };
 
@@ -417,68 +428,11 @@ export default function OrderStatusPage({
               >
                 <Printer className="h-3.5 w-3.5" />
               </Button>
-
-              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full text-zinc-400 hover:text-zinc-900"
-                    onClick={fetchPrinters}
-                    title="ตั้งค่าเครื่องพิมพ์"
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>ตั้งค่าการพิมพ์</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="printer">เลือกเครื่องพิมพ์ห้องครัว</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={selectedPrinter}
-                          onValueChange={handlePrinterChange}
-                          disabled={isLoadingPrinters}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="เลือกเครื่องพิมพ์..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {printerList.map((p) => (
-                              <SelectItem key={p} value={p}>
-                                {p}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={fetchPrinters}
-                          disabled={isLoadingPrinters}
-                        >
-                          <RefreshCcw
-                            className={`h-4 w-4 ${
-                              isLoadingPrinters ? "animate-spin" : ""
-                            }`}
-                          />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        * การตั้งค่านี้จะถูกบันทึกไว้ในเบราว์เซอร์นี้
-                      </p>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
             <div className="flex items-center gap-2 text-xs text-zinc-500">
               <Ticket className="h-3 w-3" />
-              <span className="font-medium">{displayOrders.length}</span> รายการ
+              <span className="font-medium">{displayOrders.length}</span>{" "}
+              ออเดอร์ค้างทำ
             </div>
           </div>
         </div>
@@ -520,7 +474,7 @@ export default function OrderStatusPage({
             <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-3">
               <UtensilsCrossed className="h-8 w-8 opacity-30" />
             </div>
-            <p>ไม่มีรายการอาหารค้าง</p>
+            <p>ไม่มีรายการออเดอร์ค้างทำ</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4">
@@ -569,23 +523,16 @@ export default function OrderStatusPage({
                         </div>
                       </div>
                       <h3
-                        className="text-lg font-bold text-zinc-800 dark:text-zinc-100 leading-tight line-clamp-2"
-                        title={group.menu.menuName}
+                        className="text-2xl font-black text-zinc-800 dark:text-zinc-100 leading-tight truncate mt-1"
+                        title={group.tableName}
                       >
-                        {group.menu.menuName}
+                        โต๊ะ {group.tableName}
                       </h3>
-                      {group.modifiers && group.modifiers.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {group.modifiers.map((mod: any, i: number) => (
-                            <span
-                              key={i}
-                              className="text-[10px] bg-orange-50 text-orange-700 border border-orange-100 px-1.5 py-0.5 rounded-sm"
-                            >
-                              + {mod.modifierItem.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <p className="text-[11px] text-zinc-400 font-mono mt-0.5 truncate">
+                        #
+                        {group.order_running_code?.split("-").pop() ||
+                          group.order_running_code}
+                      </p>
                     </div>
                     <div className="flex flex-col items-center gap-1">
                       <div
@@ -602,9 +549,7 @@ export default function OrderStatusPage({
                         className="h-8 w-8 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
                         onClick={() => handlePrint(group)}
                         disabled={isPrinting}
-                        title={`พิมพ์ใบออเดอร์ (${
-                          selectedPrinter || "ยังไม่เลือก"
-                        })`}
+                        title="พิมพ์ใบสั่งงานรวมรายการ (แยกสเตชั่นอัตโนมัติ)"
                       >
                         {isPrinting ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -617,31 +562,38 @@ export default function OrderStatusPage({
 
                   <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-700 to-transparent mx-4" />
 
-                  <div className="flex-1 px-4 py-3 max-h-[150px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-zinc-200">
-                    {group.orders.map((orderItem: any, idx: number) => (
+                  <div className="flex-1 px-4 py-3 max-h-[240px] overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-zinc-200">
+                    {group.items.map((item: any, idx: number) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-center text-sm group"
+                        className="flex justify-between items-start text-sm group"
                       >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <div className="h-1.5 w-1.5 rounded-full bg-zinc-300 group-hover:bg-zinc-500" />
-                          <span className="font-semibold text-zinc-700 dark:text-zinc-300 truncate">
-                            {orderItem.tableName}
+                        <div className="flex flex-col gap-0.5 pr-2 min-w-0 flex-1">
+                          <span className="font-semibold text-zinc-800 dark:text-zinc-200 leading-tight break-words">
+                            {item.menuName}
                           </span>
-                          <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline-block">
-                            #{orderItem.order_running_code?.split("-").pop()}
+                          {item.modifiersText && (
+                            <span className="text-[11px] text-orange-600 leading-tight mt-0.5">
+                              + {item.modifiersText}
+                            </span>
+                          )}
+                          <span className="text-[9px] text-zinc-400 mt-1 font-mono">
+                            🖨️{" "}
+                            {item.printerName === "NONE" || !item.printerName
+                              ? "ไม่ตั้งค่าพิมพ์"
+                              : item.printerName}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded">
-                            x{orderItem.quantity}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                            x{item.quantity}
                           </span>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <button
-                                className="text-zinc-400 hover:text-red-500"
-                                title="ยกเลิกเฉพาะรายการนี้"
+                                className="text-zinc-300 hover:text-red-500 transition-colors"
+                                title="ยกเลิกเฉพาะเมนูนี้ในบิล"
                               >
                                 <X className="h-4 w-4" />
                               </button>
@@ -652,17 +604,18 @@ export default function OrderStatusPage({
                                   คุณแน่ใจหรือไม่?
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  การกระทำนี้จะเปลี่ยนสถานะเป็น "ยกเลิกรายการ"
+                                  การกระทำนี้จะเปลี่ยนสถานะออเดอร์ย่อยนี้เป็น
+                                  "ยกเลิกรายการ"
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                <AlertDialogCancel>ปิด</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() =>
-                                    onStatusChange([orderItem.id], "CANCELLED")
+                                    onStatusChange([item.orderId], "CANCELLED")
                                   }
                                 >
-                                  ยืนยันการลบ
+                                  ยืนยันการยกเลิก
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
