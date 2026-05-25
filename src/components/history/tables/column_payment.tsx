@@ -57,7 +57,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       </div>
     ),
   },
-  // 🟢 คอลัมน์ที่ 1: รายการอาหาร (ใส่จำนวนกลับมาแล้ว)
   {
     id: "food",
     header: () => <div className="text-left ml-2">รายการอาหาร</div>,
@@ -96,7 +95,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
                   {menu.name}
                 </span>
               </div>
-              {/* 🟢 คืนค่าจำนวนชิ้น (x) กลับมา */}
               <span className="text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded shrink-0">
                 x{menu.quantity}
               </span>
@@ -106,7 +104,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
       );
     },
   },
-  // 🟢 คอลัมน์ที่ 2: พนักงาน Entertainer (ใส่จำนวนกลับมาแล้ว)
   {
     id: "entertainer",
     accessorFn: (row) => {
@@ -151,7 +148,6 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
                   </span>
                 </div>
               </div>
-              {/* 🟢 คืนค่าจำนวนรอบ/ดริ้งค์ (x) กลับมา */}
               <span className="text-xs font-mono text-amber-600 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded shrink-0">
                 x{ent.quantity}
               </span>
@@ -256,11 +252,17 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
     accessorKey: "createdAt",
     header: ({ column }) => <div className="text-center">เวลาชำระ</div>,
     cell: ({ row }) => {
-      const date = new Date(row.getValue("createdAt"));
+      const paymentDate = new Date(row.getValue("createdAt"));
+      
+      const shiftData = row.original.shift as any;
+      const businessDate = shiftData?.createdAt || shiftData?.startTime 
+        ? new Date(shiftData.createdAt || shiftData.startTime) 
+        : paymentDate;
+
       return (
         <div className="text-center text-xs text-zinc-500">
-          <div>
-            {date.toLocaleDateString("th-TH", {
+          <div className="font-bold text-zinc-700 dark:text-zinc-300">
+            {businessDate.toLocaleDateString("th-TH", {
               day: "2-digit",
               month: "short",
               year: "2-digit",
@@ -268,7 +270,7 @@ export const column_payment = (): ColumnDef<HistoryPayment>[] => [
             })}
           </div>
           <div>
-            {date.toLocaleTimeString("th-TH", {
+            {paymentDate.toLocaleTimeString("th-TH", {
               hour: "2-digit",
               minute: "2-digit",
               hour12: false,

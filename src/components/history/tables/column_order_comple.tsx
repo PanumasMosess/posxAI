@@ -15,7 +15,6 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
       );
     },
   },
-  // 🟢 คอลัมน์รายการอาหาร
   {
     id: "food",
     header: () => <div className="text-left ml-2">รายการอาหาร</div>,
@@ -92,9 +91,6 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
                 >
                   {ent.prName || ent.name}
                 </span>
-                {/* (ซ่อนชื่อแพ็กเกจอาหารไว้ เผื่ออยากโชว์ลบ comment ออกได้)
-                <span className="text-[10px] text-zinc-500 truncate">{ent.name}</span>
-                */}
               </div>
             </div>
           ))}
@@ -191,22 +187,39 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
       );
     },
   },
+
   {
     id: "updatedAt",
-    header: () => <div className="text-center">วัน/เวลา</div>,
+    header: () => <div className="text-center">เวลาชำระ</div>,
     cell: ({ row }) => {
-      const amount = new Date(row.original.updatedAt);
-      const formatted = amount.toLocaleDateString("th-TH", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
+
+      const paymentDate = new Date(row.original.updatedAt);
+
+      const shiftData = row.original.paymentInfo?.shift as any;
+      const businessDate =
+        shiftData?.createdAt || shiftData?.startTime
+          ? new Date(shiftData.createdAt || shiftData.startTime)
+          : paymentDate;
 
       return (
-        <div className="text-center text-xs text-zinc-500">{formatted}</div>
+        <div className="text-center text-xs text-zinc-500">
+          <div className="font-bold text-zinc-700 dark:text-zinc-300">
+            {businessDate.toLocaleDateString("th-TH", {
+              day: "2-digit",
+              month: "short",
+              year: "2-digit",
+              timeZone: "Asia/Bangkok",
+            })}
+          </div>
+          <div>
+            {paymentDate.toLocaleTimeString("th-TH", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "Asia/Bangkok",
+            })}
+          </div>
+        </div>
       );
     },
   },
