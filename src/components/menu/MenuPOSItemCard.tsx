@@ -114,6 +114,11 @@ const MenuPOSItemCard = ({
       <CardContent className="px-5 py-4 text-center flex-grow flex flex-col justify-between">
         <div>
           <CardTitle className="text-sm font-semibold leading-tight text-center line-clamp-2 min-h-[2.5rem] flex items-center justify-center text-zinc-900 dark:text-zinc-100">
+            {item.menuCode && (
+              <span className="inline-block px-2 py-0.5 mr-2 text-[15px] font-bold tracking-wider text-primary bg-primary/10 rounded-md">
+                {item.menuCode}
+              </span>
+            )}
             {item.menuName}
           </CardTitle>
 

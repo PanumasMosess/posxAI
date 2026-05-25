@@ -10,6 +10,7 @@ import { MoreHorizontal, ChefHat, Check, X } from "lucide-react";
 
 export type Categories = {
   id: number;
+  categoryCode?: string | null;
   categoryName: string;
   requiresKitchen: boolean;
 };
@@ -29,6 +30,17 @@ export const CategoriesColumns = ({
     cell: ({ row }) => {
       const sequenceNumber = row.index + 1;
       return <div className="text-left font-medium">{sequenceNumber}</div>;
+    },
+  },
+  {
+    accessorKey: "categoryCode",
+    header: () => <div className="text-center">รหัส</div>,
+    cell: ({ row }) => {
+      return (
+        <div className="text-center font-bold text-primary">
+          {row.getValue("categoryCode") || "-"}
+        </div>
+      );
     },
   },
   {
