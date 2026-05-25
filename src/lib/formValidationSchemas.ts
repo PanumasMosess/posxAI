@@ -49,6 +49,8 @@ export const categorySchema_ = z.object({
   categoryName: z.string().min(1, { message: "กรุณากรอก Category" }).max(50),
   createdById: z.coerce.number().min(1, "ต้องมี ID ผู้สร้าง"),
   organizationId: z.coerce.number().min(1, "ต้องมีบริษัท"),
+  categoryCode: z.string().optional(),
+  menuRunningNumber: z.number().optional(),
 });
 export type CategorySchema = z.infer<typeof categorySchema_>;
 
@@ -62,6 +64,7 @@ export type SupplierSchema = z.infer<typeof supplierSchema_>;
 
 export const MenuSchema_ = z.object({
   id: z.number().optional(),
+  menuCode: z.string().optional(),
   menuName: z.string().min(1, { message: "กรุณากรอกชื่อสินค้า" }).max(50),
   price_sale: z.coerce.number().min(0, "ห้ามติดลบ"),
   price_cost: z.coerce.number().min(0, "ห้ามติดลบ"),

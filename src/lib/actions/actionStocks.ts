@@ -235,8 +235,21 @@ export const crearteCategories = async (
   data: CategorySchema,
 ) => {
   try {
+    const lastCategory = await prisma.categorystock.findFirst({
+      where: { organizationId: data.organizationId },
+      orderBy: { id: 'desc' },
+      select: { categoryCode: true }
+    });
+    let nextCode = "A";
+    if (lastCategory && lastCategory.categoryCode) {
+      const lastCharCode = lastCategory.categoryCode.charCodeAt(0);
+      nextCode = String.fromCharCode(lastCharCode + 1);
+    }
+
     await prisma.categorystock.create({
       data: {
+        categoryCode: nextCode,
+        menuRunningNumber: 0,
         categoryName: data.categoryName,
         creator: {
           connect: {

@@ -73,6 +73,12 @@ const MunuDetailForm = ({
         </div>
 
         <div className="space-y-4">
+          <div className="flex items-center justify-between text-base border-b pb-2 mb-2">
+            <span className="text-muted-foreground">รหัสสินค้า</span>
+            <span className="font-bold text-xl text-primary bg-primary/10 px-3 py-1 rounded-md">
+              {item?.menuCode || "-"}
+            </span>
+          </div>
           <div className="flex items-center justify-between text-base">
             <span className="text-muted-foreground">หมวดหมู่</span>
             <span className="font-medium text-foreground">

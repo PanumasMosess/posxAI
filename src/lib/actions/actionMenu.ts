@@ -12,32 +12,45 @@ export const createMenu = async (
   data: MenuSchema,
 ) => {
   try {
-    await prisma.menu.create({
-      data: {
-        menuName: data.menuName,
-        price_sale: data.price_sale,
-        price_cost: data.price_cost,
-        unit: data.unit,
-        description: data.description || null,
-        status: "READY_TO_SELL",
-        img: data.img || null,
-        createdById: data.createdById,
-        organizationId: data.organizationId,
-        categoryMenuId: data.categoryMenuId,
-        unitPriceId: data.unitPriceId,
-        mcEmployeeId: data.mcEmployeeId || null,
-
-        // ✅ เพิ่ม 2 ฟิลด์นี้สำหรับระบบราคาเหมา
-        package_hours: data.package_hours || null,
-        price_package: data.price_package || null,
-
-        modifiers: {
-          create: data.modifierGroupIds?.map((groupId) => ({
-            modifierGroup: { connect: { id: groupId } },
-            organization: { connect: { id: data.organizationId } },
-          })),
+    await prisma.$transaction(async (tx) => {
+      const updatedCategory = await tx.categorystock.update({
+        where: { id: data.categoryMenuId },
+        data: {
+          menuRunningNumber: { increment: 1 },
         },
-      },
+        select: { categoryCode: true, menuRunningNumber: true },
+      });
+      const catCode = updatedCategory.categoryCode || "XXX";
+      const generatedMenuCode = `${catCode}${updatedCategory.menuRunningNumber}`;
+
+      await tx.menu.create({
+        data: {
+          menuCode: generatedMenuCode,
+          menuName: data.menuName,
+          price_sale: data.price_sale,
+          price_cost: data.price_cost,
+          unit: data.unit,
+          description: data.description || null,
+          status: "READY_TO_SELL",
+          img: data.img || null,
+          createdById: data.createdById,
+          organizationId: data.organizationId,
+          categoryMenuId: data.categoryMenuId,
+          unitPriceId: data.unitPriceId,
+          mcEmployeeId: data.mcEmployeeId || null,
+
+          // ✅ เพิ่ม 2 ฟิลด์นี้สำหรับระบบราคาเหมา
+          package_hours: data.package_hours || null,
+          price_package: data.price_package || null,
+
+          modifiers: {
+            create: data.modifierGroupIds?.map((groupId) => ({
+              modifierGroup: { connect: { id: groupId } },
+              organization: { connect: { id: data.organizationId } },
+            })),
+          },
+        },
+      });
     });
 
     return { success: true, error: false };

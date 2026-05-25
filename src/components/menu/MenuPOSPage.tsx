@@ -113,6 +113,7 @@ const MenuPOSPage = ({
     const lowercasedFilter = searchTerm.toLowerCase();
     const filteredData = initialItems.filter((item: any) => {
       return (
+        item.menuCode?.toLowerCase().includes(lowercasedFilter) ||
         item.menuName?.toLowerCase().includes(lowercasedFilter) ||
         item.description?.toLowerCase().includes(lowercasedFilter) ||
         item.category?.categoryName?.toLowerCase().includes(lowercasedFilter)
