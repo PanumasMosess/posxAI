@@ -1008,3 +1008,10 @@ export interface OrderCardProps {
   currencyLabel: string;
   period: "daily" | "monthly" | "yearly";
 }
+
+
+export type ProfileTableProps = {
+  employees: EmployeeStat[];
+  currencyLabel: string;
+  period: "daily" | "monthly" | "yearly";
+};
