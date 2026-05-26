@@ -21,8 +21,21 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Receipt } from "lucide-react";
+import { Receipt, CalendarIcon, X } from "lucide-react";
 import { useState, useMemo } from "react";
+
+// 🟢 นำเข้า UI สำหรับทำ Date Range Picker
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -37,10 +50,11 @@ export function Data_table_payment<TData, TValue>({
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
 
-  const [dateFilter, setDateFilter] = useState("");
+  // 🟢 State สำหรับเก็บช่วงวันที่ (จากวันที่ - ถึงวันที่)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const filteredData = useMemo(() => {
-    if (!dateFilter) return data;
+    if (!dateRange?.from && !dateRange?.to) return data;
 
     return data.filter((item: any) => {
       const shiftData = item.shift || {};
@@ -50,14 +64,33 @@ export function Data_table_payment<TData, TValue>({
       if (!businessDateRaw) return false;
 
       const itemDate = new Date(businessDateRaw);
-      const year = itemDate.getFullYear();
-      const month = String(itemDate.getMonth() + 1).padStart(2, "0");
-      const day = String(itemDate.getDate()).padStart(2, "0");
-      const formattedItemDate = `${year}-${month}-${day}`;
+      itemDate.setHours(0, 0, 0, 0);
 
-      return formattedItemDate === dateFilter;
+      let isAfterStart = true;
+      let isBeforeEnd = true;
+
+      if (dateRange.from) {
+        const start = new Date(dateRange.from);
+        start.setHours(0, 0, 0, 0);
+        isAfterStart = itemDate >= start;
+      }
+
+      if (dateRange.to) {
+        const end = new Date(dateRange.to);
+        end.setHours(0, 0, 0, 0);
+        isBeforeEnd = itemDate <= end;
+      }
+
+      // ถ้าระบุแค่วันเริ่มต้น ให้ค้นหาเฉพาะวันนั้นวันเดียว
+      if (dateRange.from && !dateRange.to) {
+        return (
+          itemDate.getTime() === new Date(dateRange.from).setHours(0, 0, 0, 0)
+        );
+      }
+
+      return isAfterStart && isBeforeEnd;
     });
-  }, [data, dateFilter]);
+  }, [data, dateRange]);
 
   const table = useReactTable({
     data: filteredData,
@@ -87,7 +120,6 @@ export function Data_table_payment<TData, TValue>({
       return sum + (Number((row.original as any).totalAmount) || 0);
     }, 0);
   }, [table.getFilteredRowModel().rows]);
-
 
   const todayTotal = useMemo(() => {
     const today = new Date();
@@ -158,12 +190,60 @@ export function Data_table_payment<TData, TValue>({
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(event) => setDateFilter(event.target.value)}
-              className="w-full sm:w-[150px] text-zinc-600 dark:text-zinc-300"
-            />
+            {/* 🟢 ตัวเลือกช่วงวันที่แบบ Popover ปฏิทินตัวเดียว */}
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[260px] justify-start text-left font-normal bg-white dark:bg-zinc-950",
+                      !dateRange && "text-zinc-500",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "dd MMM yyyy", {
+                            locale: th,
+                          })}{" "}
+                          -{" "}
+                          {format(dateRange.to, "dd MMM yyyy", { locale: th })}
+                        </>
+                      ) : (
+                        format(dateRange.from, "dd MMM yyyy", { locale: th })
+                      )
+                    ) : (
+                      <span>เลือกช่วงวันที่...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* ปุ่มเคลียร์วันที่ */}
+              {dateRange?.from && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDateRange(undefined)}
+                  className="h-9 w-9 text-zinc-400 hover:text-red-500 shrink-0"
+                  title="ล้างการค้นหาวันที่"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
 
             <Input
               placeholder="ค้นหา..."

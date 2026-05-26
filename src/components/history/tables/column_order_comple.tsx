@@ -19,7 +19,6 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
     id: "food",
     header: () => <div className="text-left ml-2">รายการอาหาร</div>,
     cell: ({ row }) => {
-      // ดึงจากถัง foodList
       const menus = (row.original as any).foodList || [];
 
       if (menus.length === 0)
@@ -42,12 +41,17 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
                   </div>
                 )}
               </div>
-              <span
-                className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate max-w-[160px]"
-                title={menu.name}
-              >
-                {menu.name}
-              </span>
+              <div className="flex flex-col truncate w-full">
+                <span
+                  className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate max-w-[160px]"
+                  title={menu.name}
+                >
+                  {menu.name} 
+                  <span className="font-bold text-emerald-600 ml-1">
+                    x{menu.quantity || 1}
+                  </span>
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -84,12 +88,15 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
                   </div>
                 )}
               </div>
-              <div className="flex flex-col truncate">
+              <div className="flex flex-col truncate w-full">
                 <span
                   className="text-sm font-bold text-amber-700 dark:text-amber-400 truncate"
                   title={ent.prName || ent.name}
                 >
                   {ent.prName || ent.name}
+                  <span className="font-bold text-emerald-600 ml-1">
+                    x{ent.quantity || 1}
+                  </span>
                 </span>
               </div>
             </div>
@@ -192,7 +199,6 @@ export const column_order_comple = (): ColumnDef<HistoryOrder>[] => [
     id: "updatedAt",
     header: () => <div className="text-center">เวลาชำระ</div>,
     cell: ({ row }) => {
-
       const paymentDate = new Date(row.original.updatedAt);
 
       const shiftData = row.original.paymentInfo?.shift as any;
