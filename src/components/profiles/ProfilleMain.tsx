@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   BarChart3,
@@ -38,7 +39,6 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
   const [empSearch, setEmpSearch] = useState("");
   const [period, setPeriod] = useState<"daily" | "monthly" | "yearly">("daily");
 
-  // 🟢 1. State สำหรับจัดการมุมมอง (Card หรือ Table) และจำนวนการแสดงผล (ทีละ 10)
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [displayLimit, setDisplayLimit] = useState(10);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -220,12 +220,10 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     }
   }, [isAdmin, employeeId]);
 
-  // 🟢 2. รีเซ็ต Limit ทุกครั้งที่มีการเปลี่ยนแท็บ
   useEffect(() => {
     setDisplayLimit(10);
   }, [period, selectedEmpId, viewMode]);
 
-  // 🟢 3. เรียงลำดับข้อมูลใหม่ตาม Period ที่เลือก (ขายได้มากที่สุดขึ้นก่อน)
   const sortedDisplayEmployees = useMemo(() => {
     let list =
       isAdmin && selectedEmpId === "ALL"
@@ -244,11 +242,11 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     return list;
   }, [employeeStats, isAdmin, selectedEmpId, period]);
 
-  // หั่นข้อมูลแสดงผลทีละ Limit (10)
-  const visibleEmployees = sortedDisplayEmployees.slice(0, displayLimit);
+  const visibleCards = sortedDisplayEmployees.slice(0, displayLimit);
 
-  // 🟢 4. ระบบ Infinite Scroll (โหลดเมื่อ Scroll ลงมาถึงจุดล่างสุด)
   useEffect(() => {
+    if (viewMode !== "card") return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -269,7 +267,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
         observer.unobserve(loadMoreRef.current);
       }
     };
-  }, [sortedDisplayEmployees.length]);
+  }, [sortedDisplayEmployees.length, viewMode]); 
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-3 sm:p-4 md:p-8">
@@ -406,7 +404,6 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
                 </div>
               )}
 
-              {/* Toggle วัน/เดือน/ปี */}
               <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
                 {(["daily", "monthly", "yearly"] as const).map((p) => (
                   <button
@@ -429,22 +426,32 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
             </div>
           </div>
 
-          {visibleEmployees.length > 0 ? (
+          {sortedDisplayEmployees.length > 0 ? (
             <>
               {viewMode === "card" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {visibleEmployees.map((emp) => (
-                    <OrderCard
-                      key={emp.id}
-                      employee={emp}
-                      currencyLabel={currencyLabel}
-                      period={period}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {visibleCards.map((emp) => (
+                      <OrderCard
+                        key={emp.id}
+                        employee={emp}
+                        currencyLabel={currencyLabel}
+                        period={period}
+                      />
+                    ))}
+                  </div>
+                  {displayLimit < sortedDisplayEmployees.length && (
+                    <div ref={loadMoreRef} className="py-4 flex justify-center">
+                      <span className="text-xs text-zinc-400 flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-zinc-300 border-t-primary rounded-full animate-spin"></span>
+                        กำลังโหลดเพิ่มเติม...
+                      </span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <ProfileTable
-                  employees={visibleEmployees}
+                  employees={sortedDisplayEmployees}
                   currencyLabel={currencyLabel}
                   period={period}
                 />
@@ -453,15 +460,6 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
           ) : (
             <div className="text-center py-10 bg-white dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
               <p className="text-zinc-500 text-sm">ไม่พบข้อมูลผลงาน</p>
-            </div>
-          )}
-
-          {displayLimit < sortedDisplayEmployees.length && (
-            <div ref={loadMoreRef} className="py-4 flex justify-center">
-              <span className="text-xs text-zinc-400 flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-zinc-300 border-t-primary rounded-full animate-spin"></span>
-                กำลังโหลดเพิ่มเติม...
-              </span>
             </div>
           )}
         </div>
