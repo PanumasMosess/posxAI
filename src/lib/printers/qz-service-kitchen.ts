@@ -7,7 +7,7 @@ import {
 
 export const printToKitchen = async (
   data: PrintTicketData,
-  organizationId: number
+  organizationId: number,
 ) => {
   try {
     // ... (ส่วน Certificate และ Security เหมือนเดิม ไม่ต้องแก้)
@@ -27,7 +27,7 @@ export const printToKitchen = async (
             if (res.success && res.data) resolve(res.data);
             else
               reject(
-                "Server Signing Failed: " + (res.message || "Unknown error")
+                "Server Signing Failed: " + (res.message || "Unknown error"),
               );
           })
           .catch((err) => {
@@ -85,8 +85,8 @@ export const printToKitchen = async (
           .header { 
             text-align: center; 
             border-bottom: 1px solid #000; 
-            padding-bottom: 2px; 
-            margin-bottom: 2px; 
+            padding-bottom: 4px; 
+            margin-bottom: 4px; 
           }
           .title { 
             font-size: 16px; 
@@ -99,17 +99,6 @@ export const printToKitchen = async (
             margin-bottom: 2px;
           }
           .time { font-size: 10px; font-weight: bold; }
-      
-          .table-box { 
-            display: flex; 
-            justify-content: center; 
-            align-items: baseline; 
-            border-bottom: 1px dashed #000; 
-            padding-bottom: 2px; 
-            margin-bottom: 2px; 
-          }
-          .tbl-label { font-size: 14px; font-weight: bold; margin-right: 4px; }
-          .tbl-num { font-size: 18px; font-weight: 900; }
 
           .menu-row { 
             display: flex; 
@@ -133,33 +122,28 @@ export const printToKitchen = async (
           .modifiers-box { 
             font-size: 11px; 
             font-weight: bold; 
-            margin-top: 1px; 
+            margin-top: 2px; 
             padding-left: 6px; 
             border-left: 2px solid #000; 
             line-height: 1.1;
           }
 
           .sub-list { 
-            margin-top: 2px; 
-            padding-top: 2px; 
-            border-top: 1px dotted #ccc; 
+            margin-top: 4px; 
+            padding-top: 4px; 
+            border-top: 1px dashed #000; 
             list-style: none; 
           }
           .sub-item { 
             font-size: 11px; 
-            margin-bottom: 1px; 
-            padding-left: 4px; 
+            margin-bottom: 3px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
           }
           .table-tag { 
             font-weight: bold; 
-            font-size: 9px; 
-            background: #eee; 
-            border: 1px solid #000; 
-            padding: 0 2px; 
-            border-radius: 2px; 
+            font-size: 11px; 
             margin-right: 4px; 
           }
         </style>
@@ -168,18 +152,13 @@ export const printToKitchen = async (
         <div class="header">
           <div class="title">KITCHEN</div>
           <div class="time">${new Date(
-            data.createdAt || new Date()
+            data.createdAt || new Date(),
           ).toLocaleString("th-TH", {
             hour: "2-digit",
             minute: "2-digit",
             day: "2-digit",
             month: "2-digit",
           })}</div>
-        </div>
-
-        <div class="table-box">
-          <span class="tbl-label">โต๊ะ</span>
-          <span class="tbl-num">${headerTableName}</span>
         </div>
         
         <div class="menu-row">
@@ -194,28 +173,18 @@ export const printToKitchen = async (
         }
 
         ${
-          data.orders.length > 0
+          data.orders && data.orders.length > 0
             ? `
           <ul class="sub-list">
             ${data.orders
               .map((order) => {
-                const showTableLabel =
-                  isMixedTable || order.tableName !== data.orders[0]?.tableName;
                 return `
               <li class="sub-item">
-                <div style="width:85%; display:flex; align-items:center; flex-wrap:wrap;">
-                  ${
-                    showTableLabel
-                      ? `<span class="table-tag">โต๊ะ ${order.tableName}</span>`
-                      : ""
-                  }
-                  ${order.note ? `<span>(Note: ${order.note})</span>` : ""}
+                <div style="width:85%; display:flex; align-items:center; flex-wrap:wrap; gap:2px;">
+                  <span class="table-tag">[ โต๊ะ ${order.tableName} ]</span>
+                  ${order.note ? `<span style="font-weight:bold;">(Note: ${order.note})</span>` : ""}
                 </div>
-                ${
-                  data.orders.length > 1
-                    ? `<div style="font-weight:bold;">x${order.quantity}</div>`
-                    : ""
-                }
+                <div style="font-weight:bold; font-size:12px;">x${order.quantity}</div>
               </li>`;
               })
               .join("")}

@@ -80,7 +80,7 @@ export default function OrderStatusPage({
 
   // บันทึกรหัสสินค้าที่พิมพ์เพื่อคุมเฉพาะออเดอร์ใหม่
   const printedItemsRef = useRef<Set<number>>(new Set());
-  // 🟢 เพิ่มตัวแปรสำหรับป้องกันการเรียกฟังก์ชันซ้อนกันในเสี้ยววินาที (Race Condition Locker)
+  // 🟢 เพิ่มตัวแปรสำหรับป้องกันการเรียกฟังก์ชันซ้อนกันในเสี้ยววินาที
   const printingLockRef = useRef<Set<string>>(new Set());
   const isInitialLoad = useRef(true);
 
@@ -133,29 +133,11 @@ export default function OrderStatusPage({
     prevOrderCountRef.current = activeOrders.length;
   }, [activeOrders]);
 
+  // 🟢 จัดกลุ่มใหม่: ยึด "ชื่อเมนู + ตัวเลือกเสริม" เป็นหลัก ไม่ว่าจะมาจากโต๊ะไหนก็จับมัดรวมกัน
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
     activeOrders.forEach((order) => {
-      const groupKey = order.order_running_code || `${order.id}`;
-
-      if (!groups[groupKey]) {
-        groups[groupKey] = {
-          uniqueKey: groupKey,
-          order_running_code: order.order_running_code,
-          tableName: order.table?.tableName || "ไม่ระบุโต๊ะ",
-          status: order.status,
-          totalQuantity: 0,
-          orderIds: [],
-          items: [],
-          firstCreatedAt: order.createdAt,
-        };
-      }
-
-      if (!groups[groupKey].orderIds.includes(order.id)) {
-        groups[groupKey].orderIds.push(order.id);
-      }
-
       if (order.orderitems) {
         order.orderitems.forEach((item) => {
           const categoryData = (item.menu as any)?.category;
@@ -172,16 +154,54 @@ export default function OrderStatusPage({
                 .join(", ")
             : "";
 
+          // 🟢 กลุ่มหลัก: ชื่อเมนู + ตัวเลือกเสริม + สถานะ (คนละโต๊ะก็เข้ากลุ่มนี้ได้)
+          const groupKey = `${item.menu.menuName}-${modifierText}-${order.status}`;
+
+          if (!groups[groupKey]) {
+            groups[groupKey] = {
+              uniqueKey: groupKey,
+              menuName: item.menu.menuName,
+              modifiersText: modifierText,
+              category: categoryName,
+              printerName: printerName,
+              status: order.status,
+              totalQuantity: 0,
+              orderIds: [],
+              tables: [], // สำหรับโชว์ว่ามาจากโต๊ะไหนบ้างบนหน้าจอ
+              rawItems: [], // สำหรับประวัติการพิมพ์
+              firstCreatedAt: order.createdAt,
+            };
+          }
+
           groups[groupKey].totalQuantity += item.quantity;
 
-          groups[groupKey].items.push({
+          if (!groups[groupKey].orderIds.includes(order.id)) {
+            groups[groupKey].orderIds.push(order.id);
+          }
+
+          // เก็บข้อมูลโต๊ะเพื่อแสดงบนหน้าจอ
+          const existingTable = groups[groupKey].tables.find(
+            (t: any) => t.orderId === order.id,
+          );
+          if (existingTable) {
+            existingTable.quantity += item.quantity;
+          } else {
+            groups[groupKey].tables.push({
+              orderId: order.id,
+              tableName: order.table?.tableName || "ไม่ระบุโต๊ะ",
+              order_running_code: order.order_running_code,
+              quantity: item.quantity,
+            });
+          }
+
+          // เก็บข้อมูลรายชิ้นเพื่อป้องกันการพิมพ์เบิ้ล
+          groups[groupKey].rawItems.push({
             orderItemId: item.id,
             orderId: order.id,
-            menuName: item.menu.menuName,
             quantity: item.quantity,
-            category: categoryName,
-            printerName: printerName,
-            modifiersText: modifierText,
+            tableName: order.table?.tableName || "ไม่ระบุโต๊ะ",
+            order_running_code: order.order_running_code,
+            createdAt: order.createdAt,
           });
         });
       }
@@ -194,28 +214,23 @@ export default function OrderStatusPage({
     );
   }, [activeOrders]);
 
-  // 🟢 ฟังก์ชันสั่งพิมพ์: ปรับปรุงระบบป้องกันพิมพ์เบิ้ลพิมพ์ซ้ำ 100%
+  // 🟢 ฟังก์ชันสั่งพิมพ์: พิมพ์รวบยอด เฉพาะของใหม่
   const handlePrint = async (
     group: any,
     isAutoPrintTrigger: boolean = false,
   ) => {
-    // 🔒 1. ตรวจสอบ Lock ของออเดอร์นี้ ป้องกันเสี้ยววินาทีที่มีคำสั่งซ้อนวิ่งเข้ามา
-    if (printingLockRef.current.has(group.uniqueKey)) {
-      return;
-    }
-
-    // ตั้งค่าล็อกไอดีออเดอร์นี้ไว้ทันที
+    if (printingLockRef.current.has(group.uniqueKey)) return;
     printingLockRef.current.add(group.uniqueKey);
 
-    // คัดกรองหารายการสินค้าที่ยังไม่เคยถูกสั่งพิมพ์ออกสเตชั่น
-    const itemsToPrint = group.items.filter(
+    // 1. คัดเฉพาะรายการที่ยังไม่เคยสั่งพิมพ์
+    const itemsToPrint = group.rawItems.filter(
       (item: any) => !printedItemsRef.current.has(item.orderItemId),
     );
 
-    // หากเป็นการกดพิมพ์เอง และไม่มีของใหม่เพิ่ม ให้ดึงรายการทั้งหมดขึ้นมาเพื่อพิมพ์ซ้ำ
+    // 2. ถ้ายกดปุ่มพิมพ์เอง (Manual) และไม่มีของใหม่ ให้พิมพ์ซ้ำยอดทั้งหมดไปเลย
     const finalItems =
       itemsToPrint.length === 0 && !isAutoPrintTrigger
-        ? group.items
+        ? group.rawItems
         : itemsToPrint;
 
     if (finalItems.length === 0) {
@@ -223,7 +238,7 @@ export default function OrderStatusPage({
       return;
     }
 
-    // 🔒 2. มาร์คบันทึกรายการสินค้าเหล่านี้ลงประวัติพิมพ์แล้วทันที (ยึดโควตาไว้ก่อน ไม่รอประมวลผลเสร็จ เพื่อตัดปัญหาพิมพ์ซ้ำ)
+    // 3. จองสิทธิ์มาร์คไอดีสินค้าทันที ป้องกันคำสั่งแทรก
     if (isAutoPrintTrigger || itemsToPrint.length > 0) {
       finalItems.forEach((item: any) => {
         printedItemsRef.current.add(item.orderItemId);
@@ -233,23 +248,10 @@ export default function OrderStatusPage({
     setIsPrinting(true);
     try {
       initQZSecurity();
+      const pName = group.printerName;
 
-      // แยกแผนก/เครื่องพิมพ์
-      const itemsByPrinter: Record<string, any[]> = {};
-      finalItems.forEach((item: any) => {
-        const pName = item.printerName;
-        if (!pName || pName === "ไม่ระบุเครื่องพิมพ์" || pName === "NONE")
-          return;
-
-        if (!itemsByPrinter[pName]) {
-          itemsByPrinter[pName] = [];
-        }
-        itemsByPrinter[pName].push(item);
-      });
-
-      const printerNames = Object.keys(itemsByPrinter);
-
-      if (printerNames.length === 0) {
+      if (!pName || pName === "ไม่ระบุเครื่องพิมพ์" || pName === "NONE") {
+        if (!isAutoPrintTrigger) toast.warn("เมนูนี้ไม่ได้ตั้งค่าเครื่องพิมพ์");
         setIsPrinting(false);
         printingLockRef.current.delete(group.uniqueKey);
         return;
@@ -266,70 +268,52 @@ export default function OrderStatusPage({
         }
       }
 
-      // เริ่มส่งคำสั่งพิมพ์ไปยังเครื่องพิมพ์ต่างๆ รวบเป็นบิลเดียวต่อเครื่องพิมพ์
-      const printPromises = printerNames.map(async (pName) => {
-        const printerItems = itemsByPrinter[pName];
-        const totalQtyForPrinter = printerItems.reduce(
-          (sum, item) => sum + item.quantity,
-          0,
-        );
+      // คำนวณยอดรวมของสินค้าใหม่ที่ต้องพิมพ์
+      const totalQtyForPrinter = finalItems.reduce(
+        (sum: number, item: any) => sum + item.quantity,
+        0,
+      );
 
-        const combinedMenuNames = printerItems
-          .map(
-            (item) =>
-              `${item.menuName} x${item.quantity}${item.modifiersText ? ` (${item.modifiersText})` : ""}`,
-          )
-          .join("\n");
+      // สร้างชื่อเมนูแบบรวมยอดบนบิล เช่น "กะเพราไก่ x3"
+      const menuTitle = `${group.menuName} x${totalQtyForPrinter}`;
 
-        const combinedModifiers = printerItems
-          .map((item) => item.modifiersText)
-          .filter(Boolean)
-          .join(" | ");
-
-        await printToKitchen(
-          {
-            menuName: combinedMenuNames,
-            totalQuantity: totalQtyForPrinter,
-            orders: [
-              {
-                tableName: group.tableName,
-                quantity: totalQtyForPrinter,
-                status: group.status,
-                order_running_code: group.order_running_code,
-                createdAt: group.firstCreatedAt,
-              },
-            ],
-            printerName: pName,
-            modifiers: combinedModifiers,
-            createdAt: group.firstCreatedAt,
-          },
-          organizationId!,
-        );
-      });
-
-      await Promise.all(printPromises);
+      await printToKitchen(
+        {
+          menuName: menuTitle,
+          totalQuantity: totalQtyForPrinter,
+          orders: finalItems.map((o: any) => ({
+            tableName: o.tableName,
+            quantity: o.quantity,
+            status: group.status,
+            order_running_code: o.order_running_code,
+            createdAt: o.createdAt,
+          })),
+          printerName: pName,
+          modifiers: group.modifiersText,
+          createdAt: group.firstCreatedAt,
+        },
+        organizationId!,
+      );
 
       if (!isAutoPrintTrigger) {
-        toast.success("พิมพ์ใบงานรวมรายการแยกแผนกเรียบร้อยแล้ว");
+        toast.success("พิมพ์ใบสั่งทำรวบยอดสำเร็จ");
       }
     } catch (error: any) {
-      // 🔓 ในกรณีที่พิมพ์ล้มเหลว ลบประวัติออกเพื่อให้ระบบสามารถกดพิมพ์ซ้ำได้อีกครั้ง
+      // คืนสิทธิ์ถ้าพิมพ์ล้มเหลว
       finalItems.forEach((item: any) => {
         printedItemsRef.current.delete(item.orderItemId);
       });
       toast.error("เกิดข้อผิดพลาดในการพิมพ์: " + error.message);
     } finally {
       setIsPrinting(false);
-      // ปลดล็อกเพื่อให้ตัวการ์ดออเดอร์นี้รองรับคำสั่งพิมพ์ครั้งถัดไปเมื่อมีเมนูเพิ่มเข้ามาใหม่
       printingLockRef.current.delete(group.uniqueKey);
     }
   };
 
   useEffect(() => {
     if (isInitialLoad.current) {
-      // ครั้งแรกมาร์คของเก่าค้างจอทั้งหมดว่าพิมพ์แล้ว
       groupedOrders.forEach((g) => {
-        g.items.forEach((item: any) =>
+        g.rawItems.forEach((item: any) =>
           printedItemsRef.current.add(item.orderItemId),
         );
       });
@@ -337,10 +321,9 @@ export default function OrderStatusPage({
       return;
     }
 
-    // ตรวจจับพิมพ์อัตโนมัติเฉพาะรายการใหม่
     if (isAutoPrint) {
       groupedOrders.forEach((g) => {
-        const hasNewItem = g.items.some(
+        const hasNewItem = g.rawItems.some(
           (item: any) => !printedItemsRef.current.has(item.orderItemId),
         );
         if (hasNewItem && ["NEW", "READY"].includes(g.status)) {
@@ -432,7 +415,7 @@ export default function OrderStatusPage({
             <div className="flex items-center gap-2 text-xs text-zinc-500">
               <Ticket className="h-3 w-3" />
               <span className="font-medium">{displayOrders.length}</span>{" "}
-              ออเดอร์ค้างทำ
+              เมนูอาหารค้างทำ
             </div>
           </div>
         </div>
@@ -474,7 +457,7 @@ export default function OrderStatusPage({
             <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-3">
               <UtensilsCrossed className="h-8 w-8 opacity-30" />
             </div>
-            <p>ไม่มีรายการออเดอร์ค้างทำ</p>
+            <p>ไม่มีรายการอาหารค้างทำ</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4">
@@ -497,6 +480,7 @@ export default function OrderStatusPage({
                     isLate ? "ring-2 ring-red-500/30" : "",
                   )}
                 >
+                  {/* 🟢 หัวการ์ด: แสดงชื่อเมนูและยอดรวมชัดๆ */}
                   <div className="p-4 flex gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -521,19 +505,30 @@ export default function OrderStatusPage({
                           <Clock className="h-3 w-3 mr-1" />
                           {elapsedMins}m
                         </div>
+                        <span className="text-[10px] text-zinc-400 ml-auto border border-zinc-200 dark:border-zinc-800 px-1.5 py-0.5 rounded-sm truncate max-w-[120px]">
+                          📁 {group.category}
+                        </span>
                       </div>
+
                       <h3
                         className="text-2xl font-black text-zinc-800 dark:text-zinc-100 leading-tight truncate mt-1"
-                        title={group.tableName}
+                        title={group.menuName}
                       >
-                        โต๊ะ {group.tableName}
+                        {group.menuName}
                       </h3>
-                      <p className="text-[11px] text-zinc-400 font-mono mt-0.5 truncate">
-                        #
-                        {group.order_running_code?.split("-").pop() ||
-                          group.order_running_code}
+                      {group.modifiersText && (
+                        <p className="text-sm font-semibold text-orange-600 truncate mt-1">
+                          + {group.modifiersText}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-zinc-400 font-mono mt-1">
+                        🖨️ เครื่องพิมพ์:{" "}
+                        {group.printerName === "NONE" || !group.printerName
+                          ? "ไม่ระบุ"
+                          : group.printerName}
                       </p>
                     </div>
+
                     <div className="flex flex-col items-center gap-1">
                       <div
                         className={cn(
@@ -549,7 +544,7 @@ export default function OrderStatusPage({
                         className="h-8 w-8 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
                         onClick={() => handlePrint(group)}
                         disabled={isPrinting}
-                        title="พิมพ์ใบสั่งงานรวมรายการ (แยกสเตชั่นอัตโนมัติ)"
+                        title="พิมพ์ใบสั่งงานรวม"
                       >
                         {isPrinting ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -562,38 +557,35 @@ export default function OrderStatusPage({
 
                   <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-700 to-transparent mx-4" />
 
+                  {/* 🟢 ตัวการ์ดภายใน: คิวรายชื่อโต๊ะที่รอเมนูนี้ */}
                   <div className="flex-1 px-4 py-3 max-h-[240px] overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-zinc-200">
-                    {group.items.map((item: any, idx: number) => (
+                    <p className="text-[10px] font-semibold text-zinc-400 mb-1">
+                      จุดจัดส่งโต๊ะ:
+                    </p>
+                    {group.tables.map((table: any, idx: number) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-start text-sm group"
+                        className="flex justify-between items-center text-sm group"
                       >
-                        <div className="flex flex-col gap-0.5 pr-2 min-w-0 flex-1">
-                          <span className="font-semibold text-zinc-800 dark:text-zinc-200 leading-tight break-words">
-                            {item.menuName}
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <div className="h-1.5 w-1.5 rounded-full bg-zinc-300 group-hover:bg-zinc-500" />
+                          <span className="font-bold text-zinc-700 dark:text-zinc-200">
+                            โต๊ะ {table.tableName}
                           </span>
-                          {item.modifiersText && (
-                            <span className="text-[11px] text-orange-600 leading-tight mt-0.5">
-                              + {item.modifiersText}
-                            </span>
-                          )}
-                          <span className="text-[9px] text-zinc-400 mt-1 font-mono">
-                            🖨️{" "}
-                            {item.printerName === "NONE" || !item.printerName
-                              ? "ไม่ตั้งค่าพิมพ์"
-                              : item.printerName}
+                          <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline-block">
+                            #{table.order_running_code?.split("-").pop()}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                            x{item.quantity}
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded">
+                            x{table.quantity}
                           </span>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <button
-                                className="text-zinc-300 hover:text-red-500 transition-colors"
-                                title="ยกเลิกเฉพาะเมนูนี้ในบิล"
+                                className="text-zinc-400 hover:text-red-500"
+                                title="ยกเลิกออเดอร์โต๊ะนี้"
                               >
                                 <X className="h-4 w-4" />
                               </button>
@@ -604,7 +596,7 @@ export default function OrderStatusPage({
                                   คุณแน่ใจหรือไม่?
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  การกระทำนี้จะเปลี่ยนสถานะออเดอร์ย่อยนี้เป็น
+                                  การกระทำนี้จะเปลี่ยนสถานะออเดอร์ของโต๊ะนี้เป็น
                                   "ยกเลิกรายการ"
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
@@ -612,10 +604,10 @@ export default function OrderStatusPage({
                                 <AlertDialogCancel>ปิด</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() =>
-                                    onStatusChange([item.orderId], "CANCELLED")
+                                    onStatusChange([table.orderId], "CANCELLED")
                                   }
                                 >
-                                  ยืนยันการยกเลิก
+                                  ยืนยันการลบ
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
