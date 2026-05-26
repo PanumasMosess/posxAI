@@ -7,6 +7,7 @@ import {
   FileKey,
   Loader2,
   UploadCloud,
+  ShoppingCart, 
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,7 +46,7 @@ import {
 } from "@/components/ui/dialog";
 
 import menuList from "@/lib/data_temp";
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { uploadCertToS3 } from "@/lib/actions/actionIndex";
 import { toast } from "react-toastify";
@@ -81,10 +82,28 @@ const AppSidebar = () => {
 
   const { positionName } = useUser();
 
-  const filteredItems =
-    positionName === "Entertainer"
-      ? items.filter((item) => item.title === "โปรไฟล์การทำงาน")
-      : items;
+  // 🟢 ปรับปรุง Logic การกรองเมนู
+  const filteredItems = useMemo(() => {
+    let result = [];
+
+    if (positionName === "Entertainer") {
+      result = items.filter((item) => item.title === "โปรไฟล์การทำงาน");
+    } else {
+      result = [...items];
+    }
+
+    // ถ้าเป็น Entertainer หรือ พนักงาน ให้เพิ่มเมนู "หน้าสั่งอาหาร" เข้าไป
+    if (positionName === "Entertainer" || positionName === "พนักงาน") {
+      result.push({
+        title: "หน้าสั่งอาหาร *โดยพนักงาน",
+        url: "/orders_?table=0",
+        icon: ShoppingCart, // ใส่ไอคอน
+        target: "_blank", // ตั้งให้เปิดแท็บใหม่
+      } as any);
+    }
+
+    return result;
+  }, [positionName]);
 
   const showSettings = positionName !== "Entertainer";
 
@@ -194,7 +213,7 @@ const AppSidebar = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {filteredItems.map((item) => {
+                {filteredItems.map((item: any) => {
                   const hasSubItems = item.subItems && item.subItems.length > 0;
 
                   if (!hasSubItems) {
@@ -205,7 +224,12 @@ const AppSidebar = () => {
                           tooltip={isCollapsed ? item.title : undefined}
                           className={isCollapsed ? "justify-center" : ""}
                         >
-                          <Link href={item.url} className="py-3 text-base">
+                          {/* 🟢 รองรับ target="_blank" ใน Link หลัก */}
+                          <Link
+                            href={item.url}
+                            target={item.target || "_self"}
+                            className="py-3 text-base"
+                          >
                             <item.icon className="h-5 w-5" />
                             {!isCollapsed && (
                               <span className="ml-3">{item.title}</span>
@@ -231,7 +255,7 @@ const AppSidebar = () => {
                             align="start"
                             className="w-48"
                           >
-                            {item.subItems!.map((subItem) => (
+                            {item.subItems!.map((subItem: any) => (
                               <SidebarMenuButton
                                 key={subItem.title}
                                 variant="ghost"
@@ -270,7 +294,7 @@ const AppSidebar = () => {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="flex flex-col gap-1 pl-9 py-1">
-                            {item.subItems!.map((subItem) => (
+                            {item.subItems!.map((subItem: any) => (
                               <SidebarMenuButton
                                 key={subItem.title}
                                 asChild

@@ -1009,9 +1009,19 @@ export interface OrderCardProps {
   period: "daily" | "monthly" | "yearly";
 }
 
-
 export type ProfileTableProps = {
   employees: EmployeeStat[];
   currencyLabel: string;
   period: "daily" | "monthly" | "yearly";
 };
+
+type TopStat = { name: string; count: number } | null;
+
+export interface OrderRankingDashboardProps {
+  initialItems: any[];
+  id_user: number;
+  organizationId: number;
+  topFood?: TopStat;
+  topEntertainer?: TopStat;
+  topEmployee?: TopStat;
+}
