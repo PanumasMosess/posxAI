@@ -99,6 +99,10 @@ const menuList = [
         url: "/history/payment",
       },
       {
+        title: "สถิติอันดับ",
+        url: "/history/order_rank",
+      },
+      {
         title: "ประวัติสมาชิก (Member)",
         url: "/history/member",
       },
