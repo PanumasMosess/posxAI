@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
-import { Users, BarChart3, UserCircle2, Search } from "lucide-react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import {
+  Users,
+  BarChart3,
+  UserCircle2,
+  Search,
+  LayoutGrid,
+  TableProperties,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +22,7 @@ import { ProfilleMainProps } from "@/lib/type";
 import SalesSummary from "./SalesSummary";
 import OrderCard from "./OrderCard";
 import { Input } from "../ui/input";
+import ProfileTable from "./ProfileTable";
 
 const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
   const { employeeId, positionName } = useUser();
@@ -28,14 +36,18 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
   );
 
   const [empSearch, setEmpSearch] = useState("");
+  const [period, setPeriod] = useState<"daily" | "monthly" | "yearly">("daily");
+
+  // 🟢 1. State สำหรับจัดการมุมมอง (Card หรือ Table) และจำนวนการแสดงผล (ทีละ 10)
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [displayLimit, setDisplayLimit] = useState(10);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const filteredEmployees = allEmployees.filter((emp) =>
     `${emp.name} ${emp.surname}`
       .toLowerCase()
       .includes(empSearch.toLowerCase()),
   );
-
-  const [period, setPeriod] = useState<"daily" | "monthly" | "yearly">("daily");
 
   const {
     dailyData,
@@ -181,9 +193,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
       });
     });
 
-    const statsArray = Array.from(empStatsMap.values()).sort(
-      (a, b) => b.totalSales - a.totalSales,
-    );
+    const statsArray = Array.from(empStatsMap.values());
 
     return {
       dailyData: dData,
@@ -210,10 +220,56 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     }
   }, [isAdmin, employeeId]);
 
-  const displayEmployeeCards =
-    isAdmin && selectedEmpId === "ALL"
-      ? employeeStats
-      : employeeStats.filter((emp) => emp.id === selectedEmpId);
+  // 🟢 2. รีเซ็ต Limit ทุกครั้งที่มีการเปลี่ยนแท็บ
+  useEffect(() => {
+    setDisplayLimit(10);
+  }, [period, selectedEmpId, viewMode]);
+
+  // 🟢 3. เรียงลำดับข้อมูลใหม่ตาม Period ที่เลือก (ขายได้มากที่สุดขึ้นก่อน)
+  const sortedDisplayEmployees = useMemo(() => {
+    let list =
+      isAdmin && selectedEmpId === "ALL"
+        ? [...employeeStats]
+        : employeeStats.filter((emp) => emp.id === selectedEmpId);
+
+    if (isAdmin) {
+      list.sort((a, b) => {
+        if (period === "daily") return b.todaySales - a.todaySales;
+        if (period === "monthly") return b.monthSales - a.monthSales;
+        if (period === "yearly") return b.yearSales - a.yearSales;
+        return b.totalSales - a.totalSales;
+      });
+    }
+
+    return list;
+  }, [employeeStats, isAdmin, selectedEmpId, period]);
+
+  // หั่นข้อมูลแสดงผลทีละ Limit (10)
+  const visibleEmployees = sortedDisplayEmployees.slice(0, displayLimit);
+
+  // 🟢 4. ระบบ Infinite Scroll (โหลดเมื่อ Scroll ลงมาถึงจุดล่างสุด)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayLimit((prev) =>
+            Math.min(prev + 10, sortedDisplayEmployees.length),
+          );
+        }
+      },
+      { threshold: 1.0 },
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [sortedDisplayEmployees.length]);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-3 sm:p-4 md:p-8">
@@ -268,7 +324,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
                         placeholder="พิมพ์ชื่อเพื่อค้นหา..."
                         value={empSearch}
                         onChange={(e) => setEmpSearch(e.target.value)}
-                        onKeyDown={(e) => e.stopPropagation()} // ป้องกันบั๊กเวลาพิมพ์เว้นวรรค
+                        onKeyDown={(e) => e.stopPropagation()}
                         className="h-8 pl-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-none focus-visible:ring-1"
                       />
                     </div>
@@ -319,46 +375,93 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
               <UserCircle2 className="w-5 h-5 text-zinc-500" />
               <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-100">
                 {isAdmin && selectedEmpId === "ALL"
-                  ? "ผลงานแต่ละบุคคล"
+                  ? "ผลงานแต่ละบุคคล (เรียงตามยอดสูงสุด)"
                   : "สรุปผลงานของคุณ"}
               </h3>
             </div>
 
-            <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl self-start sm:self-center">
-              {(["daily", "monthly", "yearly"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    period === p
-                      ? "bg-white dark:bg-zinc-700 text-primary shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-700"
-                  }`}
-                >
-                  {p === "daily"
-                    ? "รายวัน"
-                    : p === "monthly"
-                      ? "รายเดือน"
-                      : "รายปี"}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              {isAdmin && selectedEmpId === "ALL" && (
+                <div className="flex bg-zinc-200 dark:bg-zinc-800 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode("card")}
+                    className={`p-1.5 rounded-md transition-colors ${
+                      viewMode === "card"
+                        ? "bg-white dark:bg-zinc-700 text-primary shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("table")}
+                    className={`p-1.5 rounded-md transition-colors ${
+                      viewMode === "table"
+                        ? "bg-white dark:bg-zinc-700 text-primary shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    <TableProperties className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Toggle วัน/เดือน/ปี */}
+              <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+                {(["daily", "monthly", "yearly"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPeriod(p)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      period === p
+                        ? "bg-white dark:bg-zinc-700 text-primary shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                  >
+                    {p === "daily"
+                      ? "รายวัน"
+                      : p === "monthly"
+                        ? "รายเดือน"
+                        : "รายปี"}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayEmployeeCards.map((emp) => (
-              <OrderCard
-                key={emp.id}
-                employee={emp}
-                currencyLabel={currencyLabel}
-                period={period}
-              />
-            ))}
-          </div>
-
-          {displayEmployeeCards.length === 0 && (
+          {visibleEmployees.length > 0 ? (
+            <>
+              {viewMode === "card" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {visibleEmployees.map((emp) => (
+                    <OrderCard
+                      key={emp.id}
+                      employee={emp}
+                      currencyLabel={currencyLabel}
+                      period={period}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <ProfileTable
+                  employees={visibleEmployees}
+                  currencyLabel={currencyLabel}
+                  period={period}
+                />
+              )}
+            </>
+          ) : (
             <div className="text-center py-10 bg-white dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
-              <p className="text-zinc-500 text-sm">ไม่พบข้อมูลพนักงาน</p>
+              <p className="text-zinc-500 text-sm">ไม่พบข้อมูลผลงาน</p>
+            </div>
+          )}
+
+          {displayLimit < sortedDisplayEmployees.length && (
+            <div ref={loadMoreRef} className="py-4 flex justify-center">
+              <span className="text-xs text-zinc-400 flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-zinc-300 border-t-primary rounded-full animate-spin"></span>
+                กำลังโหลดเพิ่มเติม...
+              </span>
             </div>
           )}
         </div>
