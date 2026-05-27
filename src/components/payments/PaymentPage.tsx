@@ -14,6 +14,8 @@ import {
   Printer,
   Trash2,
   Loader2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -76,6 +78,10 @@ const PaymentPage = ({
   const router = useRouter();
   const { employeeId, employeeName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  // 🟢 State สำหรับเก็บรายการอาหารที่ถูกเลือกเพื่อชำระเงิน
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+
   const [paymentMethod, setPaymentMethod] = useState<
     "QR" | "CASH" | "CARD" | "MEMBER"
   >("CASH");
@@ -95,26 +101,64 @@ const PaymentPage = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
+  const [isAutoPrint, setIsAutoPrint] = useState(false);
+
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
     if (savedPrinter) {
       setSelectedPrinter(savedPrinter);
     }
+    const savedAutoPrint =
+      localStorage.getItem("receipt_auto_print") === "true";
+    setIsAutoPrint(savedAutoPrint);
   }, []);
 
+  // 🟢 เมื่อเลือกบิลใหม่ ให้ Default เป็นการ "เลือกทุกรายการ" เพื่อจ่ายทั้งหมด
   useEffect(() => {
     setCashReceived("0");
     setDiscount("0");
     setMemberPhone("");
     setMemberData(null);
+    if (selectedOrder) {
+      setSelectedItemIds(selectedOrder.items.map((i: any) => i.id));
+    } else {
+      setSelectedItemIds([]);
+    }
   }, [selectedOrder, paymentMethod]);
 
-  const originalTotal = selectedOrder ? selectedOrder.total : 0;
+  // 🟢 คำนวณยอดเงินเฉพาะรายการที่ "ถูกเลือก (ติ๊กถูก)" เท่านั้น
+  const originalTotal = useMemo(() => {
+    if (!selectedOrder) return 0;
+    return selectedOrder.items
+      .filter((i: any) => selectedItemIds.includes(i.id))
+      .reduce((sum: number, item: any) => sum + item.price, 0);
+  }, [selectedOrder, selectedItemIds]);
+
   const discountAmount = parseFloat(discount) || 0;
   const finalTotal = Math.max(0, originalTotal - discountAmount);
 
   const change = parseFloat(cashReceived || "0") - finalTotal;
   const isCashSufficient = change >= 0;
+
+  // 🟢 ฟังก์ชันสำหรับสลับการเลือกรายการอาหาร
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId],
+    );
+  };
+
+  const toggleAutoPrint = () => {
+    const newState = !isAutoPrint;
+    setIsAutoPrint(newState);
+    localStorage.setItem("receipt_auto_print", String(newState));
+    toast.info(
+      newState
+        ? "เปิดใช้งาน: พิมพ์ใบเสร็จอัตโนมัติ"
+        : "ปิดใช้งาน: พิมพ์ใบเสร็จอัตโนมัติ",
+    );
+  };
 
   const handleCheckMember = async () => {
     if (memberPhone.length < 9) {
@@ -225,6 +269,10 @@ const PaymentPage = ({
     const groups: { [key: string]: any } = {};
 
     initialItems.forEach((order) => {
+      if (order.status !== "COMPLETED") {
+        return;
+      }
+
       const key = order.order_running_code || `ORDER-${order.id}`;
 
       if (!groups[key]) {
@@ -246,7 +294,6 @@ const PaymentPage = ({
       }
 
       groups[key].allOrderIds.push(order.id);
-
       groups[key].total += order.price_sum || 0;
 
       if (order.orderitems && Array.isArray(order.orderitems)) {
@@ -284,6 +331,7 @@ const PaymentPage = ({
             price: totalPriceForItem,
             note: order.note || null,
             price_package: item.menu?.price_package || 0,
+            orderId: order.id, // 🟢 เก็บ orderId สำหรับระบบแยกจ่าย
           });
         });
       }
@@ -310,11 +358,16 @@ const PaymentPage = ({
     setIsProcessing(true);
     try {
       initQZSecurity();
+      // 🟢 พิมพ์เฉพาะรายการที่ถูกเลือกจ่ายเงิน
+      const itemsToPrint = orderData.items.filter((i: any) =>
+        selectedItemIds.includes(i.id),
+      );
+
       const receiptData = {
         orderId: orderData.runningCode,
         table: orderData.table,
         date: new Date().toLocaleString("th-TH"),
-        items: orderData.items.map((i: any) => ({
+        items: itemsToPrint.map((i: any) => ({
           name: i.name,
           quantity: i.qty,
           price: i.price,
@@ -351,7 +404,11 @@ const PaymentPage = ({
   const handlePayment = async () => {
     if (!selectedOrder) return;
 
-    // 1. ตรวจสอบความถูกต้องเบื้องต้น (เงินสด/สมาชิก)
+    if (selectedItemIds.length === 0) {
+      toast.warn("กรุณาเลือกรายการที่ต้องการชำระเงิน");
+      return;
+    }
+
     if (paymentMethod === "CASH" && !isCashSufficient) {
       toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
       return;
@@ -380,8 +437,13 @@ const PaymentPage = ({
         return;
       }
 
+      // 🟢 ดึงเฉพาะ Order ID ของรายการที่คุณ "ติ๊กเลือก"
+      const paidOrderIds = selectedOrder.items
+        .filter((i: any) => selectedItemIds.includes(i.id))
+        .map((i: any) => i.orderId);
+
       const paymentPayload = {
-        orderId: selectedOrder.id,
+        orderId: selectedOrder.runningCode, // 🟢 ส่งเป็น runningCode ไปให้ Database
         table: selectedOrder.table,
         tableId: selectedOrder.tableId,
         paymentMethod: paymentMethod,
@@ -394,17 +456,33 @@ const PaymentPage = ({
           paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
         change: paymentMethod === "CASH" ? change : 0,
         memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
+        paidOrderIds: Array.from(new Set(paidOrderIds)), // 🟢 ส่งไปเปลี่ยนสถานะหลังบ้าน
       };
 
       const create_status = await createPaymentOrder(paymentPayload);
 
       if (create_status.success) {
-        await updateStatusOrder(selectedOrder.id, "PAY_COMPLETED");
-        await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+        const isPayingAllItems =
+          selectedItemIds.length === selectedOrder.items.length;
 
-        toast.success("ชำระเงินเรียบร้อย!");
+        // 🟢 ถ้าจ่ายครบ คืนสถานะโต๊ะ
+        if (isPayingAllItems) {
+          await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+          toast.success("ชำระเงินครบถ้วน เคลียร์โต๊ะเรียบร้อย!");
+        } else {
+          toast.success(
+            "ชำระเงินบางส่วนสำเร็จ! (รายการที่จ่ายแล้วจะถูกซ่อนไว้)",
+          );
+        }
+
+        if (isAutoPrint) {
+          handlePrintReceipt(selectedOrder);
+        }
 
         setSelectedOrder(null);
+        setSelectedItemIds([]);
+        setCashReceived("0");
+        setDiscount("0");
         router.refresh();
       } else {
         toast.error(create_status.message || "ไม่สามารถบันทึกข้อมูลได้");
@@ -650,7 +728,7 @@ const PaymentPage = ({
               <div className="p-4 md:p-6 space-y-6 pb-24">
                 <div className="text-center py-4">
                   <p className="text-sm text-zinc-500 font-medium mb-1">
-                    ยอดสุทธิ
+                    ยอดที่เลือกชำระ (Total)
                   </p>
                   <div className="text-4xl font-extrabold text-zinc-900 dark:text-white">
                     {finalTotal.toLocaleString()}{" "}
@@ -660,7 +738,6 @@ const PaymentPage = ({
                   </div>
                 </div>
 
-                {/* ✅ ส่ง Props ที่เพิ่มมาไปให้ Component ลูก */}
                 <PaymentMethodsPanel
                   paymentMethod={paymentMethod}
                   setPaymentMethod={setPaymentMethod}
@@ -687,50 +764,85 @@ const PaymentPage = ({
                 <div>
                   <div className="flex items-center justify-between mb-2 px-1">
                     <p className="text-[10px] font-bold text-zinc-400 uppercase">
-                      รายการอาหาร
+                      เลือกรายการอาหารที่ต้องการจ่าย
                     </p>
-                    <Badge variant="secondary" className="text-[9px] h-4">
-                      {selectedOrder.items.length} รายการ
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto pr-2 custom-scrollbar border rounded-xl p-2">
-                    {selectedOrder.items.map((item: any, idx: number) => (
-                      <div
-                        key={idx}
-                        // ✅ ปรับจาก items-center เป็น items-start เผื่อ note ยาวหลายบรรทัด
-                        className="flex justify-between items-start p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px]"
+                        onClick={() =>
+                          setSelectedItemIds(
+                            selectedOrder.items.map((i: any) => i.id),
+                          )
+                        }
                       >
-                        <div className="flex gap-2 items-start">
-                          <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm mt-0.5">
-                            <AvatarImage
-                              src={item.img || "/placeholder.png"}
-                              className="object-cover"
-                            />
-                            <AvatarFallback>IMG</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
-                              {item.name}
-                            </p>
-                            <p className="text-[10px] text-zinc-400">
-                              x{item.qty}
-                            </p>
+                        เลือกทั้งหมด
+                      </Button>
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] h-6 flex items-center justify-center"
+                      >
+                        เลือก {selectedItemIds.length}/
+                        {selectedOrder.items.length}
+                      </Badge>
+                    </div>
+                  </div>
 
-                            {/* ✅ เพิ่มการแสดงผล Note ตรงนี้ */}
-                            {item.note && (
-                              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
-                                * {item.note}
+                  <div className="space-y-1 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar border rounded-xl p-2 bg-zinc-50 dark:bg-zinc-900/50">
+                    {selectedOrder.items.map((item: any, idx: number) => {
+                      const isChecked = selectedItemIds.includes(item.id);
+                      return (
+                        <div
+                          key={item.id || idx}
+                          onClick={() => toggleItemSelection(item.id)}
+                          className={`flex justify-between items-start p-2 rounded-lg cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-white dark:bg-zinc-800 shadow-sm border border-emerald-500/30"
+                              : "hover:bg-white dark:hover:bg-zinc-800 opacity-60"
+                          }`}
+                        >
+                          <div className="flex gap-3 items-start">
+                            <div className="mt-1.5">
+                              {isChecked ? (
+                                <CheckSquare className="h-5 w-5 text-emerald-500" />
+                              ) : (
+                                <Square className="h-5 w-5 text-zinc-300" />
+                              )}
+                            </div>
+                            <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm">
+                              <AvatarImage
+                                src={item.img || "/placeholder.png"}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>IMG</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <p
+                                className={`text-xs font-semibold ${isChecked ? "text-zinc-900 dark:text-white" : "text-zinc-500"}`}
+                              >
+                                {item.name}
                               </p>
-                            )}
+                              <p className="text-[10px] text-zinc-400">
+                                x{item.qty}
+                              </p>
+                              {item.note && (
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
+                                  * {item.note}
+                                </p>
+                              )}
+                            </div>
                           </div>
+                          <span
+                            className={`text-xs font-medium mt-1.5 ${isChecked ? "text-zinc-900 dark:text-white" : "text-zinc-500"}`}
+                          >
+                            {item.note && item.price_package
+                              ? item.price_package.toLocaleString()
+                              : item.price.toLocaleString()}
+                          </span>
                         </div>
-                        <span className="text-xs font-medium text-zinc-900 dark:text-white mt-0.5">
-                          {item.note && item.price_package
-                            ? item.price_package.toLocaleString()
-                            : item.price.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -772,12 +884,12 @@ const PaymentPage = ({
                   </AlertDialogContent>
                 </AlertDialog>
 
-                {/* ✅ ล็อกปุ่มยืนยัน ถ้ายอดไม่พอ หรือตรวจสอบสมาชิกไม่ผ่าน */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       className="flex-1 h-12 text-lg font-bold rounded-xl shadow-lg shadow-zinc-900/10"
                       disabled={
+                        selectedItemIds.length === 0 ||
                         (paymentMethod === "CASH" && !isCashSufficient) ||
                         isProcessing ||
                         (paymentMethod === "MEMBER" &&
@@ -792,7 +904,9 @@ const PaymentPage = ({
                         </>
                       ) : (
                         <>
-                          ยืนยันการชำระเงิน
+                          {selectedItemIds.length < selectedOrder.items.length
+                            ? "ชำระเงินบางส่วน"
+                            : "ยืนยันการชำระเงิน"}
                           <ChevronRight className="ml-2 h-4 w-4" />
                         </>
                       )}
@@ -802,8 +916,9 @@ const PaymentPage = ({
                     <AlertDialogHeader>
                       <AlertDialogTitle>ยืนยันการชำระเงิน?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง"
-                        ทันที
+                        {selectedItemIds.length < selectedOrder.items.length
+                          ? `คุณกำลังชำระเงินแยกจ่าย (${selectedItemIds.length} รายการ) ระบบจะบันทึกยอดเงิน แต่โต๊ะจะยังไม่ว่างจนกว่าจะจ่ายครบ`
+                          : `ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง" ทันที`}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
