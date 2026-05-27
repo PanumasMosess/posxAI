@@ -38,9 +38,95 @@ export const updateStatusTable = async (idTable: number, status: string) => {
   }
 };
 
+// export const createPaymentOrder = async (data: any) => {
+//   try {
+//     await prisma.$transaction(async (tx) => {
+//       await tx.paymentorder.create({
+//         data: {
+//           cashReceived: data.cashReceived,
+//           change: data.change,
+//           discount: data.discount,
+//           totalAmount: data.totalAmount,
+//           paymentMethod: data.paymentMethod,
+//           updatedAt: new Date(),
+//           createdAt: new Date(),
+//           creator: {
+//             connect: { id: data.createdById },
+//           },
+//           organization: {
+//             connect: { id: data.organizationId },
+//           },
+//           table: {
+//             connect: { id: data.tableId },
+//           },
+//           runningRef: {
+//             connect: { runningCode: data.orderId },
+//           },
+//           shift: data.shiftId ? { connect: { id: data.shiftId } } : undefined,
+//         },
+//       });
+
+//       if (data.paymentMethod === "MEMBER") {
+//         if (!data.memberPhone) {
+//           throw new Error("ไม่พบเบอร์โทรศัพท์สมาชิก");
+//         }
+
+//         const member = await tx.member.findUnique({
+//           where: {
+//             phone_organizationId: {
+//               phone: data.memberPhone,
+//               organizationId: data.organizationId,
+//             },
+//           },
+//         });
+
+//         if (!member) {
+//           throw new Error("ไม่พบข้อมูลสมาชิกระบบ");
+//         }
+
+//         if (Number(member.creditBalance) < Number(data.totalAmount)) {
+//           throw new Error("เครดิตไม่เพียงพอ");
+//         }
+
+//         const updatedMember = await tx.member.update({
+//           where: { id: member.id },
+//           data: {
+//             creditBalance: {
+//               decrement: data.totalAmount,
+//             },
+//           },
+//         });
+
+//         await tx.membertransaction.create({
+//           data: {
+//             memberId: member.id,
+//             organizationId: data.organizationId,
+//             type: "SPEND",
+//             walletType: "CREDIT",
+//             amount: -data.totalAmount,
+//             balanceAfter: updatedMember.creditBalance,
+//             note: `ชำระค่าอาหาร (บิล: ${data.orderId})`,
+//             createdById: data.createdById,
+//           },
+//         });
+//       }
+//     });
+
+//     return { success: true, error: false };
+//   } catch (err) {
+//     console.error("Payment Transaction Error: ", err);
+//     return {
+//       success: false,
+//       error: true,
+//       message: err instanceof Error ? err.message : "Unknown error",
+//     };
+//   }
+// };
+
 export const createPaymentOrder = async (data: any) => {
   try {
     await prisma.$transaction(async (tx) => {
+      // 1. สร้างประวัติการชำระเงิน (Payment Order)
       await tx.paymentorder.create({
         data: {
           cashReceived: data.cashReceived,
@@ -50,22 +136,33 @@ export const createPaymentOrder = async (data: any) => {
           paymentMethod: data.paymentMethod,
           updatedAt: new Date(),
           createdAt: new Date(),
-          creator: {
-            connect: { id: data.createdById },
-          },
-          organization: {
-            connect: { id: data.organizationId },
-          },
-          table: {
-            connect: { id: data.tableId },
-          },
-          runningRef: {
-            connect: { runningCode: data.orderId },
-          },
-          shift: data.shiftId ? { connect: { id: data.shiftId } } : undefined,
+
+          createdById: data.createdById,
+          organizationId: data.organizationId,
+          tableId: data.tableId,
+          order_running_code: data.orderId, 
+          shiftId: data.shiftId || null,
+
         },
       });
 
+      if (
+        data.paidOrderIds &&
+        Array.isArray(data.paidOrderIds) &&
+        data.paidOrderIds.length > 0
+      ) {
+        await tx.order.updateMany({
+          where: {
+            id: { in: data.paidOrderIds },
+          },
+          data: {
+            status: "PAY_COMPLETED",
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      // 3. จัดการเรื่องเครดิต MEMBER
       if (data.paymentMethod === "MEMBER") {
         if (!data.memberPhone) {
           throw new Error("ไม่พบเบอร์โทรศัพท์สมาชิก");
@@ -91,9 +188,7 @@ export const createPaymentOrder = async (data: any) => {
         const updatedMember = await tx.member.update({
           where: { id: member.id },
           data: {
-            creditBalance: {
-              decrement: data.totalAmount,
-            },
+            creditBalance: { decrement: data.totalAmount },
           },
         });
 

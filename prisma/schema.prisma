@@ -41,9 +41,9 @@ model categorystock {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  categoryCode    String?   // เก็บ 'A', 'B', 'C'
-  menuRunningNumber   Int      @default(0) // เก็บตัวเลขล่าสุดที่ถูกรันไปแล้ว
-  
+  categoryCode      String? // เก็บ 'A', 'B', 'C'
+  menuRunningNumber Int     @default(0) // เก็บตัวเลขล่าสุดที่ถูกรันไปแล้ว
+
   createdById Int
   creator     employeepin @relation(fields: [createdById], references: [id])
 
@@ -99,7 +99,7 @@ model stock {
 
 model menu {
   id            Int      @id @default(autoincrement())
-  menuCode      String?   // เก็บ 'A1', 'B1'
+  menuCode      String? // เก็บ 'A1', 'B1'
   menuName      String
   price_sale    Float
   price_cost    Float
@@ -252,7 +252,7 @@ model orderrunning {
   organization   organization? @relation(fields: [organizationId], references: [id])
 
   order        order[]
-  paymentorder paymentorder?
+  paymentorder paymentorder[]
 }
 
 model paymentorder {
@@ -271,7 +271,7 @@ model paymentorder {
   organization       organization? @relation(fields: [organizationId], references: [id])
   tableId            Int?
   table              table?        @relation(fields: [tableId], references: [id])
-  order_running_code String        @unique
+  order_running_code String        
   runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
   shiftId            Int?
   shift              shift?        @relation(fields: [shiftId], references: [id])

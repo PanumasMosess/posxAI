@@ -16,6 +16,8 @@ import {
   Trash2,
   Receipt,
   Loader2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -79,6 +81,10 @@ const PaymentStatusPage = ({
   const router = useRouter();
   const { employeeId, employeeName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  // State สำหรับเก็บรายการอาหารที่ถูกเลือกเพื่อชำระเงิน
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+
   const [paymentMethod, setPaymentMethod] = useState<
     "QR" | "CASH" | "CARD" | "MEMBER"
   >("CASH");
@@ -97,7 +103,6 @@ const PaymentStatusPage = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [isAutoPrint, setIsAutoPrint] = useState(false);
-
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   useEffect(() => {
@@ -110,19 +115,41 @@ const PaymentStatusPage = ({
     setIsAutoPrint(savedAutoPrint);
   }, []);
 
+  // เมื่อเลือกบิลใหม่ ให้ Default เป็นการ "เลือกทุกรายการ" เพื่อจ่ายทั้งหมด
   useEffect(() => {
     setCashReceived("0");
     setDiscount("0");
     setMemberPhone("");
     setMemberData(null);
+    if (selectedOrder) {
+      setSelectedItemIds(selectedOrder.items.map((i: any) => i.id));
+    } else {
+      setSelectedItemIds([]);
+    }
   }, [selectedOrder, paymentMethod]);
 
-  const originalTotal = selectedOrder ? selectedOrder.total : 0;
+  // คำนวณยอดเงินเฉพาะรายการที่ "ถูกเลือก (ติ๊กถูก)" เท่านั้น
+  const originalTotal = useMemo(() => {
+    if (!selectedOrder) return 0;
+    return selectedOrder.items
+      .filter((i: any) => selectedItemIds.includes(i.id))
+      .reduce((sum: number, item: any) => sum + item.price, 0);
+  }, [selectedOrder, selectedItemIds]);
+
   const discountAmount = parseFloat(discount) || 0;
   const finalTotal = Math.max(0, originalTotal - discountAmount);
 
   const change = parseFloat(cashReceived || "0") - finalTotal;
   const isCashSufficient = change >= 0;
+
+  // ฟังก์ชันสำหรับสลับการเลือกรายการอาหาร
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId],
+    );
+  };
 
   const toggleAutoPrint = () => {
     const newState = !isAutoPrint;
@@ -267,6 +294,7 @@ const PaymentStatusPage = ({
             price: totalPriceForItem,
             note: item.note || order.note || null,
             price_package: item.menu?.price_package || 0,
+            orderId: order.id,
           });
         });
       }
@@ -333,11 +361,15 @@ const PaymentStatusPage = ({
     setIsProcessing(true);
     try {
       initQZSecurity();
+      const itemsToPrint = orderData.items.filter((i: any) =>
+        selectedItemIds.includes(i.id),
+      );
+
       const receiptData = {
         orderId: orderData.runningCode,
         table: orderData.table,
         date: new Date().toLocaleString("th-TH"),
-        items: orderData.items.map((i: any) => ({
+        items: itemsToPrint.map((i: any) => ({
           name: i.name,
           quantity: i.qty,
           price: i.price,
@@ -373,6 +405,10 @@ const PaymentStatusPage = ({
 
   const handlePayment = async () => {
     if (!selectedOrder) return;
+    if (selectedItemIds.length === 0) {
+      toast.warn("กรุณาเลือกรายการที่ต้องการชำระเงิน");
+      return;
+    }
 
     if (paymentMethod === "CASH" && !isCashSufficient) {
       toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
@@ -389,6 +425,7 @@ const PaymentStatusPage = ({
         return;
       }
     }
+
     setIsProcessing(true);
     const activeShift = await checkActiveShift(organizationId);
 
@@ -398,6 +435,11 @@ const PaymentStatusPage = ({
       setShowOpenShiftModal(true);
       return;
     }
+
+    // 🟢 ดึงเฉพาะ Order ID ของรายการที่คุณ "ติ๊กเลือก" เท่านั้น
+    const paidOrderIds = selectedOrder.items
+      .filter((i: any) => selectedItemIds.includes(i.id))
+      .map((i: any) => i.orderId);
 
     const paymentPayload = {
       orderId: selectedOrder.runningCode,
@@ -413,27 +455,38 @@ const PaymentStatusPage = ({
       change: paymentMethod === "CASH" ? change : 0,
       memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
       shiftId: activeShift.id,
+      // 🟢 ส่ง Array ของ Order ID ไปให้หลังบ้านเปลี่ยนสถานะ
+      paidOrderIds: Array.from(new Set(paidOrderIds)),
     };
 
     const create_status = await createPaymentOrder(paymentPayload);
 
     if (create_status.success) {
       try {
-        await updateStatusOrder(selectedOrder.runningCode, "PAY_COMPLETED");
+        const isPayingAllItems =
+          selectedItemIds.length === selectedOrder.items.length;
 
-        await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
-
-        toast.success("ชำระเงินเรียบร้อย!");
+        if (isPayingAllItems) {
+          await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+          toast.success("ชำระเงินครบถ้วน เคลียร์โต๊ะเรียบร้อย!");
+        } else {
+          toast.success(
+            "ชำระเงินบางส่วนสำเร็จ! (รายการที่จ่ายแล้วจะถูกซ่อนไว้)",
+          );
+        }
 
         if (isAutoPrint) {
           handlePrintReceipt(selectedOrder);
         }
 
         setSelectedOrder(null);
+        setSelectedItemIds([]);
+        setCashReceived("0");
+        setDiscount("0");
         router.refresh();
       } catch (updateError) {
         console.error("เกิดข้อผิดพลาดตอนอัปเดตสถานะ:", updateError);
-        toast.error("บันทึกเงินสำเร็จ แต่อัปเดตสถานะบิล/โต๊ะล้มเหลว");
+        toast.error("บันทึกเงินสำเร็จ แต่อัปเดตสถานะโต๊ะล้มเหลว");
       }
     } else {
       toast.error(
@@ -742,7 +795,7 @@ const PaymentStatusPage = ({
                 </Button>
                 <div>
                   <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
-                    ชำระเงิน
+                    ชำระเงิน (แยกจ่ายได้)
                   </h2>
                   <p className="text-[10px] text-zinc-400 font-mono">
                     ID: {selectedOrder.runningCode}
@@ -772,7 +825,7 @@ const PaymentStatusPage = ({
                 <div className="text-center relative pt-2 pb-4">
                   <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-900 rounded-3xl -z-10 transform -skew-y-2" />
                   <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-1">
-                    Total Amount
+                    ยอดที่เลือกชำระ (Total)
                   </p>
                   <div className="flex flex-col items-center justify-center gap-1 text-zinc-900 dark:text-white">
                     {discountAmount > 0 && (
@@ -817,48 +870,83 @@ const PaymentStatusPage = ({
                 <div>
                   <div className="flex items-center justify-between mb-2 px-1">
                     <p className="text-[10px] font-bold text-zinc-400 uppercase">
-                      รายการอาหาร
+                      เลือกรายการอาหารที่ต้องการจ่าย
                     </p>
-                    <Badge variant="secondary" className="text-[9px] h-4">
-                      {selectedOrder.items.length} รายการ
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto pr-2 custom-scrollbar border rounded-xl p-2">
-                    {selectedOrder.items.map((item: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex justify-between items-start p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg group"
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px]"
+                        onClick={() =>
+                          setSelectedItemIds(
+                            selectedOrder.items.map((i: any) => i.id),
+                          )
+                        }
                       >
-                        <div className="flex gap-2 items-start">
-                          <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm mt-0.5">
-                            <AvatarImage
-                              src={item.img || "/placeholder.png"}
-                              className="object-cover"
-                            />
-                            <AvatarFallback>IMG</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
-                              {item.name}
-                            </p>
-                            <p className="text-[10px] text-zinc-400">
-                              x{item.qty}
-                            </p>
+                        เลือกทั้งหมด
+                      </Button>
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] h-6 flex items-center justify-center"
+                      >
+                        เลือก {selectedItemIds.length}/
+                        {selectedOrder.items.length}
+                      </Badge>
+                    </div>
+                  </div>
 
-                            {item.note && (
-                              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
-                                * {item.note}
-                              </p>
+                  <div className="space-y-1 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar border rounded-xl p-2 bg-zinc-50 dark:bg-zinc-900/50">
+                    {selectedOrder.items.map((item: any, idx: number) => {
+                      const isChecked = selectedItemIds.includes(item.id);
+                      return (
+                        <div
+                          key={item.id || idx}
+                          onClick={() => toggleItemSelection(item.id)}
+                          className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-white dark:bg-zinc-800 shadow-sm border border-emerald-500/30"
+                              : "hover:bg-white dark:hover:bg-zinc-800 opacity-60"
+                          }`}
+                        >
+                          <div className="flex gap-3 items-center">
+                            {isChecked ? (
+                              <CheckSquare className="h-5 w-5 text-emerald-500" />
+                            ) : (
+                              <Square className="h-5 w-5 text-zinc-300" />
                             )}
+                            <Avatar className="h-8 w-8 rounded-md border border-zinc-100 shadow-sm">
+                              <AvatarImage
+                                src={item.img || "/placeholder.png"}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>IMG</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <p
+                                className={`text-xs font-semibold ${isChecked ? "text-zinc-900 dark:text-white" : "text-zinc-500"}`}
+                              >
+                                {item.name}
+                              </p>
+                              <p className="text-[10px] text-zinc-400">
+                                x{item.qty}
+                              </p>
+                              {item.note && (
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
+                                  * {item.note}
+                                </p>
+                              )}
+                            </div>
                           </div>
+                          <span
+                            className={`text-xs font-medium ${isChecked ? "text-zinc-900 dark:text-white" : "text-zinc-500"}`}
+                          >
+                            {item.note && item.price_package
+                              ? item.price_package.toLocaleString()
+                              : item.price.toLocaleString()}
+                          </span>
                         </div>
-                        <span className="text-xs font-medium text-zinc-900 dark:text-white mt-0.5">
-                          {item.note && item.price_package
-                            ? item.price_package.toLocaleString()
-                            : item.price.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -904,6 +992,7 @@ const PaymentStatusPage = ({
                     <Button
                       className="flex-1 h-12 text-base font-bold rounded-xl shadow-lg shadow-zinc-900/10"
                       disabled={
+                        selectedItemIds.length === 0 ||
                         (paymentMethod === "CASH" && !isCashSufficient) ||
                         isProcessing ||
                         (paymentMethod === "MEMBER" &&
@@ -918,7 +1007,9 @@ const PaymentStatusPage = ({
                         </>
                       ) : (
                         <>
-                          ยืนยันการชำระเงิน
+                          {selectedItemIds.length < selectedOrder.items.length
+                            ? "ชำระเงินบางส่วน"
+                            : "ยืนยันการชำระเงิน"}
                           <ChevronRight className="ml-2 h-4 w-4" />
                         </>
                       )}
@@ -928,8 +1019,9 @@ const PaymentStatusPage = ({
                     <AlertDialogHeader>
                       <AlertDialogTitle>ยืนยันการชำระเงิน?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง"
-                        ทันที
+                        {selectedItemIds.length < selectedOrder.items.length
+                          ? `คุณกำลังชำระเงินแยกจ่าย (${selectedItemIds.length} รายการ) ระบบจะบันทึกยอดเงิน แต่โต๊ะจะยังไม่ว่างจนกว่าจะจ่ายครบ`
+                          : `ระบบจะทำการบันทึกยอดเงินและเปลี่ยนสถานะโต๊ะเป็น "ว่าง" ทันที`}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
