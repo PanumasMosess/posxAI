@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import {
   Clock,
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusTableProps } from "@/lib/type";
-import { updateStatusOrder } from "@/lib/actions/actionMenu";
+import { updateStatusOrder, getKitchenOrders } from "@/lib/actions/actionMenu";
 import { toast } from "react-toastify";
 import qz from "qz-tray";
 import { printToKitchen } from "@/lib/printers/qz-service-kitchen";
@@ -75,14 +76,22 @@ export default function OrderStatusPage({
   const [filter, setFilter] = useState("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
-
   const [isAutoPrint, setIsAutoPrint] = useState(false);
 
-  // บันทึกรหัสสินค้าที่พิมพ์เพื่อคุมเฉพาะออเดอร์ใหม่
   const printedItemsRef = useRef<Set<number>>(new Set());
-  // 🟢 เพิ่มตัวแปรสำหรับป้องกันการเรียกฟังก์ชันซ้อนกันในเสี้ยววินาที
   const printingLockRef = useRef<Set<string>>(new Set());
   const isInitialLoad = useRef(true);
+
+  // 🟢 ระบบ Smart Polling
+  const { data: kitchenData, mutate } = useSWR(
+    organizationId ? `kitchen-data-${organizationId}` : null,
+    () => getKitchenOrders(organizationId!),
+    {
+      refreshInterval: 10000,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+    },
+  );
 
   useEffect(() => {
     const savedAutoPrint =
@@ -112,9 +121,9 @@ export default function OrderStatusPage({
     });
   };
 
-  const rawOrders = relatedData?.orderRunning || [];
+  const rawOrders = kitchenData?.orderRunning || [];
   const activeOrders = rawOrders.filter(
-    (order) =>
+    (order: any) =>
       !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status),
   );
 
@@ -133,13 +142,12 @@ export default function OrderStatusPage({
     prevOrderCountRef.current = activeOrders.length;
   }, [activeOrders]);
 
-  // 🟢 จัดกลุ่มใหม่: ยึด "ชื่อเมนู + ตัวเลือกเสริม" เป็นหลัก ไม่ว่าจะมาจากโต๊ะไหนก็จับมัดรวมกัน
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
-    activeOrders.forEach((order) => {
+    activeOrders.forEach((order: any) => {
       if (order.orderitems) {
-        order.orderitems.forEach((item) => {
+        order.orderitems.forEach((item: any) => {
           const categoryData = (item.menu as any)?.category;
           const printerName =
             categoryData?.printerName || "ไม่ระบุเครื่องพิมพ์";
@@ -154,7 +162,6 @@ export default function OrderStatusPage({
                 .join(", ")
             : "";
 
-          // 🟢 กลุ่มหลัก: ชื่อเมนู + ตัวเลือกเสริม + สถานะ (คนละโต๊ะก็เข้ากลุ่มนี้ได้)
           const groupKey = `${item.menu.menuName}-${modifierText}-${order.status}`;
 
           if (!groups[groupKey]) {
@@ -167,8 +174,8 @@ export default function OrderStatusPage({
               status: order.status,
               totalQuantity: 0,
               orderIds: [],
-              tables: [], // สำหรับโชว์ว่ามาจากโต๊ะไหนบ้างบนหน้าจอ
-              rawItems: [], // สำหรับประวัติการพิมพ์
+              tables: [],
+              rawItems: [],
               firstCreatedAt: order.createdAt,
             };
           }
@@ -179,7 +186,6 @@ export default function OrderStatusPage({
             groups[groupKey].orderIds.push(order.id);
           }
 
-          // เก็บข้อมูลโต๊ะเพื่อแสดงบนหน้าจอ
           const existingTable = groups[groupKey].tables.find(
             (t: any) => t.orderId === order.id,
           );
@@ -194,7 +200,6 @@ export default function OrderStatusPage({
             });
           }
 
-          // เก็บข้อมูลรายชิ้นเพื่อป้องกันการพิมพ์เบิ้ล
           groups[groupKey].rawItems.push({
             orderItemId: item.id,
             orderId: order.id,
@@ -214,7 +219,6 @@ export default function OrderStatusPage({
     );
   }, [activeOrders]);
 
-  // 🟢 ฟังก์ชันสั่งพิมพ์: พิมพ์รวบยอด เฉพาะของใหม่
   const handlePrint = async (
     group: any,
     isAutoPrintTrigger: boolean = false,
@@ -222,12 +226,10 @@ export default function OrderStatusPage({
     if (printingLockRef.current.has(group.uniqueKey)) return;
     printingLockRef.current.add(group.uniqueKey);
 
-    // 1. คัดเฉพาะรายการที่ยังไม่เคยสั่งพิมพ์
     const itemsToPrint = group.rawItems.filter(
       (item: any) => !printedItemsRef.current.has(item.orderItemId),
     );
 
-    // 2. ถ้ายกดปุ่มพิมพ์เอง (Manual) และไม่มีของใหม่ ให้พิมพ์ซ้ำยอดทั้งหมดไปเลย
     const finalItems =
       itemsToPrint.length === 0 && !isAutoPrintTrigger
         ? group.rawItems
@@ -238,7 +240,6 @@ export default function OrderStatusPage({
       return;
     }
 
-    // 3. จองสิทธิ์มาร์คไอดีสินค้าทันที ป้องกันคำสั่งแทรก
     if (isAutoPrintTrigger || itemsToPrint.length > 0) {
       finalItems.forEach((item: any) => {
         printedItemsRef.current.add(item.orderItemId);
@@ -268,13 +269,11 @@ export default function OrderStatusPage({
         }
       }
 
-      // คำนวณยอดรวมของสินค้าใหม่ที่ต้องพิมพ์
       const totalQtyForPrinter = finalItems.reduce(
         (sum: number, item: any) => sum + item.quantity,
         0,
       );
 
-      // สร้างชื่อเมนูแบบรวมยอดบนบิล เช่น "กะเพราไก่ x3"
       const menuTitle = `${group.menuName} x${totalQtyForPrinter}`;
 
       await printToKitchen(
@@ -299,7 +298,6 @@ export default function OrderStatusPage({
         toast.success("พิมพ์ใบสั่งทำรวบยอดสำเร็จ");
       }
     } catch (error: any) {
-      // คืนสิทธิ์ถ้าพิมพ์ล้มเหลว
       finalItems.forEach((item: any) => {
         printedItemsRef.current.delete(item.orderItemId);
       });
@@ -338,22 +336,26 @@ export default function OrderStatusPage({
       ? groupedOrders
       : groupedOrders.filter((group: any) => group.status === filter);
 
+  // 🟢 ฟังก์ชันอัปเดตสถานะ (ครอบด้วย Loading ป้องกันกดรัว)
   const onStatusChange = async (orderIds: number[], newStatus: string) => {
     setIsRefreshing(true);
     try {
       await Promise.all(orderIds.map((id) => updateStatusOrder(id, newStatus)));
+      await mutate();
       router.refresh();
     } catch (error) {
       console.error(error);
+      toast.error("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
     } finally {
-      setTimeout(() => setIsRefreshing(false), 500);
+      setIsRefreshing(false);
     }
   };
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    router.refresh();
-    setTimeout(() => setIsRefreshing(false), 1000);
+    await mutate();
+    setIsRefreshing(false);
+    toast.success("อัปเดตข้อมูลคิวครัวเรียบร้อย");
   };
 
   const toggleAutoPrint = () => {
@@ -366,11 +368,6 @@ export default function OrderStatusPage({
         : "ปิดพิมพ์อัตโนมัติ",
     );
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => router.refresh(), 10000);
-    return () => clearInterval(interval);
-  }, [router]);
 
   return (
     <div className="w-full h-full flex flex-col font-sans bg-zinc-50/50 dark:bg-zinc-950/20 rounded-xl">
@@ -480,7 +477,6 @@ export default function OrderStatusPage({
                     isLate ? "ring-2 ring-red-500/30" : "",
                   )}
                 >
-                  {/* 🟢 หัวการ์ด: แสดงชื่อเมนูและยอดรวมชัดๆ */}
                   <div className="p-4 flex gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -557,7 +553,6 @@ export default function OrderStatusPage({
 
                   <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-700 to-transparent mx-4" />
 
-                  {/* 🟢 ตัวการ์ดภายใน: คิวรายชื่อโต๊ะที่รอเมนูนี้ */}
                   <div className="flex-1 px-4 py-3 max-h-[240px] overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-zinc-200">
                     <p className="text-[10px] font-semibold text-zinc-400 mb-1">
                       จุดจัดส่งโต๊ะ:
@@ -586,6 +581,7 @@ export default function OrderStatusPage({
                               <button
                                 className="text-zinc-400 hover:text-red-500"
                                 title="ยกเลิกออเดอร์โต๊ะนี้"
+                                disabled={isRefreshing}
                               >
                                 <X className="h-4 w-4" />
                               </button>
@@ -603,11 +599,12 @@ export default function OrderStatusPage({
                               <AlertDialogFooter>
                                 <AlertDialogCancel>ปิด</AlertDialogCancel>
                                 <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700"
                                   onClick={() =>
                                     onStatusChange([table.orderId], "CANCELLED")
                                   }
                                 >
-                                  ยืนยันการลบ
+                                  ยืนยันการยกเลิก
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -624,6 +621,7 @@ export default function OrderStatusPage({
                         onClick={() =>
                           onStatusChange(group.orderIds, "COOKING")
                         }
+                        disabled={isRefreshing}
                       >
                         <Flame className="h-4 w-4 mr-2" /> ปรุงอาหาร
                       </Button>
@@ -631,6 +629,7 @@ export default function OrderStatusPage({
                       <Button
                         className="w-full h-10 border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 font-bold shadow-sm"
                         onClick={() => onStatusChange(group.orderIds, "READY")}
+                        disabled={isRefreshing}
                       >
                         <BellRing className="h-4 w-4 mr-2" /> เสร็จแล้ว
                       </Button>
@@ -640,6 +639,7 @@ export default function OrderStatusPage({
                         onClick={() =>
                           onStatusChange(group.orderIds, "COMPLETED")
                         }
+                        disabled={isRefreshing}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" /> ส่งมอบ
                       </Button>

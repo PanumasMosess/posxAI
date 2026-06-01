@@ -219,6 +219,7 @@ export const deleteMenuInCart = async (data: any) => {
   }
 };
 
+
 export const createOrder = async (items: CartItemPayload[]) => {
   try {
     const organizationId = items[0].organizationId;
@@ -444,5 +445,44 @@ export const updateTableStatus = async (
   } catch (err) {
     console.error("Update Table Error:", err);
     return { success: false, error: true, data: err };
+  }
+};
+
+export const getKitchenOrders = async (organizationId: number) => {
+  try {
+    const orderRunning = await prisma.order.findMany({
+      where: {
+        organizationId: Number(organizationId),
+        status: {
+          notIn: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+        },
+      },
+      include: {
+        table: true,
+        orderitems: {
+          include: {
+            menu: {
+              include: {
+                unitPrice: true, 
+                category: true,  
+              }
+            },
+            selectedModifiers: {
+              include: {
+                modifierItem: true,
+              }
+            }
+          }
+        },
+      },
+      orderBy: { 
+        createdAt: "asc" 
+      },
+    });
+
+    return { orderRunning };
+  } catch (error) {
+    console.error("Failed to fetch kitchen orders:", error);
+    throw new Error("Failed to fetch kitchen orders");
   }
 };
