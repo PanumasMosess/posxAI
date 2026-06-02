@@ -61,18 +61,33 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     lastYearTotal,
     employeeStats,
   } = useMemo(() => {
-    const now = new Date();
+    // 🟢 1. หากะล่าสุด (Latest Shift) เพื่อใช้เป็นบรรทัดฐานของคำว่า "วันนี้/เดือนนี้/ปีนี้"
+    let logicalNow = new Date();
+    if (orders && orders.length > 0) {
+      let maxTime = 0;
+      orders.forEach((payment: any) => {
+        const refStr =
+          payment.shift?.createdAt ||
+          payment.shift?.startTime ||
+          payment.createdAt;
+        const t = new Date(refStr).getTime();
+        if (t > maxTime) maxTime = t;
+      });
+      if (maxTime > 0) {
+        logicalNow = new Date(maxTime);
+      }
+    }
 
-    // ตัวแปรเวลาปัจจุบัน เอาไว้สร้างโครงกราฟเปล่าๆ รอรับข้อมูล
+    // เซ็ตเวลาเริ่มต้นของ "วัน/เดือน/ปี" จากกะล่าสุด แทนการใช้เวลาปัจจุบัน
     const todayMillis = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
+      logicalNow.getFullYear(),
+      logicalNow.getMonth(),
+      logicalNow.getDate(),
     ).getTime();
     const yesterdayMillis = todayMillis - 86400000;
 
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
+    const thisMonth = logicalNow.getMonth();
+    const thisYear = logicalNow.getFullYear();
     const lastMonthDate = new Date(thisYear, thisMonth - 1, 1);
     const lastMonth = lastMonthDate.getMonth();
     const lastMonthYear = lastMonthDate.getFullYear();
@@ -104,7 +119,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
       const d = new Date(todayMillis - (6 - i) * 86400000);
       return {
         name: d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" }),
-        timestamp: d.getTime(), // 00:00:00 ของวันนั้นๆ
+        timestamp: d.getTime(),
         total: 0,
       };
     });
@@ -132,75 +147,95 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     });
 
     orders.forEach((payment: any) => {
-      // 🟢 1. ดึงวันที่หลักของกะการทำงาน แทนการใช้เวลาที่พิมพ์บิล
-      // ถ้าบิลไม่มีกะ (อาจจะมาจากระบบเก่า) ให้ยึดจากเวลาพิมพ์บิลเป็นหลัก
-      const referenceDateStr = payment.shift?.startTime || payment.createdAt;
-      const shiftDate = new Date(referenceDateStr);
+      // 🟢 2. ดึงวันที่ของแต่ละบิล จากกะ (Shift Date) อย่างเข้มงวด
+      const referenceDateStr =
+        payment.shift?.createdAt ||
+        payment.shift?.startTime ||
+        payment.createdAt;
+      const targetDateObj = new Date(referenceDateStr);
 
-      const shiftTimeZero = new Date(
-        shiftDate.getFullYear(),
-        shiftDate.getMonth(),
-        shiftDate.getDate(),
+      const timeZero = new Date(
+        targetDateObj.getFullYear(),
+        targetDateObj.getMonth(),
+        targetDateObj.getDate(),
       ).getTime();
-      const sMonth = shiftDate.getMonth();
-      const sYear = shiftDate.getFullYear();
+
+      const pMonth = targetDateObj.getMonth();
+      const pYear = targetDateObj.getFullYear();
 
       const billTotal = payment.totalAmount || 0;
       const empId = String(payment.createdById);
 
-      // 🟢 2. นับจำนวนรายการอาหารในบิลใบนี้
       let itemsCount = 0;
+      const empItemTotals: Record<string, { sales: number; qty: number }> = {};
+
       if (payment.runningRef && payment.runningRef.order) {
         payment.runningRef.order.forEach((o: any) => {
-          o.orderitems?.forEach((item: any) => {
+          (o.orderitems || []).forEach((item: any) => {
+            const itemPrice = item.price_package || item.price || 0;
+            const itemTotal = itemPrice * item.quantity;
             itemsCount += item.quantity;
+
+            // หาสิทธิ์เจ้าของยอดขาย
+            const specificEmpId = String(
+              item.menu?.mcEmployeeId || o.employeeId || empId,
+            );
+            if (!empItemTotals[specificEmpId]) {
+              empItemTotals[specificEmpId] = { sales: 0, qty: 0 };
+            }
+            empItemTotals[specificEmpId].sales += itemTotal;
+            empItemTotals[specificEmpId].qty += item.quantity;
           });
         });
       }
 
-      // 🟢 3. อัปเดตผลงานพนักงาน (ใช้ shiftTimeZero แทน payTimeZero)
-      if (empStatsMap.has(empId)) {
-        const stat = empStatsMap.get(empId);
-        stat.totalSales += billTotal;
-        stat.totalItems += itemsCount;
+      // กระจายยอดเข้าพนักงาน (รายวัน/รายเดือน/รายปี อิงตามกะ 100%)
+      Object.entries(empItemTotals).forEach(([eId, data]) => {
+        if (empStatsMap.has(eId)) {
+          const stat = empStatsMap.get(eId);
+          stat.totalSales += data.sales;
+          stat.totalItems += data.qty;
 
-        if (shiftTimeZero === todayMillis) {
-          stat.todaySales += billTotal;
-          stat.todayItems += itemsCount;
+          if (timeZero === todayMillis) {
+            stat.todaySales += data.sales;
+            stat.todayItems += data.qty;
+          }
+          if (pMonth === thisMonth && pYear === thisYear) {
+            stat.monthSales += data.sales;
+            stat.monthItems += data.qty;
+          }
+          if (pYear === thisYear) {
+            stat.yearSales += data.sales;
+            stat.yearItems += data.qty;
+          }
         }
-        if (sMonth === thisMonth && sYear === thisYear) {
-          stat.monthSales += billTotal;
-          stat.monthItems += itemsCount;
-        }
-        if (sYear === thisYear) {
-          stat.yearSales += billTotal;
-          stat.yearItems += itemsCount;
-        }
-      }
+      });
 
-      const isSelectedMatch =
-        isAdmin && selectedEmpId === "ALL" ? true : empId === selectedEmpId;
+      // 🟢 3. อัปเดตกราฟภาพรวมร้าน (รายวัน/รายเดือน/รายปี)
+      const isAll = isAdmin && selectedEmpId === "ALL";
+      const salesToAdd = isAll
+        ? billTotal
+        : empItemTotals[selectedEmpId]?.sales || 0;
 
-      // 🟢 4. อัปเดตยอดรวมและกราฟ (ใช้เวลาของกะ เป็นตัวกำหนดวัน/เดือน/ปี)
-      if (isSelectedMatch) {
-        if (shiftTimeZero === todayMillis) tTotal += billTotal;
-        if (shiftTimeZero === yesterdayMillis) yTotal += billTotal;
-        if (sMonth === thisMonth && sYear === thisYear) tmTotal += billTotal;
-        if (sMonth === lastMonth && sYear === lastMonthYear)
-          lmTotal += billTotal;
-        if (sYear === thisYear) tyTotal += billTotal;
-        if (sYear === thisYear - 1) lyTotal += billTotal;
+      if (salesToAdd > 0 || isAll) {
+        if (timeZero === todayMillis) tTotal += salesToAdd;
+        if (timeZero === yesterdayMillis) yTotal += salesToAdd;
+        if (pMonth === thisMonth && pYear === thisYear) tmTotal += salesToAdd;
+        if (pMonth === lastMonth && pYear === lastMonthYear)
+          lmTotal += salesToAdd;
+        if (pYear === thisYear) tyTotal += salesToAdd;
+        if (pYear === thisYear - 1) lyTotal += salesToAdd;
 
-        const dIndex = dData.findIndex((d) => d.timestamp === shiftTimeZero);
-        if (dIndex !== -1) dData[dIndex].total += billTotal;
+        const dIndex = dData.findIndex((d) => d.timestamp === timeZero);
+        if (dIndex !== -1) dData[dIndex].total += salesToAdd;
 
         const mIndex = mData.findIndex(
-          (m) => m.month === sMonth && m.year === sYear,
+          (m) => m.month === pMonth && m.year === pYear,
         );
-        if (mIndex !== -1) mData[mIndex].total += billTotal;
+        if (mIndex !== -1) mData[mIndex].total += salesToAdd;
 
-        const yIndex = yData.findIndex((y) => y.year === sYear);
-        if (yIndex !== -1) yData[yIndex].total += billTotal;
+        const yIndex = yData.findIndex((y) => y.year === pYear);
+        if (yIndex !== -1) yData[yIndex].total += salesToAdd;
       }
     });
 
