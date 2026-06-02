@@ -3,44 +3,64 @@
 import { KitchecOrderList } from "@/lib/type";
 import KitchenTicket from "./KitchenTicket";
 import { useRouter } from "next/navigation";
-import { updateStatusOrder } from "@/lib/actions/actionMenu";
-import { UtensilsCrossed } from "lucide-react";
+import { updateStatusOrder, getKitchenOrders } from "@/lib/actions/actionMenu";
+import { UtensilsCrossed, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { useUser } from "../providers/UserContext";
+import useSWR from "swr"; 
 
 const KitchecPage = ({
-  initialItems,
+  initialItems, 
   id_user,
   organizationId,
 }: KitchecOrderList) => {
   const { employeeId } = useUser();
   const router = useRouter();
 
-  const activeOrders = initialItems.filter(
-    (order) =>
+  const {
+    data: kitchenData,
+    mutate,
+    isLoading,
+  } = useSWR<any>(
+    organizationId ? `kitchen-data-${organizationId}` : null,
+    () => getKitchenOrders(organizationId!),
+    {
+      refreshInterval: 10000,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+    },
+  );
+
+
+  const rawOrders = kitchenData?.orderRunning || [];
+  const activeOrders = rawOrders.filter(
+    (order: any) =>
       !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status),
   );
 
   const prevOrderCountRef = useRef(activeOrders.length);
 
   const onStatusChange = async (idOrder: number | number[], status: string) => {
-    if (Array.isArray(idOrder)) {
-      for (const id of idOrder) {
-        await updateStatusOrder(id, status);
+    try {
+      if (Array.isArray(idOrder)) {
+        await Promise.all(idOrder.map((id) => updateStatusOrder(id, status)));
+      } else {
+        await updateStatusOrder(idOrder, status);
       }
-    } else {
-      await updateStatusOrder(idOrder, status);
+      await mutate();
+      router.refresh();
+    } catch (error) {
+      console.error("Error updating status:", error);
     }
-    router.refresh();
   };
 
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
-    activeOrders.forEach((order) => {
-      order.orderitems.forEach((item) => {
+    activeOrders.forEach((order: any) => {
+      order.orderitems.forEach((item: any) => {
         const modifierKey = item.selectedModifiers
-          .map((m) => m.modifierItem.name)
+          .map((m: any) => m.modifierItem.name)
           .sort()
           .join("|");
 
@@ -66,7 +86,7 @@ const KitchecPage = ({
 
         groups[groupKey].orders.push({
           id: order.id,
-          tableName: order.table.tableName,
+          tableName: order.table?.tableName || "ไม่ระบุโต๊ะ",
           quantity: item.quantity,
           status: order.status,
           order_running_code: order.order_running_code,
@@ -78,13 +98,6 @@ const KitchecPage = ({
     return Object.values(groups);
   }, [activeOrders]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [router]);
 
   useEffect(() => {
     if (activeOrders.length > prevOrderCountRef.current) {
@@ -110,7 +123,12 @@ const KitchecPage = ({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
-        {activeOrders.length === 0 ? (
+        {isLoading && !kitchenData ? (
+          <div className="col-span-full flex flex-col justify-center items-center p-16 text-zinc-400">
+            <Loader2 className="h-10 w-10 animate-spin mb-4 text-blue-500" />
+            <p className="font-medium">กำลังโหลดคิวครัว...</p>
+          </div>
+        ) : activeOrders.length === 0 ? (
           <div className="col-span-full flex justify-center p-8">
             <div
               className="
