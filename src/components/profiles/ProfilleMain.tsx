@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import {
   Users,
   BarChart3,
