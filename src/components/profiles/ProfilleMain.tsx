@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   BarChart3,
@@ -62,12 +63,13 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
   } = useMemo(() => {
     const now = new Date();
 
-    const today = new Date(
+    // ตัวแปรเวลาปัจจุบัน เอาไว้สร้างโครงกราฟเปล่าๆ รอรับข้อมูล
+    const todayMillis = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate(),
     ).getTime();
-    const yesterday = today - 86400000;
+    const yesterdayMillis = todayMillis - 86400000;
 
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
@@ -99,10 +101,10 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     });
 
     const dData = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(today - (6 - i) * 86400000);
+      const d = new Date(todayMillis - (6 - i) * 86400000);
       return {
         name: d.toLocaleDateString("th-TH", { day: "2-digit", month: "short" }),
-        timestamp: d.getTime(),
+        timestamp: d.getTime(), // 00:00:00 ของวันนั้นๆ
         total: 0,
       };
     });
@@ -130,18 +132,23 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     });
 
     orders.forEach((payment: any) => {
-      const payDate = new Date(payment.createdAt);
-      const payTimeZero = new Date(
-        payDate.getFullYear(),
-        payDate.getMonth(),
-        payDate.getDate(),
+      // 🟢 1. ดึงวันที่หลักของกะการทำงาน แทนการใช้เวลาที่พิมพ์บิล
+      // ถ้าบิลไม่มีกะ (อาจจะมาจากระบบเก่า) ให้ยึดจากเวลาพิมพ์บิลเป็นหลัก
+      const referenceDateStr = payment.shift?.startTime || payment.createdAt;
+      const shiftDate = new Date(referenceDateStr);
+
+      const shiftTimeZero = new Date(
+        shiftDate.getFullYear(),
+        shiftDate.getMonth(),
+        shiftDate.getDate(),
       ).getTime();
-      const pMonth = payDate.getMonth();
-      const pYear = payDate.getFullYear();
+      const sMonth = shiftDate.getMonth();
+      const sYear = shiftDate.getFullYear();
 
       const billTotal = payment.totalAmount || 0;
-      const empId = String(payment.createdById); 
+      const empId = String(payment.createdById);
 
+      // 🟢 2. นับจำนวนรายการอาหารในบิลใบนี้
       let itemsCount = 0;
       if (payment.runningRef && payment.runningRef.order) {
         payment.runningRef.order.forEach((o: any) => {
@@ -151,20 +158,21 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
         });
       }
 
+      // 🟢 3. อัปเดตผลงานพนักงาน (ใช้ shiftTimeZero แทน payTimeZero)
       if (empStatsMap.has(empId)) {
         const stat = empStatsMap.get(empId);
         stat.totalSales += billTotal;
         stat.totalItems += itemsCount;
 
-        if (payTimeZero === today) {
+        if (shiftTimeZero === todayMillis) {
           stat.todaySales += billTotal;
           stat.todayItems += itemsCount;
         }
-        if (pMonth === thisMonth && pYear === thisYear) {
+        if (sMonth === thisMonth && sYear === thisYear) {
           stat.monthSales += billTotal;
           stat.monthItems += itemsCount;
         }
-        if (pYear === thisYear) {
+        if (sYear === thisYear) {
           stat.yearSales += billTotal;
           stat.yearItems += itemsCount;
         }
@@ -173,24 +181,25 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
       const isSelectedMatch =
         isAdmin && selectedEmpId === "ALL" ? true : empId === selectedEmpId;
 
+      // 🟢 4. อัปเดตยอดรวมและกราฟ (ใช้เวลาของกะ เป็นตัวกำหนดวัน/เดือน/ปี)
       if (isSelectedMatch) {
-        if (payTimeZero === today) tTotal += billTotal;
-        if (payTimeZero === yesterday) yTotal += billTotal;
-        if (pMonth === thisMonth && pYear === thisYear) tmTotal += billTotal;
-        if (pMonth === lastMonth && pYear === lastMonthYear)
+        if (shiftTimeZero === todayMillis) tTotal += billTotal;
+        if (shiftTimeZero === yesterdayMillis) yTotal += billTotal;
+        if (sMonth === thisMonth && sYear === thisYear) tmTotal += billTotal;
+        if (sMonth === lastMonth && sYear === lastMonthYear)
           lmTotal += billTotal;
-        if (pYear === thisYear) tyTotal += billTotal;
-        if (pYear === thisYear - 1) lyTotal += billTotal;
+        if (sYear === thisYear) tyTotal += billTotal;
+        if (sYear === thisYear - 1) lyTotal += billTotal;
 
-        const dIndex = dData.findIndex((d) => d.timestamp === payTimeZero);
+        const dIndex = dData.findIndex((d) => d.timestamp === shiftTimeZero);
         if (dIndex !== -1) dData[dIndex].total += billTotal;
 
         const mIndex = mData.findIndex(
-          (m) => m.month === pMonth && m.year === pYear,
+          (m) => m.month === sMonth && m.year === sYear,
         );
         if (mIndex !== -1) mData[mIndex].total += billTotal;
 
-        const yIndex = yData.findIndex((y) => y.year === pYear);
+        const yIndex = yData.findIndex((y) => y.year === sYear);
         if (yIndex !== -1) yData[yIndex].total += billTotal;
       }
     });
@@ -211,7 +220,6 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     };
   }, [orders, isAdmin, selectedEmpId, allEmployees]);
 
-  // 🟢 หาค่า Label สกุลเงิน โดยเจาะเข้าไปใน runningRef.order
   const currencyLabel =
     orders[0]?.runningRef?.order?.[0]?.orderitems?.[0]?.menu?.unitPrice
       ?.label || "฿";
