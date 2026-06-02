@@ -6,23 +6,43 @@ const page = async () => {
   const session = await auth();
   const organizationId = session?.user.organizationId ?? 0;
 
-  const itemsDataOrder = await prisma.order.findMany({
+  const paymentsData = await prisma.paymentorder.findMany({
     where: {
       organizationId: Number(organizationId),
-      status: {
-        in: ["PAY_COMPLETED"],
-      },
     },
     include: {
-      orderitems: {
+      table: true,
+      creator: true,
+      shift: true,
+      runningRef: {
         include: {
-          menu: {
+          order: {
+            where: {
+              status: "PAY_COMPLETED",
+            },
             include: {
-              unitPrice: true,
+              orderitems: {
+                include: {
+                  menu: {
+                    include: {
+                      unitPrice: true,
+                      category: true,
+                    },
+                  },
+                  selectedModifiers: {
+                    include: {
+                      modifierItem: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
       },
+    },
+    orderBy: {
+      createdAt: "asc",
     },
   });
 
@@ -31,7 +51,7 @@ const page = async () => {
     select: { id: true, name: true, surname: true },
   });
 
-  return <ProfilleMain orders={itemsDataOrder} allEmployees={allEmployees} />;
+  return <ProfilleMain orders={paymentsData} allEmployees={allEmployees} />;
 };
 
 export default page;
