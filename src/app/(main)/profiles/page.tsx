@@ -10,7 +10,7 @@ const page = async () => {
     where: {
       organizationId: Number(organizationId),
       status: {
-        in: ["CANCELLED", "PAY_COMPLETED"],
+        in: ["PAY_COMPLETED"],
       },
     },
     include: {
@@ -25,7 +25,6 @@ const page = async () => {
       },
     },
   });
-
 
   const allEmployees = await prisma.employeepin.findMany({
     where: { organizationId: Number(organizationId) },
