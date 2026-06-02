@@ -129,67 +129,70 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
       };
     });
 
-    orders.forEach((order) => {
-      if (order.status === "CANCELLED") return;
-
-      const orderDate = new Date(order.createdAt);
-      const orderTimeZero = new Date(
-        orderDate.getFullYear(),
-        orderDate.getMonth(),
-        orderDate.getDate(),
+    orders.forEach((payment: any) => {
+      const payDate = new Date(payment.createdAt);
+      const payTimeZero = new Date(
+        payDate.getFullYear(),
+        payDate.getMonth(),
+        payDate.getDate(),
       ).getTime();
-      const oMonth = orderDate.getMonth();
-      const oYear = orderDate.getFullYear();
+      const pMonth = payDate.getMonth();
+      const pYear = payDate.getFullYear();
 
-      (order.orderitems || []).forEach((item: any) => {
-        const itemPrice = item.price_package || item.price || 0;
-        const itemTotal = itemPrice * item.quantity;
+      const billTotal = payment.totalAmount || 0;
+      const empId = String(payment.createdById); 
 
-        const empId = String(item.menu?.mcEmployeeId || order.employeeId);
+      let itemsCount = 0;
+      if (payment.runningRef && payment.runningRef.order) {
+        payment.runningRef.order.forEach((o: any) => {
+          o.orderitems?.forEach((item: any) => {
+            itemsCount += item.quantity;
+          });
+        });
+      }
 
-        if (empStatsMap.has(empId)) {
-          const stat = empStatsMap.get(empId);
-          stat.totalSales += itemTotal;
-          stat.totalItems += item.quantity;
+      if (empStatsMap.has(empId)) {
+        const stat = empStatsMap.get(empId);
+        stat.totalSales += billTotal;
+        stat.totalItems += itemsCount;
 
-          if (orderTimeZero === today) {
-            stat.todaySales += itemTotal;
-            stat.todayItems += item.quantity;
-          }
-          if (oMonth === thisMonth && oYear === thisYear) {
-            stat.monthSales += itemTotal;
-            stat.monthItems += item.quantity;
-          }
-          if (oYear === thisYear) {
-            stat.yearSales += itemTotal;
-            stat.yearItems += item.quantity;
-          }
+        if (payTimeZero === today) {
+          stat.todaySales += billTotal;
+          stat.todayItems += itemsCount;
         }
-
-        const isSelectedMatch =
-          isAdmin && selectedEmpId === "ALL" ? true : empId === selectedEmpId;
-
-        if (isSelectedMatch) {
-          if (orderTimeZero === today) tTotal += itemTotal;
-          if (orderTimeZero === yesterday) yTotal += itemTotal;
-          if (oMonth === thisMonth && oYear === thisYear) tmTotal += itemTotal;
-          if (oMonth === lastMonth && oYear === lastMonthYear)
-            lmTotal += itemTotal;
-          if (oYear === thisYear) tyTotal += itemTotal;
-          if (oYear === thisYear - 1) lyTotal += itemTotal;
-
-          const dIndex = dData.findIndex((d) => d.timestamp === orderTimeZero);
-          if (dIndex !== -1) dData[dIndex].total += itemTotal;
-
-          const mIndex = mData.findIndex(
-            (m) => m.month === oMonth && m.year === oYear,
-          );
-          if (mIndex !== -1) mData[mIndex].total += itemTotal;
-
-          const yIndex = yData.findIndex((y) => y.year === oYear);
-          if (yIndex !== -1) yData[yIndex].total += itemTotal;
+        if (pMonth === thisMonth && pYear === thisYear) {
+          stat.monthSales += billTotal;
+          stat.monthItems += itemsCount;
         }
-      });
+        if (pYear === thisYear) {
+          stat.yearSales += billTotal;
+          stat.yearItems += itemsCount;
+        }
+      }
+
+      const isSelectedMatch =
+        isAdmin && selectedEmpId === "ALL" ? true : empId === selectedEmpId;
+
+      if (isSelectedMatch) {
+        if (payTimeZero === today) tTotal += billTotal;
+        if (payTimeZero === yesterday) yTotal += billTotal;
+        if (pMonth === thisMonth && pYear === thisYear) tmTotal += billTotal;
+        if (pMonth === lastMonth && pYear === lastMonthYear)
+          lmTotal += billTotal;
+        if (pYear === thisYear) tyTotal += billTotal;
+        if (pYear === thisYear - 1) lyTotal += billTotal;
+
+        const dIndex = dData.findIndex((d) => d.timestamp === payTimeZero);
+        if (dIndex !== -1) dData[dIndex].total += billTotal;
+
+        const mIndex = mData.findIndex(
+          (m) => m.month === pMonth && m.year === pYear,
+        );
+        if (mIndex !== -1) mData[mIndex].total += billTotal;
+
+        const yIndex = yData.findIndex((y) => y.year === pYear);
+        if (yIndex !== -1) yData[yIndex].total += billTotal;
+      }
     });
 
     const statsArray = Array.from(empStatsMap.values());
@@ -208,8 +211,10 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     };
   }, [orders, isAdmin, selectedEmpId, allEmployees]);
 
+  // 🟢 หาค่า Label สกุลเงิน โดยเจาะเข้าไปใน runningRef.order
   const currencyLabel =
-    orders[0]?.orderitems?.[0]?.menu?.unitPrice?.label || "฿";
+    orders[0]?.runningRef?.order?.[0]?.orderitems?.[0]?.menu?.unitPrice
+      ?.label || "฿";
 
   useEffect(() => {
     if (isAdmin) {
@@ -266,7 +271,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
         observer.unobserve(loadMoreRef.current);
       }
     };
-  }, [sortedDisplayEmployees.length, viewMode]); 
+  }, [sortedDisplayEmployees.length, viewMode]);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-3 sm:p-4 md:p-8">
