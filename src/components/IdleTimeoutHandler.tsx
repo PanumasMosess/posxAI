@@ -79,7 +79,7 @@ export default function IdleTimeoutHandler() {
           result.img ?? null,
         );
 
-        toast.success(`ปลดล็อกสำเร็จ (พนักงาน: ${result.employeeName})`);
+        // toast.success(`ปลดล็อกสำเร็จ (พนักงาน: ${result.employeeName})`);
       } else {
         setIsError(true);
         setTimeout(() => {
