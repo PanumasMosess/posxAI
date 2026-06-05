@@ -115,31 +115,55 @@ export function Data_table_payment<TData, TValue>({
     },
   });
 
-  const totalSum = useMemo(() => {
-    return table.getFilteredRowModel().rows.reduce((sum, row) => {
-      return sum + (Number((row.original as any).totalAmount) || 0);
-    }, 0);
+  // 🟢 รวมยอดค้นหา พร้อมแยกประเภทการชำระเงิน
+  const { totalSum, filteredBreakdown } = useMemo(() => {
+    let total = 0;
+    const breakdown = { CASH: 0, QR: 0, MEMBER: 0 };
+
+    table.getFilteredRowModel().rows.forEach((row) => {
+      const item = row.original as any;
+      const amount = Number(item.totalAmount) || 0;
+      total += amount;
+
+      const method = item.paymentMethod?.toUpperCase();
+      if (method === "CASH") breakdown.CASH += amount;
+      else if (method === "QR") breakdown.QR += amount;
+      else if (method === "MEMBER") breakdown.MEMBER += amount;
+    });
+
+    return { totalSum: total, filteredBreakdown: breakdown };
   }, [table.getFilteredRowModel().rows]);
 
-  const todayTotal = useMemo(() => {
+  // 🟢 รวมยอดวันนี้ พร้อมแยกประเภทการชำระเงิน
+  const { todayTotal, todayBreakdown } = useMemo(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-    return data.reduce((sum, item: any) => {
+    let total = 0;
+    const breakdown = { CASH: 0, QR: 0, MEMBER: 0 };
+
+    data.forEach((item: any) => {
       const shiftData = item.shift || {};
       const businessDateRaw =
         shiftData.createdAt || shiftData.startTime || item.createdAt;
 
-      if (!businessDateRaw) return sum;
+      if (!businessDateRaw) return;
 
       const itemDate = new Date(businessDateRaw);
       const itemDateStr = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, "0")}-${String(itemDate.getDate()).padStart(2, "0")}`;
 
       if (itemDateStr === todayStr) {
-        return sum + (Number(item.totalAmount) || 0);
+        const amount = Number(item.totalAmount) || 0;
+        total += amount;
+
+        const method = item.paymentMethod?.toUpperCase();
+        if (method === "CASH") breakdown.CASH += amount;
+        else if (method === "QR") breakdown.QR += amount;
+        else if (method === "MEMBER") breakdown.MEMBER += amount;
       }
-      return sum;
-    }, 0);
+    });
+
+    return { todayTotal: total, todayBreakdown: breakdown };
   }, [data]);
 
   const currencyLabel = useMemo(() => {
@@ -164,33 +188,54 @@ export function Data_table_payment<TData, TValue>({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-wrap justify-end">
-          <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 w-full sm:w-auto justify-center">
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
-              ยอดขายวันนี้:
-            </span>
-            <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
-              {todayTotal.toLocaleString()}
-            </span>
-            <span className="text-xs text-blue-600 dark:text-blue-400 font-normal">
-              {currencyLabel}
-            </span>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto flex-wrap justify-end">
+          {/* 🟢 ยอดขายวันนี้ + ขยายฟอนต์ตัวย่อย */}
+          <div className="flex flex-col bg-blue-50 dark:bg-blue-900/20 px-4 py-2.5 rounded-lg border border-blue-200 dark:border-blue-800 w-full sm:w-auto min-w-[200px]">
+            <div className="flex items-baseline gap-2 justify-center sm:justify-start">
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                ยอดขายวันนี้:
+              </span>
+              <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
+                {todayTotal.toLocaleString()}
+              </span>
+              <span className="text-xs text-blue-600 dark:text-blue-400 font-normal">
+                {currencyLabel}
+              </span>
+            </div>
+            {/* 🟢 ขยายฟอนต์เป็น text-xs และปรับให้หนา font-semibold */}
+            <div className="flex items-center justify-center sm:justify-start gap-3 mt-1.5 text-xs font-semibold text-blue-600/90 dark:text-blue-400/90">
+              <span>CASH: {todayBreakdown.CASH.toLocaleString()}</span>
+              <span className="opacity-40">|</span>
+              <span>QR: {todayBreakdown.QR.toLocaleString()}</span>
+              <span className="opacity-40">|</span>
+              <span>MEM: {todayBreakdown.MEMBER.toLocaleString()}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full sm:w-auto justify-center">
-            <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              ยอดตามการค้นหา:
-            </span>
-            <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
-              {totalSum.toLocaleString()}
-            </span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-normal">
-              {currencyLabel}
-            </span>
+          {/* 🟢 ยอดตามการค้นหา + ขยายฟอนต์ตัวย่อย */}
+          <div className="flex flex-col bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full sm:w-auto min-w-[200px]">
+            <div className="flex items-baseline gap-2 justify-center sm:justify-start">
+              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                ยอดตามการค้นหา:
+              </span>
+              <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                {totalSum.toLocaleString()}
+              </span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-normal">
+                {currencyLabel}
+              </span>
+            </div>
+            {/* 🟢 ขยายฟอนต์เป็น text-xs และปรับให้หนา font-semibold */}
+            <div className="flex items-center justify-center sm:justify-start gap-3 mt-1.5 text-xs font-semibold text-emerald-600/90 dark:text-emerald-400/90">
+              <span>CASH: {filteredBreakdown.CASH.toLocaleString()}</span>
+              <span className="opacity-40">|</span>
+              <span>QR: {filteredBreakdown.QR.toLocaleString()}</span>
+              <span className="opacity-40">|</span>
+              <span>MEM: {filteredBreakdown.MEMBER.toLocaleString()}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            {/* 🟢 ตัวเลือกช่วงวันที่แบบ Popover ปฏิทินตัวเดียว */}
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
@@ -231,7 +276,6 @@ export function Data_table_payment<TData, TValue>({
                 </PopoverContent>
               </Popover>
 
-              {/* ปุ่มเคลียร์วันที่ */}
               {dateRange?.from && (
                 <Button
                   variant="ghost"
