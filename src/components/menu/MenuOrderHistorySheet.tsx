@@ -89,7 +89,8 @@ export const MenuOrderHistorySheet = ({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <SheetTitle className="text-lg font-bold">
-            รายการที่สั่ง {tableNumber !== 0 && `(โต๊ะ ${tableNumber})`}
+            รายการที่สั่ง 
+            {/* {tableNumber !== 0 && `(โต๊ะ ${tableNumber})`} */}
           </SheetTitle>
 
           <div className="flex items-center gap-2 pr-8">

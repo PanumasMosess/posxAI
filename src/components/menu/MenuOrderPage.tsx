@@ -213,7 +213,8 @@ const MenuOrderPage = ({
       .filter((item: any) => {
         return (
           item.menuName?.toLowerCase().includes(lowercasedFilter) ||
-          item.description?.toLowerCase().includes(lowercasedFilter)
+          item.description?.toLowerCase().includes(lowercasedFilter) ||
+          item.menuCode?.toLowerCase().includes(lowercasedFilter)
         );
       });
 
