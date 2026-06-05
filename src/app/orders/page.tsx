@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
-import MenuOrderPage from "@/components/menu/MenuOrderPage";
+import MenuBookPage from "@/components/menu/MenuBookPage";
+//import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
 import { PropsUrl } from "@/lib/type";
 import { Building2 } from "lucide-react";
@@ -58,7 +59,7 @@ const page = async (props: PropsUrl) => {
       },
     },
     orderBy: {
-      id: "desc",
+      id: "asc",
     },
   });
 
@@ -72,7 +73,7 @@ const page = async (props: PropsUrl) => {
       organizationId: organizationId,
     },
     orderBy: {
-      id: "desc",
+      id: "asc",
     },
   });
 
@@ -131,12 +132,12 @@ const page = async (props: PropsUrl) => {
   };
 
   return (
-    <MenuOrderPage
+    <MenuBookPage
       relatedData={relatedData}
       initialItems={itemsData}
       id_user={0}
       organizationId={organizationId}
-    ></MenuOrderPage>
+    ></MenuBookPage>
   );
 };
 

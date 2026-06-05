@@ -3,7 +3,9 @@ import { Button } from "../ui/button";
 import { CartItem, MenuOrderDetailProps } from "@/lib/type";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Minus, Plus, X, Table } from "lucide-react";
+// เปลี่ยนจากของเดิม ให้มีไอคอนเหล่านี้เพิ่มเข้ามา
+import { Loader2, Minus, Plus, X, Table, ZoomIn, Share2, PlusCircle, Info } from "lucide-react";
+
 import {
   Select,
   SelectContent,
@@ -439,39 +441,68 @@ const MenuOrderDetailDialog = ({
           </div>
         </div>
       </motion.div>
-
-      <AnimatePresence>
+<AnimatePresence>
         {isImageZoomed && menuDetail?.img && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md"
+            // พื้นหลังดำโปร่งแสง พร้อมเอฟเฟกต์เบลอ (blur) ลึกๆ
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-2xl p-4 md:p-8"
             onClick={() => setIsImageZoomed(false)}
           >
-            <button
-              className="absolute top-6 right-6 text-white bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors z-50 backdrop-blur-sm"
+            {/* ปุ่มปิด X สไตล์ Glassmorphism เรียบหรู */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="absolute top-6 right-6 md:top-10 md:right-10 text-white/70 bg-white/10 hover:bg-white/20 hover:text-white rounded-full p-4 transition-all z-50 backdrop-blur-md border border-white/20 shadow-2xl"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsImageZoomed(false);
               }}
             >
-              <X size={24} />
-            </button>
+              <X size={28} strokeWidth={1.5} />
+            </motion.button>
+
+            {/* คอนเทนเนอร์หลักของรูปภาพ */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-2xl h-[80vh] md:h-[90vh]"
+              // เพิ่มอนิเมชันให้รูปเหมือนลอยเข้ามาจากด้านหน้า (scale) และพับลงมานิดๆ (rotateX)
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative flex items-center justify-center w-full max-w-5xl group"
               onClick={(e) => e.stopPropagation()}
             >
-              <Image
+              {/* เอฟเฟกต์แสงเรืองๆ (Glow) ด้านหลังรูปภาพ */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 rounded-[2rem] blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-700 animate-pulse"></div>
+
+              {/* รูปภาพหลัก */}
+              <img
                 src={menuDetail.img}
                 alt={menuDetail.menuName || "Full image"}
-                fill
-                className="object-contain"
+                className="relative max-w-full max-h-[65vh] md:max-h-[75vh] rounded-[2rem] border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] object-contain select-none z-10 bg-black/20"
               />
+
+              {/* ป้ายชื่อเมนูลอยๆ ด้านข้าง (โชว์เฉพาะจอใหญ่) */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+                className="absolute -right-4 md:-right-24 lg:-right-32 top-1/2 -translate-y-1/2 hidden md:block bg-black/40 backdrop-blur-xl border border-white/10 p-6 rounded-2xl text-left w-64 shadow-2xl z-20"
+              >
+                <h3 className="text-white text-lg font-light tracking-wider uppercase leading-snug">
+                  {menuDetail.menuName}
+                </h3>
+                <div className="h-[1px] w-full bg-gradient-to-r from-white/40 to-transparent my-4"></div>
+                <p className="text-white/60 text-xs tracking-widest uppercase mb-1">
+                  Premium Selection
+                </p>
+                <p className="text-white/40 text-[10px] tracking-wider uppercase">
+                  {isPackage ? `Package • ${menuDetail.package_hours} Hrs` : "Available Now"}
+                </p>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
