@@ -44,22 +44,163 @@ import ShoutoutDialog from "./ShoutoutDialog";
 import { useUser } from "../providers/UserContext";
 import { Input } from "../ui/input";
 
-const MenuImage = memo(({ src, alt }: { src: string, alt: string }) => {
+declare global {
+  interface Window {
+    googleTranslateElementInit: () => void;
+    google: any;
+  }
+}
+const LanguageSwitcher = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentFlag, setCurrentFlag] = useState("https://flagcdn.com/w40/th.png");
+
+  useEffect(() => {
+    // ---------------------------------------------------------
+    // 🚨 1. โค้ดส่วนนี้คือหัวใจสำคัญที่ป้องกัน React แครชจาก Google Translate 🚨
+    // ---------------------------------------------------------
+if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
+      const originalRemoveChild = Node.prototype.removeChild;
+      Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
+        if (child.parentNode !== this) {
+          return child;
+        }
+        return originalRemoveChild.call(this, child) as T;
+      };
+
+      const originalInsertBefore = Node.prototype.insertBefore;
+      Node.prototype.insertBefore = function <T extends Node>(
+        this: Node, 
+        newNode: T, 
+        referenceNode: Node | null
+      ): T {
+        if (referenceNode && referenceNode.parentNode !== this) {
+          return newNode;
+        }
+        return originalInsertBefore.call(this, newNode, referenceNode) as T;
+      };
+    }
+    // ---------------------------------------------------------
+
+    if (document.getElementById("google-translate-script")) return;
+
+    const addScript = document.createElement("script");
+    addScript.id = "google-translate-script";
+    addScript.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    addScript.async = true;
+    
+    window.googleTranslateElementInit = () => {
+      new window.google.translate.TranslateElement(
+        { 
+          pageLanguage: "auto",
+          includedLanguages: "th,en,lo,zh-CN,ko",
+          autoDisplay: false, 
+        },
+        "google_translate_element"
+      );
+    };
+    document.body.appendChild(addScript);
+
+    // เช็คค่าเริ่มต้นจาก Cookie
+    const match = document.cookie.match(/googtrans=\/auto\/(.{2,5})/);
+    if (match && match[1]) {
+      const savedLang = languages.find(l => l.code === match[1]);
+      if (savedLang) setCurrentFlag(savedLang.flagUrl);
+    }
+  }, []);
+
+  // ใช้ลิงก์รูปภาพแทน Emoji
+  const languages = [
+    { code: "th", flagUrl: "https://flagcdn.com/w40/th.png", name: "ไทย" },
+    { code: "en", flagUrl: "https://flagcdn.com/w40/gb.png", name: "English" },
+    { code: "lo", flagUrl: "https://flagcdn.com/w40/la.png", name: "ລາວ" },
+    { code: "zh-CN", flagUrl: "https://flagcdn.com/w40/cn.png", name: "中文" },
+    { code: "ko", flagUrl: "https://flagcdn.com/w40/kr.png", name: "한국어" },
+  ];
+
+  const handleSelect = (lang: any) => {
+    setCurrentFlag(lang.flagUrl);
+    setIsOpen(false);
+
+    document.cookie = `googtrans=/auto/${lang.code}; path=/`;
+    document.cookie = `googtrans=/auto/${lang.code}; domain=${window.location.hostname}; path=/`;
+
+    const select = document.querySelector(".goog-te-combo") as HTMLSelectElement;
+    if (select) {
+      select.value = lang.code;
+      select.dispatchEvent(new Event("change", { bubbles: true, cancelable: true }));
+    } else {
+      window.location.reload();
+    }
+  };
+
+  return (
+    <div className="relative pointer-events-auto">
+      <div id="google_translate_element" className="hidden"></div>
+      
+      {/* ปุ่มธงชาติมุมขวา */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all bg-black/60 backdrop-blur-md border border-white/20 overflow-hidden shadow-lg"
+      >
+        <img src={currentFlag} alt="Language" className="w-6 h-6 object-cover rounded-full" />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-12 right-0 bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden flex flex-col min-w-[140px] z-50"
+          >
+            {languages.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => handleSelect(l)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white transition-colors text-sm text-left notranslate"
+              >
+                <img src={l.flagUrl} alt={l.name} className="w-5 h-5 object-cover rounded-full shadow-sm" />
+                <span className="font-medium tracking-wide">{l.name}</span>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const MenuImage = memo(({ src, alt, isNearby }: { src: string, alt: string, isNearby: boolean }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    if (isNearby && !shouldLoad) {
+      setShouldLoad(true);
+    }
+  }, [isNearby, shouldLoad]);
+
   return (
     <div className="w-full h-full relative bg-[#E5E0D8]/60 flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 flex items-center justify-center z-0 bg-[#E5E0D8]">
-        <UtensilsCrossed size={24} strokeWidth={1.5} className="text-[#A6978C]/30 animate-pulse" />
-      </div>
-      <Image
-        src={src}
-        alt={alt || "Menu"}
-        fill
-        sizes="(max-width: 768px) 30vw, 150px"
-        quality={40}
-        loading="lazy"
-        decoding="async" // บอกเบราว์เซอร์ว่าให้โหลดรูปชิลๆ เบื้องหลังไปเลย ไม่ต้องแย่ง CPU
-        className="object-cover z-10 transition-transform duration-700 group-hover:scale-105"
-      />
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center z-0 bg-[#E5E0D8]">
+          <UtensilsCrossed size={24} strokeWidth={1.5} className="text-[#A6978C]/30 animate-pulse" />
+        </div>
+      )}
+      
+      {shouldLoad && (
+        <img
+          src={src}
+          alt={alt || "Menu"}
+          onLoad={() => setIsLoaded(true)}
+          decoding="async" 
+          className={`absolute inset-0 w-full h-full object-cover z-10 transition-all duration-500 ${
+            isLoaded ? 'opacity-100 group-hover:scale-105' : 'opacity-0'
+          }`}
+          style={{ willChange: "transform, opacity" }}
+        />
+      )}
     </div>
   );
 });
@@ -71,6 +212,7 @@ const MemoizedMenuCard = memo(({
   isRightPage, 
   isBottomPlacement, 
   isPkgChecked, 
+  isNearby,
   onOpenDetail, 
   onTogglePackage 
 }: any) => {
@@ -102,27 +244,27 @@ const MemoizedMenuCard = memo(({
       ref={stopNativeClick}
       onPointerDown={handlePointerDown}
       onPointerUp={(e) => handlePointerUp(e, () => onOpenDetail(item.id))}
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
       className="relative w-full h-full cursor-pointer group bg-[#F5F1E8] overflow-hidden rounded-2xl shadow-sm border border-black/5 active:scale-[0.98] transition-transform duration-200"
     >
       <div className="absolute inset-0 w-full h-full pointer-events-none">
         {item.img ? (
-          <MenuImage src={item.img} alt={item.menuName} />
+          <MenuImage src={item.img} alt={item.menuName} isNearby={isNearby} />
         ) : (
           <div className="w-full h-full bg-[#E5E0D8]/60 flex flex-col items-center justify-center text-[#A6978C] opacity-80">
             <UtensilsCrossed size={32} strokeWidth={1.5} className="mb-2 opacity-50" />
-            <span className="font-serif tracking-widest text-[10px] font-semibold opacity-60">NO IMAGE</span>
+            <span className="font-serif tracking-widest text-[10px] font-semibold opacity-60 notranslate">NO IMAGE</span>
           </div>
         )}
       </div>
 
       <div className={`absolute ${positionClass} flex shadow-md z-20 max-w-[90%] bg-white/95 rounded-md overflow-hidden pointer-events-none`}>
         <div className="bg-[#614D43] text-white px-2.5 sm:px-3 py-1.5 flex items-center justify-center min-w-[36px] sm:min-w-[44px]">
-          <span className="font-bold text-[11px] sm:text-[13px]">{item.menuCode || "-"}</span>
+          <span className="font-bold text-[11px] sm:text-[13px] notranslate">{item.menuCode || "-"}</span>
         </div>
         <div className="text-[#2A2422] px-2.5 sm:px-3 py-1.5 flex flex-col justify-center relative pr-9 sm:pr-10 min-w-[120px]">
           <span className="font-bold text-[11px] sm:text-[12px] leading-tight line-clamp-1">{item.menuName}</span>
-          <span className="font-black text-[#614D43] text-[11px] sm:text-[12px] mt-[1px]">{displayPrice.toLocaleString()}.-</span>
+          <span className="font-black text-[#614D43] text-[11px] sm:text-[12px] mt-[1px] notranslate">{displayPrice.toLocaleString()}.-</span>
           <button className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#614D43] text-white rounded-md flex items-center justify-center shadow-sm">
             <Plus size={14} strokeWidth={3} />
           </button>
@@ -132,13 +274,13 @@ const MemoizedMenuCard = memo(({
       {item.category?.categoryName === "Entertainer" && item.package_hours > 0 && (
         <div
           className={`absolute ${checkboxPosition} z-50 flex items-center gap-2 bg-white/95 px-3 py-2 shadow-md rounded-lg border border-[#614D43]/20 cursor-pointer hover:bg-orange-50 transition-colors`}
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
           ref={stopNativeClick}
           onPointerDown={(e) => { e.stopPropagation(); handlePointerDown(e); }}
           onPointerUp={(e) => { e.stopPropagation(); handlePointerUp(e, () => onTogglePackage(item.id)); }}
         >
           <Checkbox id={`pkg-${item.id}`} checked={isPkgChecked} className="w-4 h-4 rounded-sm border-[#6B5A4E] data-[state=checked]:bg-[#614D43] pointer-events-none" />
-          <label className="text-[10px] text-[#2A2422] font-black uppercase pointer-events-none">Pkg {item.package_hours}h</label>
+          <label className="text-[10px] text-[#2A2422] font-black uppercase pointer-events-none notranslate">Pkg {item.package_hours}h</label>
         </div>
       )}
     </div>
@@ -159,6 +301,7 @@ const MenuBookPage = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [currentPage, setCurrentPage] = useState<number>(0);
   const [bookStartPage, setBookStartPage] = useState<number>(0);
   const [isOpenDetail, setIsOpenDetail] = useState(false);
   const [itemnDetail, setItemnDetail] = useState<any>();
@@ -319,7 +462,6 @@ const MenuBookPage = ({
     }
   }, [pendingJumpCategory, isEntertainerMode, booksData]);
 
-  // ระบบดักจับการคลิก Categories Index
   const stopNativeClick = (el: HTMLElement | null) => { if (el) { el.onclick = (e) => { e.stopPropagation(); }; } };
   const pointerPos = useRef({ x: 0, y: 0, time: 0 });
   const handlePointerDown = (e: React.PointerEvent) => { pointerPos.current = { x: e.clientX, y: e.clientY, time: Date.now() }; };
@@ -330,15 +472,17 @@ const MenuBookPage = ({
     if (dx < 15 && dy < 15 && dt < 500) { e.preventDefault(); e.stopPropagation(); action(); }
   };
 
-  const onPageFlip = (e: any) => {
+  const onPageFlip = useCallback((e: any) => {
     const pageIndex = e.data;
+    setCurrentPage(pageIndex);
     const currentCat = activeBookData.pageCatMap[pageIndex];
     if (currentCat && !isEntertainerMode && !pendingJumpCategory) {
-      setActiveCategory(currentCat);
+      setTimeout(() => {
+        setActiveCategory(currentCat);
+      }, 200);
     }
-  };
+  }, [activeBookData, isEntertainerMode, pendingJumpCategory]);
 
-  // 🚀 3. [NEW] ใช้ useCallback เพื่อไม่ให้ฟังก์ชันเปลี่ยนตัวตนทุกครั้งที่หน้าอัปเดต
   const handelOpendetail = useCallback((id_for_detail: any) => {
     const itemToDetail = initialItems.find((item: any) => item.id === id_for_detail);
     const isPackageSelected = packageSelections[id_for_detail] || false;
@@ -402,8 +546,7 @@ const MenuBookPage = ({
   }, [tableNumber, relatedData.cartdatas]);
 
 
-  // 🚀 4. ตัวช่วย Render Card เรียกใช้ Memo Component แทนการสร้างสดใหม่
-  const renderItemCard = (item: any, isEntertainer: boolean, isRightPage: boolean, isBottomPlacement: boolean = false) => {
+  const renderItemCard = (item: any, isEntertainer: boolean, isRightPage: boolean, isBottomPlacement: boolean = false, isNearby: boolean = false) => {
     return (
       <MemoizedMenuCard 
         item={item} 
@@ -411,6 +554,7 @@ const MenuBookPage = ({
         isRightPage={isRightPage} 
         isBottomPlacement={isBottomPlacement}
         isPkgChecked={item ? packageSelections[item.id] || false : false}
+        isNearby={isNearby}
         onOpenDetail={handelOpendetail}
         onTogglePackage={handleTogglePackage}
       />
@@ -420,7 +564,7 @@ const MenuBookPage = ({
   return (
     <div
       className="fixed inset-0 bg-[#0a0a0a] overflow-hidden flex flex-col items-center justify-center font-sans select-none"
-      style={{ touchAction: 'none', overscrollBehavior: 'none' }}
+      style={{ overscrollBehavior: 'none' }} // 👈 ลบ touchAction: 'none' ตรงนี้ออกเพื่อให้ Sheet/Cart สกรอลล์ได้
     >
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -428,36 +572,72 @@ const MenuBookPage = ({
           overscroll-behavior-x: none !important; 
           overscroll-behavior-y: none !important;
         }
+        body { top: 0 !important; position: static !important; }
+        .goog-te-banner-frame { display: none !important; }
+        .skiptranslate { display: none !important; }
+        #goog-gt-tt { display: none !important; }
+        .goog-tooltip { display: none !important; }
+        .goog-tooltip:hover { display: none !important; }
+        .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
       `}} />
 
       <Suspense fallback={null}><OrderHandler setTableNumber={setTableNumber} /></Suspense>
 
-      {/* Top Bar */}
+      {/* ================= TOP BAR ================= */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-start pt-4 px-4 sm:px-6 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-          <span className="text-white/90 text-[10px] sm:text-xs font-bold tracking-widest uppercase">Table <span className="text-orange-500">{currentTableName}</span></span>
+          <span className="text-white/90 text-[10px] sm:text-xs font-bold tracking-widest uppercase">Table <span className="text-orange-500 notranslate">{currentTableName}</span></span>
         </div>
+        
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
-          <button onClick={() => setIsSearchOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10"><Search size={16} strokeWidth={2} /></button>
-          <button onClick={() => setIsShoutoutOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10"><MonitorUp size={16} strokeWidth={2} /></button>
-          <button onClick={() => setIsHistoryOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10"><ClipboardList size={16} strokeWidth={2} /></button>
+          <button onClick={() => setIsSearchOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10 shadow-lg">
+            <Search size={16} strokeWidth={2} />
+          </button>
+          
+          <button onClick={() => setIsSidebarOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10 shadow-lg">
+            <Menu size={18} strokeWidth={2} />
+          </button>
+
           <div className="w-[1px] h-4 bg-white/20 mx-0.5 sm:mx-1" />
+          
+          <LanguageSwitcher />
+        </div>
+      </div>
+
+      {/* ================= BOTTOM ACTION BAR ================= */}
+{/* ขยับลงมาให้เหลือ bottom-3 หรือ bottom-4 */}
+<div className="fixed bottom-3 sm:bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+        <div className="pointer-events-auto flex items-center p-1.5 sm:p-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          
+          <button onClick={() => setIsShoutoutOpen(true)} className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all active:scale-95">
+            <MonitorUp size={20} strokeWidth={1.5} />
+          </button>
+          
+          <button onClick={() => setIsHistoryOpen(true)} className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all active:scale-95">
+            <ClipboardList size={20} strokeWidth={1.5} />
+          </button>
+          
+          <div className="w-[1px] h-6 sm:h-7 bg-white/20 mx-1 sm:mx-1.5" />
+          
           <button
             onClick={() => setIsCartOpen(true)}
-            className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${cartCount > 0
-              ? "text-white bg-orange-600 hover:bg-orange-500 shadow-[0_4px_12px_rgba(234,88,12,0.4)] border border-orange-500/50"
-              : "text-white/80 hover:text-white bg-black/60 backdrop-blur-md border border-white/10"
-              }`}
+            className={`relative flex items-center justify-center gap-2 h-11 sm:h-12 px-5 sm:px-6 ml-1 rounded-full transition-all duration-300 active:scale-95 ${
+              cartCount > 0
+              ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.4)] border border-orange-500/50"
+              : "bg-white/10 hover:bg-white/20 text-white/90 border border-white/5"
+            }`}
           >
-            <ShoppingCart size={16} strokeWidth={2} />
+            <ShoppingCart size={18} strokeWidth={2} />
+            <span className="text-[13px] sm:text-sm font-medium tracking-wide">ตะกร้า</span>
+            
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-white text-orange-600 text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-md">
+              <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-white text-orange-600 text-[10px] sm:text-[11px] font-black min-w-[20px] sm:min-w-[24px] h-5 sm:h-6 px-1.5 rounded-full flex items-center justify-center shadow-lg border-2 border-orange-100 notranslate animate-in zoom-in">
                 {cartCount}
               </span>
             )}
           </button>
-          <button onClick={() => setIsSidebarOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10 ml-0.5"><Menu size={18} strokeWidth={2} /></button>
+
         </div>
       </div>
 
@@ -478,7 +658,7 @@ const MenuBookPage = ({
                 placeholder="ค้นหาชื่อ หรือ รหัสเมนู..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-12 bg-transparent border-none h-14 w-full text-white placeholder:text-stone-500 focus-visible:ring-0 text-sm"
+                className="pl-12 pr-12 bg-transparent border-none h-14 w-full text-white placeholder:text-stone-500 focus-visible:ring-0 text-sm notranslate"
               />
               <button
                 onClick={() => { setIsSearchOpen(false); setSearchTerm(""); }}
@@ -521,12 +701,12 @@ const MenuBookPage = ({
                               {item.menuName}
                             </span>
                             <span className="text-stone-400 text-[11px] flex items-center gap-2 mt-0.5">
-                              <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/70">{item.menuCode || "-"}</span>
+                              <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/70 notranslate">{item.menuCode || "-"}</span>
                               <span className="truncate">{item.category?.categoryName}</span>
                             </span>
                           </div>
 
-                          <div className="text-orange-500 font-bold text-sm shrink-0">
+                          <div className="text-orange-500 font-bold text-sm shrink-0 notranslate">
                             {displayPrice.toLocaleString()}.-
                           </div>
                         </button>
@@ -558,21 +738,22 @@ const MenuBookPage = ({
           flippingTime={450}
           usePortrait={true}
           autoSize={true}
-          drawShadow={true}
+          drawShadow={isDesktop}
           showPageCorners={true}
-          maxShadowOpacity={0.3}
+          maxShadowOpacity={isDesktop ? 0.3 : 0.1}
           disableFlipByClick={isDesktop}
           swipeDistance={15}
           clickEventForward={true}
-          useMouseEvents={true}
+          useMouseEvents={true} // 👈 แก้บังคับให้เป็น true เพื่อให้ใช้นิ้วพลิกหน้าได้ดีขึ้นบนบางมือถือ
           onFlip={onPageFlip}
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอได้
           startPage={0}
           startZIndex={0}
         >
           {activeBookData.pages.map((page, pIndex) => {
             const itemCount = page.items?.length || 0;
             const isRightPage = (pIndex + 1) % 2 === 0;
+            const isNearby = Math.abs(pIndex - currentPage) <= 2;
 
             if (page.isMainCover) {
               return (
@@ -586,9 +767,9 @@ const MenuBookPage = ({
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-[#D4AF37]"></div>
 
                     <div className="mb-8 text-[#D4AF37] opacity-80"><UtensilsCrossed size={48} strokeWidth={1} /></div>
-                    <h1 className="text-5xl sm:text-6xl font-serif text-[#D4AF37] font-bold tracking-[0.25em] text-center mb-6 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">MENU</h1>
+                    <h1 className="text-5xl sm:text-6xl font-serif text-[#D4AF37] font-bold tracking-[0.25em] text-center mb-6 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,1)] notranslate">MENU</h1>
                     <div className="w-24 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mb-6"></div>
-                    <p className="text-[#A38A75] text-[10px] sm:text-[11px] tracking-[0.5em] font-medium uppercase text-center">Premium Selection</p>
+                    <p className="text-[#A38A75] text-[10px] sm:text-[11px] tracking-[0.5em] font-medium uppercase text-center notranslate">Premium Selection</p>
                   </div>
                 </div>
               );
@@ -603,7 +784,7 @@ const MenuBookPage = ({
                     <h2 className="text-3xl font-serif text-[#D4AF37] font-bold tracking-[0.2em] mb-4 uppercase drop-shadow-md">Thank You</h2>
                     <p className="text-[#A38A75] text-xs tracking-[0.2em] mb-12">ขอบคุณที่ใช้บริการ</p>
                     <div className="mt-16 w-16 h-[1px] bg-[#D4AF37]/20"></div>
-                    <p className="mt-4 text-[9px] text-[#A38A75]/40 tracking-widest uppercase">END OF MENU</p>
+                    <p className="mt-4 text-[9px] text-[#A38A75]/40 tracking-widest uppercase notranslate">END OF MENU</p>
                   </div>
                 </div>
               );
@@ -621,7 +802,7 @@ const MenuBookPage = ({
                     <div className="w-16 h-[2px] bg-[#5C4A3D] mx-auto mt-4 rounded-full"></div>
                   </div>
 
-                  <div className="flex-1 w-full relative z-20 overflow-y-auto pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div className="flex-1 w-full relative z-20 overflow-y-auto pb-6 custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="flex flex-col gap-3 sm:gap-4 px-2">
                       {page.items.map((cat: any, idx: number) => {
                         const isActive = activeCategory === cat;
@@ -629,7 +810,7 @@ const MenuBookPage = ({
                           <button
                             key={idx}
                             ref={stopNativeClick}
-                            style={{ touchAction: 'none' }}
+                            style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
                             onPointerDown={handlePointerDown}
                             onPointerUp={(e) => handlePointerUp(e, () => {
                               if (cat === "Entertainer") {
@@ -665,12 +846,12 @@ const MenuBookPage = ({
                 <div key={`page-${pIndex}`} className="bg-[#1A1615] w-full h-full relative overflow-hidden flex flex-col items-center justify-center shadow-inner p-4 border-[12px] border-[#26201E]">
                   <div className="absolute inset-4 border border-[#D4AF37]/30 z-20 flex flex-col items-center justify-center p-8">
                     <div className="mb-4 text-[#D4AF37] opacity-80 text-xl">✦</div>
-                    <h2 className="text-3xl sm:text-4xl text-[#D4AF37] font-serif font-bold text-center uppercase tracking-widest">{page.title}</h2>
+                    <h2 className="text-3xl sm:text-4xl text-[#D4AF37] font-serif font-bold text-center uppercase tracking-widest notranslate">{page.title}</h2>
                     <div className="w-12 h-[1px] bg-[#D4AF37]/50 my-4" />
                     <p className="text-[#A38A75] text-[10px] sm:text-[11px] tracking-[0.3em] uppercase text-center mb-8">Exclusive Lounge Mode</p>
                     <button
                       ref={stopNativeClick}
-                      style={{ touchAction: 'none' }}
+                      style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
                       onPointerDown={handlePointerDown}
                       onPointerUp={(e) => handlePointerUp(e, () => {
                         setBookStartPage(0);
@@ -699,7 +880,7 @@ const MenuBookPage = ({
                     <div className="mb-6 text-[#5C4A3D]/60 text-xl">✦</div>
                     <h2 className="text-4xl sm:text-5xl text-[#5C4A3D] font-serif font-bold leading-tight drop-shadow-sm uppercase tracking-wider">{page.title}</h2>
                     <div className="mt-8 w-24 h-[1px] bg-gradient-to-r from-transparent via-[#5C4A3D] to-transparent" />
-                    <span className="text-[#A38A75] text-[10px] tracking-[0.4em] uppercase mt-4 font-semibold">Signature Menu</span>
+                    <span className="text-[#A38A75] text-[10px] tracking-[0.4em] uppercase mt-4 font-semibold notranslate">Signature Menu</span>
                   </div>
                 </div>
               );
@@ -720,19 +901,19 @@ const MenuBookPage = ({
 
                   {isEntertainerMode ? (
                     <>
-                      {itemCount >= 1 && <div className={`${itemCount === 1 ? 'h-full' : 'h-1/2'} w-full`}>{renderItemCard(page.items[0], true, isRightPage, false)}</div>}
-                      {itemCount >= 2 && <div className="h-1/2 w-full">{renderItemCard(page.items[1], true, isRightPage, false)}</div>}
+                      {itemCount >= 1 && <div className={`${itemCount === 1 ? 'h-full' : 'h-1/2'} w-full`}>{renderItemCard(page.items[0], true, isRightPage, false, isNearby)}</div>}
+                      {itemCount >= 2 && <div className="h-1/2 w-full">{renderItemCard(page.items[1], true, isRightPage, false, isNearby)}</div>}
                     </>
                   ) : (
                     <>
                       {itemCount === 5 && pIndex % 2 === 0 && (
                         <>
-                          <div className="h-[40%] w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
+                          <div className="h-[40%] w-full">{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
                           <div className="grid grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3 h-[60%] w-full">
-                            <div>{renderItemCard(page.items[1], false, isRightPage, false)}</div>
-                            <div>{renderItemCard(page.items[2], false, isRightPage, false)}</div>
-                            <div>{renderItemCard(page.items[3], false, isRightPage, true)}</div>
-                            <div>{renderItemCard(page.items[4], false, isRightPage, true)}</div>
+                            <div>{renderItemCard(page.items[1], false, isRightPage, false, isNearby)}</div>
+                            <div>{renderItemCard(page.items[2], false, isRightPage, false, isNearby)}</div>
+                            <div>{renderItemCard(page.items[3], false, isRightPage, true, isNearby)}</div>
+                            <div>{renderItemCard(page.items[4], false, isRightPage, true, isNearby)}</div>
                           </div>
                         </>
                       )}
@@ -740,30 +921,30 @@ const MenuBookPage = ({
                       {itemCount === 5 && pIndex % 2 !== 0 && (
                         <>
                           <div className="grid grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3 h-[60%] w-full">
-                            <div>{renderItemCard(page.items[0], false, isRightPage, false)}</div>
-                            <div>{renderItemCard(page.items[1], false, isRightPage, false)}</div>
-                            <div>{renderItemCard(page.items[2], false, isRightPage, true)}</div>
-                            <div>{renderItemCard(page.items[3], false, isRightPage, true)}</div>
+                            <div>{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
+                            <div>{renderItemCard(page.items[1], false, isRightPage, false, isNearby)}</div>
+                            <div>{renderItemCard(page.items[2], false, isRightPage, true, isNearby)}</div>
+                            <div>{renderItemCard(page.items[3], false, isRightPage, true, isNearby)}</div>
                           </div>
-                          <div className="h-[40%] w-full">{renderItemCard(page.items[4], false, isRightPage, true)}</div>
+                          <div className="h-[40%] w-full">{renderItemCard(page.items[4], false, isRightPage, true, isNearby)}</div>
                         </>
                       )}
 
                       {itemCount === 4 && (
                         <div className="grid grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3 h-full w-full">
-                          <div>{renderItemCard(page.items[0], false, isRightPage, false)}</div>
-                          <div>{renderItemCard(page.items[1], false, isRightPage, false)}</div>
-                          <div>{renderItemCard(page.items[2], false, isRightPage, true)}</div>
-                          <div>{renderItemCard(page.items[3], false, isRightPage, true)}</div>
+                          <div>{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
+                          <div>{renderItemCard(page.items[1], false, isRightPage, false, isNearby)}</div>
+                          <div>{renderItemCard(page.items[2], false, isRightPage, true, isNearby)}</div>
+                          <div>{renderItemCard(page.items[3], false, isRightPage, true, isNearby)}</div>
                         </div>
                       )}
 
                       {itemCount === 3 && pIndex % 2 === 0 && (
                         <>
-                          <div className="h-[55%] w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
+                          <div className="h-[55%] w-full">{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
                           <div className="flex gap-2.5 sm:gap-3 h-[45%] w-full">
-                            <div className="flex-1 h-full">{renderItemCard(page.items[1], false, isRightPage, true)}</div>
-                            <div className="flex-1 h-full">{renderItemCard(page.items[2], false, isRightPage, true)}</div>
+                            <div className="flex-1 h-full">{renderItemCard(page.items[1], false, isRightPage, true, isNearby)}</div>
+                            <div className="flex-1 h-full">{renderItemCard(page.items[2], false, isRightPage, true, isNearby)}</div>
                           </div>
                         </>
                       )}
@@ -771,33 +952,33 @@ const MenuBookPage = ({
                       {itemCount === 3 && pIndex % 2 !== 0 && (
                         <>
                           <div className="flex gap-2.5 sm:gap-3 h-[45%] w-full">
-                            <div className="flex-1 h-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
-                            <div className="flex-1 h-full">{renderItemCard(page.items[1], false, isRightPage, false)}</div>
+                            <div className="flex-1 h-full">{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
+                            <div className="flex-1 h-full">{renderItemCard(page.items[1], false, isRightPage, false, isNearby)}</div>
                           </div>
-                          <div className="h-[55%] w-full">{renderItemCard(page.items[2], false, isRightPage, true)}</div>
+                          <div className="h-[55%] w-full">{renderItemCard(page.items[2], false, isRightPage, true, isNearby)}</div>
                         </>
                       )}
 
                       {itemCount === 2 && (
                         <>
-                          <div className="h-1/2 w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
-                          <div className="h-1/2 w-full">{renderItemCard(page.items[1], false, isRightPage, true)}</div>
+                          <div className="h-1/2 w-full">{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
+                          <div className="h-1/2 w-full">{renderItemCard(page.items[1], false, isRightPage, true, isNearby)}</div>
                         </>
                       )}
 
                       {itemCount === 1 && (
-                        <div className="h-full w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
+                        <div className="h-full w-full">{renderItemCard(page.items[0], false, isRightPage, false, isNearby)}</div>
                       )}
 
                       {itemCount === 0 && (
                         <div className="h-full w-full flex items-center justify-center">
-                          <span className="text-[#333]/20 font-serif tracking-widest text-lg uppercase">{page.title || "Blank Page"}</span>
+                          <span className="text-[#333]/20 font-serif tracking-widest text-lg uppercase notranslate">{page.title || "Blank Page"}</span>
                         </div>
                       )}
                     </>
                   )}
                 </div>
-                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-[#333]/40 font-serif text-[10px] tracking-widest z-40 pointer-events-none">
+                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-[#333]/40 font-serif text-[10px] tracking-widest z-40 pointer-events-none notranslate">
                   - {String(pIndex + 1).padStart(2, '0')} -
                 </div>
               </div>
@@ -812,7 +993,7 @@ const MenuBookPage = ({
           <SheetHeader className="p-6 pb-4 text-left border-b border-white/5">
             <SheetTitle className="text-xl font-serif font-medium text-white/90 tracking-widest uppercase">Categories</SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4 hide-scrollbar">
+          <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
             <div className="flex flex-col gap-1 pb-24">
               {categories.map((cat: any) => (
                 <button
@@ -864,7 +1045,7 @@ const MenuBookPage = ({
           <SheetHeader className="shrink-0 px-6 py-5 border-b border-gray-200 bg-white z-10">
             <SheetTitle className="text-center text-lg font-serif font-bold tracking-[0.1em] text-[#2A2422]">YOUR CART ({cartCount})</SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-4 hide-scrollbar">
+          <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
             {relatedData.cartdatas.length > 0 ? (
               <div className="flex flex-col gap-4 pb-6">
                 {relatedData.cartdatas.map((item) => {
@@ -876,17 +1057,17 @@ const MenuBookPage = ({
                       </div>
                       <div className="flex-1 min-w-0 py-1">
                         <div className="flex justify-between items-start mb-1">
-                          <h4 className="font-bold text-sm text-[#2A2422] line-clamp-1"><span className="text-[10px] text-[#614D43] font-sans mr-2">{menuItem?.menuCode}</span>{menuItem?.menuName || "Unknown Item"}</h4>
+                          <h4 className="font-bold text-sm text-[#2A2422] line-clamp-1"><span className="text-[10px] text-[#614D43] font-sans mr-2 notranslate">{menuItem?.menuCode}</span>{menuItem?.menuName || "Unknown Item"}</h4>
                           <button onClick={() => handleRemoveFromCart(item.id, item.menuId)} className="text-[#2A2422]/30 hover:text-red-500 p-1 shrink-0"><Trash2 size={16} /></button>
                         </div>
                         {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mb-2 flex flex-wrap gap-1">{item.modifiers.map((mod: any, index: number) => (<span key={index} className="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-medium bg-gray-100 text-gray-700">{mod.name} {mod.price > 0 && <span className="ml-1 text-[#614D43]">(+{mod.price})</span>}</span>))}</div>
+                          <div className="mb-2 flex flex-wrap gap-1">{item.modifiers.map((mod: any, index: number) => (<span key={index} className="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-medium bg-gray-100 text-gray-700">{mod.name} {mod.price > 0 && <span className="ml-1 text-[#614D43] notranslate">(+{mod.price})</span>}</span>))}</div>
                         )}
                         <div className="flex justify-between items-end mt-1">
-                          <span className="font-black text-[#614D43] text-sm">{item.price_sum.toLocaleString()}.-</span>
+                          <span className="font-black text-[#614D43] text-sm notranslate">{item.price_sum.toLocaleString()}.-</span>
                           <div className="flex items-center gap-3 bg-gray-50 rounded-full px-2 py-1 border border-gray-200">
                             <button onClick={() => { if (item.quantity > 1) { const newQty = item.quantity - 1; const unitPrice = item.price_sum / item.quantity; handleUpdateCartQuantity(item.id, item.menuId, newQty, unitPrice * newQty); } }} className="w-6 h-6 flex items-center justify-center bg-white rounded-full text-[#2A2422] hover:bg-gray-100 transition-colors shadow-sm"><Minus size={12} /></button>
-                            <span className="text-sm font-bold min-w-[16px] text-center text-[#2A2422]">{item.quantity}</span>
+                            <span className="text-sm font-bold min-w-[16px] text-center text-[#2A2422] notranslate">{item.quantity}</span>
                             <button onClick={() => { const newQty = item.quantity + 1; const unitPrice = item.price_sum / item.quantity; handleUpdateCartQuantity(item.id, item.menuId, newQty, unitPrice * newQty); }} className="w-6 h-6 flex items-center justify-center bg-[#614D43] text-white rounded-full hover:bg-orange-600 transition-colors shadow-sm"><Plus size={12} strokeWidth={3} /></button>
                           </div>
                         </div>
@@ -900,7 +1081,7 @@ const MenuBookPage = ({
             )}
           </div>
           <div className="shrink-0 p-5 sm:p-6 border-t border-gray-200 bg-white safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-10">
-            <div className="flex justify-between items-center mb-5"><span className="text-gray-500 text-xs tracking-widest font-bold">TOTAL AMOUNT</span><span className="text-2xl font-serif font-black text-[#2A2422]">{totalPrice.toLocaleString()}.-</span></div>
+            <div className="flex justify-between items-center mb-5"><span className="text-gray-500 text-xs tracking-widest font-bold">TOTAL AMOUNT</span><span className="text-2xl font-serif font-black text-[#2A2422] notranslate">{totalPrice.toLocaleString()}.-</span></div>
             <Button className="w-full h-14 text-sm font-bold tracking-widest bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/20" onClick={handleConfirmOrder} disabled={relatedData.cartdatas.length === 0}>CONFIRM ORDER</Button>
           </div>
         </SheetContent>
