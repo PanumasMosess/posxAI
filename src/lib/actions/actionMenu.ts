@@ -314,7 +314,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
 
       let orderStatus = "NEW";
       if (categoryInfo?.categoryName === "Entertainer") {
-        orderStatus = "COMPLETED";
+        orderStatus = "READY";
       } else if (
         categoryInfo?.requiresKitchen === false ||
         categoryInfo?.requiresKitchen === 0

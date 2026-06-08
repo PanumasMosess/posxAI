@@ -79,7 +79,7 @@ const PaymentStatusPage = ({
   organizationId,
 }: KitchecOrderList) => {
   const router = useRouter();
-  const { employeeId, employeeName } = useUser();
+  const { employeeId, employeeName, organizationName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   // State สำหรับเก็บรายการอาหารที่ถูกเลือกเพื่อชำระเงิน
@@ -382,7 +382,7 @@ const PaymentStatusPage = ({
         cashReceived:
           paymentMethod === "CASH" ? parseFloat(cashReceived) : undefined,
         change: paymentMethod === "CASH" ? change : undefined,
-        shopName: "",
+        shopName: organizationName,
         staffName: employeeName,
       };
 
