@@ -76,6 +76,7 @@ export default function IdleTimeoutHandler() {
           result.employeeName ?? null,
           result.positionId ?? null,
           result.positionName ?? null,
+          result.organizationName ?? null,
           result.img ?? null,
         );
 

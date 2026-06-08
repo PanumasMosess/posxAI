@@ -465,7 +465,7 @@ export interface ReceiptProps {
   cashReceived?: number;
   change?: number;
   paymentMethod: string;
-  shopName?: string;
+  shopName?: string | null;
   staffName?: string | null;
 }
 
@@ -807,6 +807,7 @@ export interface UserState {
   employeeName: string | null;
   positionId: number | null;
   positionName: string | null;
+  organizationName: string | null;
   img: string | null;
 }
 export interface UserContextType extends UserState {
@@ -815,6 +816,7 @@ export interface UserContextType extends UserState {
     empName: string | null,
     posId: number | null,
     posName: string | null,
+    orgName: string | null,
     imgStr: string | null,
   ) => void;
   clearUser: () => void;

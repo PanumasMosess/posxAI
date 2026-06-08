@@ -80,9 +80,11 @@ export default function OrderStatusPage({
 
   const printedItemsRef = useRef<Set<number>>(new Set());
   const printingLockRef = useRef<Set<string>>(new Set());
-  const isInitialLoad = useRef(true);
 
-  // 🟢 ระบบ Smart Polling
+  // 🟢 ตัวแปรสำคัญ: ล็อกเป้าป้องกันการปริ้นและแจ้งเตือนออเดอร์เก่าตอนเปิดหน้าจอ/รีเฟรช
+  const hasInitializedBaseline = useRef(false);
+  const prevOrderCountRef = useRef(0);
+
   const { data: kitchenData, mutate } = useSWR(
     organizationId ? `kitchen-data-${organizationId}` : null,
     () => getKitchenOrders(organizationId!),
@@ -127,21 +129,6 @@ export default function OrderStatusPage({
       !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status),
   );
 
-  const prevOrderCountRef = useRef(activeOrders.length);
-  useEffect(() => {
-    if (activeOrders.length > prevOrderCountRef.current) {
-      try {
-        const audio = new Audio(
-          "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3",
-        );
-        audio.play().catch((e) => console.error("Audio play failed", e));
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    prevOrderCountRef.current = activeOrders.length;
-  }, [activeOrders]);
-
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
 
@@ -155,6 +142,16 @@ export default function OrderStatusPage({
             categoryData?.name ||
             categoryData?.categoryName ||
             "ไม่ระบุหมวดหมู่";
+
+          // ดักกรองตัดรายการ Entertainner ออกไปทิ้งทันที
+          if (
+            categoryName.toLowerCase().includes("entertainner") ||
+            categoryName.toLowerCase().includes("entertainer") ||
+            item.menu?.menuName?.toLowerCase().includes("entertainner") ||
+            item.menu?.menuName?.toLowerCase().includes("entertainer")
+          ) {
+            return;
+          }
 
           const modifierText = item.selectedModifiers
             ? item.selectedModifiers
@@ -308,35 +305,76 @@ export default function OrderStatusPage({
     }
   };
 
+  // 🟢 รวมศูนย์จัดการควบคุมเหตุการณ์ (เสียงเตือน + สั่งปริ้นอัตโนมัติ) ให้ปลอดภัยจากการรีเฟรช 100%
   useEffect(() => {
-    if (isInitialLoad.current) {
-      groupedOrders.forEach((g) => {
-        g.rawItems.forEach((item: any) =>
-          printedItemsRef.current.add(item.orderItemId),
-        );
-      });
-      isInitialLoad.current = false;
-      return;
-    }
+    // 🛠️ รอให้ SWR โหลดข้อมูลก้อนแรกเสร็จสมบูรณ์จริงๆ ก่อนทำงาน
+    if (!kitchenData) return;
 
-    if (isAutoPrint) {
-      groupedOrders.forEach((g) => {
-        const hasNewItem = g.rawItems.some(
-          (item: any) => !printedItemsRef.current.has(item.orderItemId),
-        );
-        if (hasNewItem && ["NEW", "READY"].includes(g.status)) {
-          handlePrint(g, true);
+    // 🛠️ จังหวะเรนเดอร์ครั้งแรกหลังรีเฟรช: สั่งเก็บประวัติออเดอร์เก่าลงทะเบียนเป็น "อ่านแล้ว/พิมพ์แล้ว" ทันที ห้ามส่งเสียงหรือสั่งปริ้น
+    if (!hasInitializedBaseline.current) {
+      const initialActiveOrders = (kitchenData.orderRunning || []).filter(
+        (order: any) =>
+          !["COMPLETED", "CANCELLED", "PAY_COMPLETED"].includes(order.status),
+      );
+
+      initialActiveOrders.forEach((order: any) => {
+        if (order.orderitems) {
+          order.orderitems.forEach((item: any) => {
+            // ดักคัดกรองหมวดบันเทิงออกตอนลงทะเบียนเซ็ตระบบ
+            const catName = item.menu?.category?.name || "";
+            if (!catName.toLowerCase().includes("entertain")) {
+              printedItemsRef.current.add(item.id);
+            }
+          });
         }
       });
+
+      // บันทึกจำนวนตั้งต้นไว้เปรียบเทียบ
+      prevOrderCountRef.current = initialActiveOrders.length;
+      hasInitializedBaseline.current = true;
+      return; // สั่งหยุดทำงานบรรทัดนี้ในรอบแรก เพื่อเคลียร์บั๊กประมวลผลซ้ำตอนรีเฟรช
     }
-  }, [groupedOrders, isAutoPrint]);
+
+    // ------------------------------------------------------------------
+    // 🔥 พื้นที่ทำงานของระบบ Real-time (หลังจากโหลดโครงสร้างแรกเสร็จสิ้นแล้ว)
+    // ------------------------------------------------------------------
+
+    // 1. ตรวจสอบการยิงแจ้งเตือนระบบเสียง (จะดังเฉพาะตอนมียอดเพิ่มเข้ามาใหม่จริงๆ)
+    const currentActiveCount = activeOrders.length;
+    if (currentActiveCount > prevOrderCountRef.current) {
+      try {
+        const audio = new Audio(
+          "https://tvposx.sgp1.cdn.digitaloceanspaces.com/uploads/sound/notification-aero.mp3",
+        );
+        audio.play().catch((e) => console.error("Audio play failed", e));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    prevOrderCountRef.current = currentActiveCount;
+
+    // 2. ตรวจสอบการทำงานพิมพ์สลิปใบสั่งงานอัตโนมัติแบบเรียงลำดับคิวปลอดภัย
+    if (isAutoPrint) {
+      const runSequentialAutoPrint = async () => {
+        for (const g of groupedOrders) {
+          const hasNewItem = g.rawItems.some(
+            (item: any) => !printedItemsRef.current.has(item.orderItemId),
+          );
+          if (hasNewItem && ["NEW", "READY"].includes(g.status)) {
+            await handlePrint(g, true);
+          }
+        }
+      };
+
+      runSequentialAutoPrint();
+    }
+  }, [kitchenData, groupedOrders, isAutoPrint, activeOrders.length]);
 
   const displayOrders =
     filter === "ALL"
       ? groupedOrders
       : groupedOrders.filter((group: any) => group.status === filter);
 
-  // 🟢 ฟังก์ชันอัปเดตสถานะ (ครอบด้วย Loading ป้องกันกดรัว)
   const onStatusChange = async (orderIds: number[], newStatus: string) => {
     setIsRefreshing(true);
     try {

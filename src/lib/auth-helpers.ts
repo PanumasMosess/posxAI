@@ -75,10 +75,17 @@ export const verifyPositionPin = async (
       }
 
       if (isMatch) {
-        const positionData = await prisma.posiotion.findUnique({
-          where: { id: emp.position_id },
-          select: { position_name: true },
-        });
+        // 🟢 ใช้ Promise.all ดึงทั้งข้อมูลตำแหน่ง และ ข้อมูลชื่อร้านขนานกันไปเลย (เร็วขึ้น ไม่หน่วงดนเบส)
+        const [positionData, orgData] = await Promise.all([
+          prisma.posiotion.findUnique({
+            where: { id: emp.position_id },
+            select: { position_name: true },
+          }),
+          prisma.organization.findUnique({
+            where: { id: organizationId },
+            select: { name: true }, // ดึงคอลัมน์ name ออกมา
+          }),
+        ]);
 
         return {
           success: true,
@@ -86,6 +93,7 @@ export const verifyPositionPin = async (
           employeeName: `${emp.name} ${emp.surname}`,
           positionId: emp.position_id,
           positionName: positionData?.position_name || "ไม่มีตำแหน่ง",
+          organizationName: orgData?.name || "ไม่ระบุชื่อร้าน", 
           img: emp.img || null,
         };
       }

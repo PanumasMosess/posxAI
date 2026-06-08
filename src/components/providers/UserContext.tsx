@@ -11,6 +11,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     employeeName: null,
     positionId: null,
     positionName: null,
+    organizationName: null,
     img: null,
   });
 
@@ -19,6 +20,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     empName: string | null,
     posId: number | null,
     posName: string | null,
+    orgName: string | null,
     imgStr: string | null,
   ) => {
     setUserState({
@@ -26,6 +28,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       employeeName: empName,
       positionId: posId,
       positionName: posName,
+      organizationName: orgName,
       img: imgStr,
     });
   };
@@ -36,6 +39,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       employeeName: null,
       positionId: null,
       positionName: null,
+      organizationName: null,
       img: null,
     });
   };
@@ -55,6 +59,7 @@ export const useUser = () => {
       employeeName: "ลูกค้า",
       positionId: null,
       positionName: null,
+      organizationName: null,
       img: null,
       setUser: () => {},
       clearUser: () => {},
