@@ -13,19 +13,25 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
       total,
       currency,
       paymentMethod,
+      shopName, 
+      staffName, 
     },
-    ref
+    ref,
   ) => {
     const totalQty = items.reduce((acc, item) => acc + item.quantity, 0);
 
     const curr = currency || "LAK";
-    const staffName = "LARNOY";
+
+    // 🟢 ถ้ามีข้อมูลส่งมาจะใช้ค่าตามจริง ถ้าไม่มีจะดึงค่าสำรองดั้งเดิมมาแสดง
+    const displayShop = shopName || "18 Garage";
+    const displayStaff = staffName || "LARNOY";
 
     const totalBaht = (total / 650).toFixed(2);
     const totalUSD = (total / 20500).toFixed(2);
 
     return (
       <div
+        id="receipt-print-area"
         ref={ref}
         className="bg-white text-black mx-auto font-sans leading-tight flex flex-col items-stretch px-3 pb-4"
         style={{
@@ -37,15 +43,18 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
         }}
       >
         <div className="text-center mb-1">
-          <h1 className="text-[16px] font-black mb-0.5 tracking-tight text-gray-800">
-            18 Garage
+          {/* 🟢 แสดงชื่อร้านแบบ Dynamic */}
+          <h1 className="text-[22px] font-black mb-0.5 tracking-tight text-gray-800">
+            {displayShop}
           </h1>
-          <div className="font-bold text-[10px]">ບີນຮັບເງີນ</div>
+          <div className="font-bold text-[14px]">ບີນຮັບເງີນ</div>
         </div>
 
         <div className="flex justify-between items-end mb-1 font-bold text-gray-700 border-b border-dashed border-black pb-1">
           <div className="flex flex-col gap-0.5 text-[10px]">
             <span>ວັນທີ: {date}</span>
+            {/* 🟢 แสดงชื่อพนักงานแบบ Dynamic */}
+            <span>ພ.ງ: {displayStaff}</span>
           </div>
           <div className="flex flex-col items-end gap-0.5">
             <span className="text-[11px]">
@@ -82,7 +91,7 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
                 mainName = item.name.substring(0, startModIndex);
                 const modsString = item.name.substring(
                   startModIndex + 3,
-                  item.name.length - 1
+                  item.name.length - 1,
                 );
                 modifiersList = modsString.split(", ");
               }
@@ -90,10 +99,7 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
               const unitPrice = item.price / item.quantity;
 
               return (
-                <tr
-                  key={index}
-                  className="text-gray-900 font-bold border-b border-dotted border-gray-300 last:border-b-0"
-                >
+                <tr key={index} className="text-gray-900 font-bold">
                   <td className="py-1.5 pl-1 pr-1 text-left align-top w-[55%] break-words">
                     <div className="leading-tight">- {mainName}</div>
                     {modifiersList.length > 0 && (
@@ -168,12 +174,12 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
 
         <div className="text-center pb-0.5">
           <div className="font-bold text-[9px] tracking-wide">
-            ຂອບໃຈ ໂອກາດຫນ້າເຊີນໄຫມ່
+            ຂອບໃຈ ໂอกາດຫນ้าເຊີນໄຫມ່
           </div>
         </div>
       </div>
     );
-  }
+  },
 );
 
 ReceiptPage.displayName = "ReceiptPage";

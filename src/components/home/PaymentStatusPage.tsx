@@ -382,6 +382,8 @@ const PaymentStatusPage = ({
         cashReceived:
           paymentMethod === "CASH" ? parseFloat(cashReceived) : undefined,
         change: paymentMethod === "CASH" ? change : undefined,
+        shopName: "",
+        staffName: employeeName,
       };
 
       const result = await printReceiptQZ(

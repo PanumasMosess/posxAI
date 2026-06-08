@@ -465,6 +465,8 @@ export interface ReceiptProps {
   cashReceived?: number;
   change?: number;
   paymentMethod: string;
+  shopName?: string;
+  staffName?: string | null;
 }
 
 export type HistoryPayment = {
