@@ -141,7 +141,7 @@ const Floor_plan_canvas = ({ tables, editMode }: TableGridProps) => {
                   } else {
                     // สร้างตัวแปรไว้ด้านบนเพื่อให้สะอาดตา
                     const origin = window.location.origin;
-                    const url = `${origin}/orders?table=${table.id}&organizationId=${table.organizationId}`;
+                    const url = `${origin}/orders_?table=${table.id}&organizationId=${table.organizationId}`;
                     // เรียกใช้งาน
                     window.open(url, "_blank", "width=390,height=844");
                   }

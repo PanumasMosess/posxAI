@@ -19,7 +19,7 @@ export const Data_grid_status_table = ({ tables }: Props) => {
   const handleTableClick = (id: string | number, organizationId: string | number | null) => {
     const origin = window.location.origin;
     const orgId = organizationId ?? 0;
-    const url = `${origin}/orders?table=${id}&organizationId=${orgId}`;
+    const url = `${origin}/orders_?table=${id}&organizationId=${orgId}`;
     window.open(url, "_blank", "width=390,height=844,left=100,top=100");
   };
 
