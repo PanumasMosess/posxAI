@@ -1,7 +1,7 @@
 "use client";
 
 import { CartItem, MenuPOSPageClientProps } from "@/lib/type";
-import { useState, useEffect, Suspense, useMemo, useRef } from "react";
+import { useState, useEffect, Suspense, useMemo, useRef, memo, useCallback } from "react";
 import HTMLFlipBook from "react-pageflip";
 import {
   ShoppingCart,
@@ -44,6 +44,109 @@ import ShoutoutDialog from "./ShoutoutDialog";
 import { useUser } from "../providers/UserContext";
 import { Input } from "../ui/input";
 
+const MenuImage = memo(({ src, alt }: { src: string, alt: string }) => {
+  return (
+    <div className="w-full h-full relative bg-[#E5E0D8]/60 flex items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center z-0 bg-[#E5E0D8]">
+        <UtensilsCrossed size={24} strokeWidth={1.5} className="text-[#A6978C]/30 animate-pulse" />
+      </div>
+      <Image
+        src={src}
+        alt={alt || "Menu"}
+        fill
+        sizes="(max-width: 768px) 30vw, 150px"
+        quality={40}
+        loading="lazy"
+        decoding="async" // บอกเบราว์เซอร์ว่าให้โหลดรูปชิลๆ เบื้องหลังไปเลย ไม่ต้องแย่ง CPU
+        className="object-cover z-10 transition-transform duration-700 group-hover:scale-105"
+      />
+    </div>
+  );
+});
+MenuImage.displayName = "MenuImage";
+
+const MemoizedMenuCard = memo(({ 
+  item, 
+  isEntertainer, 
+  isRightPage, 
+  isBottomPlacement, 
+  isPkgChecked, 
+  onOpenDetail, 
+  onTogglePackage 
+}: any) => {
+  if (!item) return <div className="flex-1 bg-transparent" />;
+
+  const displayPrice = isPkgChecked ? item.price_package || 0 : item.price_sale;
+
+  const positionClass = isEntertainer
+    ? (isRightPage ? "bottom-3 right-3 sm:bottom-4 sm:right-4" : "bottom-3 left-3 sm:bottom-4 sm:left-4")
+    : (isBottomPlacement
+      ? (isRightPage ? "bottom-3 right-3 sm:bottom-4 sm:right-4" : "bottom-3 left-3 sm:bottom-4 sm:left-4")
+      : (isRightPage ? "top-3 right-3 sm:top-4 sm:right-4" : "top-3 left-3 sm:top-4 sm:left-4")
+    );
+
+  const checkboxPosition = isRightPage ? "top-3 left-3 sm:top-4 sm:left-4" : "top-3 right-3 sm:top-4 sm:right-4";
+
+  const stopNativeClick = (el: HTMLElement | null) => { if (el) el.onclick = (e) => e.stopPropagation(); };
+  const pointerPos = useRef({ x: 0, y: 0, time: 0 });
+  const handlePointerDown = (e: React.PointerEvent) => { pointerPos.current = { x: e.clientX, y: e.clientY, time: Date.now() }; };
+  const handlePointerUp = (e: React.PointerEvent, action: () => void) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+    const dy = Math.abs(e.clientY - pointerPos.current.y);
+    const dt = Date.now() - pointerPos.current.time;
+    if (dx < 15 && dy < 15 && dt < 500) { e.preventDefault(); e.stopPropagation(); action(); }
+  };
+
+  return (
+    <div
+      ref={stopNativeClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={(e) => handlePointerUp(e, () => onOpenDetail(item.id))}
+      style={{ touchAction: 'none' }}
+      className="relative w-full h-full cursor-pointer group bg-[#F5F1E8] overflow-hidden rounded-2xl shadow-sm border border-black/5 active:scale-[0.98] transition-transform duration-200"
+    >
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+        {item.img ? (
+          <MenuImage src={item.img} alt={item.menuName} />
+        ) : (
+          <div className="w-full h-full bg-[#E5E0D8]/60 flex flex-col items-center justify-center text-[#A6978C] opacity-80">
+            <UtensilsCrossed size={32} strokeWidth={1.5} className="mb-2 opacity-50" />
+            <span className="font-serif tracking-widest text-[10px] font-semibold opacity-60">NO IMAGE</span>
+          </div>
+        )}
+      </div>
+
+      <div className={`absolute ${positionClass} flex shadow-md z-20 max-w-[90%] bg-white/95 rounded-md overflow-hidden pointer-events-none`}>
+        <div className="bg-[#614D43] text-white px-2.5 sm:px-3 py-1.5 flex items-center justify-center min-w-[36px] sm:min-w-[44px]">
+          <span className="font-bold text-[11px] sm:text-[13px]">{item.menuCode || "-"}</span>
+        </div>
+        <div className="text-[#2A2422] px-2.5 sm:px-3 py-1.5 flex flex-col justify-center relative pr-9 sm:pr-10 min-w-[120px]">
+          <span className="font-bold text-[11px] sm:text-[12px] leading-tight line-clamp-1">{item.menuName}</span>
+          <span className="font-black text-[#614D43] text-[11px] sm:text-[12px] mt-[1px]">{displayPrice.toLocaleString()}.-</span>
+          <button className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#614D43] text-white rounded-md flex items-center justify-center shadow-sm">
+            <Plus size={14} strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+
+      {item.category?.categoryName === "Entertainer" && item.package_hours > 0 && (
+        <div
+          className={`absolute ${checkboxPosition} z-50 flex items-center gap-2 bg-white/95 px-3 py-2 shadow-md rounded-lg border border-[#614D43]/20 cursor-pointer hover:bg-orange-50 transition-colors`}
+          style={{ touchAction: 'none' }}
+          ref={stopNativeClick}
+          onPointerDown={(e) => { e.stopPropagation(); handlePointerDown(e); }}
+          onPointerUp={(e) => { e.stopPropagation(); handlePointerUp(e, () => onTogglePackage(item.id)); }}
+        >
+          <Checkbox id={`pkg-${item.id}`} checked={isPkgChecked} className="w-4 h-4 rounded-sm border-[#6B5A4E] data-[state=checked]:bg-[#614D43] pointer-events-none" />
+          <label className="text-[10px] text-[#2A2422] font-black uppercase pointer-events-none">Pkg {item.package_hours}h</label>
+        </div>
+      )}
+    </div>
+  );
+});
+MemoizedMenuCard.displayName = "MemoizedMenuCard";
+
+
 const MenuBookPage = ({
   relatedData,
   initialItems,
@@ -68,27 +171,18 @@ const MenuBookPage = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [packageSelections, setPackageSelections] = useState<Record<number, boolean>>({});
 
-  // 🔴 [FIX] เพิ่ม State เช็คว่าเป็น Desktop หรือ Mobile เพื่อแก้ปัญหาบั๊กปัดหน้าของไลบรารี
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    // เช็คว่าอุปกรณ์รองรับการ Touch หรือไม่ (ถ้าไม่ = เป็นคอมพิวเตอร์)
     const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     setIsDesktop(!isTouchDevice);
   }, []);
 
   const categories = useMemo(() => {
-    const sortedDbCategories = relatedData.categories
-      .map((c: any) => c.categoryName || c.name)
-      .filter(Boolean);
+    const sortedDbCategories = relatedData.categories.map((c: any) => c.categoryName || c.name).filter(Boolean);
     const activeCatNames = new Set(initialItems.map((item: any) => item.category?.categoryName).filter(Boolean));
-    const catsArray = sortedDbCategories.filter((catName: string) =>
-      activeCatNames.has(catName) && catName !== "Entertainer"
-    );
-    if (activeCatNames.has("Entertainer")) {
-      catsArray.push("Entertainer");
-    }
-
+    const catsArray = sortedDbCategories.filter((catName: string) => activeCatNames.has(catName) && catName !== "Entertainer");
+    if (activeCatNames.has("Entertainer")) catsArray.push("Entertainer");
     return ["All", ...catsArray];
   }, [initialItems, relatedData.categories]);
 
@@ -105,23 +199,16 @@ const MenuBookPage = ({
   const searchFilteredItems = useMemo(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
     return initialItems.filter((item: any) => {
-      return (
-        item.menuName?.toLowerCase().includes(lowercasedFilter) ||
-        item.menuCode?.toLowerCase().includes(lowercasedFilter)
-      );
+      return item.menuName?.toLowerCase().includes(lowercasedFilter) || item.menuCode?.toLowerCase().includes(lowercasedFilter);
     });
   }, [searchTerm, initialItems]);
 
-  const displayCats = useMemo(() => {
-    return categories.filter(c => c !== "All");
-  }, [categories]);
+  const displayCats = useMemo(() => categories.filter(c => c !== "All"), [categories]);
 
   const categoryIndexPages = useMemo(() => {
     const chunks = [];
     const catsPerPage = 15;
-    for (let i = 0; i < displayCats.length; i += catsPerPage) {
-      chunks.push(displayCats.slice(i, i + catsPerPage));
-    }
+    for (let i = 0; i < displayCats.length; i += catsPerPage) chunks.push(displayCats.slice(i, i + catsPerPage));
     return chunks;
   }, [displayCats]);
 
@@ -129,7 +216,6 @@ const MenuBookPage = ({
 
   const booksData = useMemo(() => {
     const pagePattern = [5, 4, 3, 5, 2, 3];
-
     const mainPages: any[] = [];
     const mainCatStartMap: Record<string, number> = {};
     const mainPageCatMap: Record<number, string> = {};
@@ -212,7 +298,7 @@ const MenuBookPage = ({
       main: { pages: mainPages, catStartMap: mainCatStartMap, pageCatMap: mainPageCatMap },
       ent: { pages: entPages, catStartMap: entCatStartMap, pageCatMap: entPageCatMap }
     };
-  }, [searchFilteredItems, displayCats, categoryIndexPages]);
+  }, [initialItems, displayCats, categoryIndexPages]);
 
   const activeBookData = isEntertainerMode ? booksData.ent : booksData.main;
 
@@ -221,12 +307,9 @@ const MenuBookPage = ({
   useEffect(() => {
     if (pendingJumpCategory && !isEntertainerMode) {
       const targetPage = pendingJumpCategory === "All" ? 0 : booksData.main.catStartMap[pendingJumpCategory];
-
       if (targetPage !== undefined) {
         const timer = setTimeout(() => {
-          if (bookRef.current && bookRef.current.pageFlip) {
-            bookRef.current.pageFlip().turnToPage(targetPage);
-          }
+          if (bookRef.current && bookRef.current.pageFlip) bookRef.current.pageFlip().turnToPage(targetPage);
           setPendingJumpCategory(null);
         }, 400);
         return () => clearTimeout(timer);
@@ -236,29 +319,15 @@ const MenuBookPage = ({
     }
   }, [pendingJumpCategory, isEntertainerMode, booksData]);
 
+  // ระบบดักจับการคลิก Categories Index
+  const stopNativeClick = (el: HTMLElement | null) => { if (el) { el.onclick = (e) => { e.stopPropagation(); }; } };
   const pointerPos = useRef({ x: 0, y: 0, time: 0 });
-
-  const stopNativeClick = (el: HTMLElement | null) => {
-    if (el) {
-      el.onclick = (e) => {
-        e.stopPropagation();
-      };
-    }
-  };
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    pointerPos.current = { x: e.clientX, y: e.clientY, time: Date.now() };
-  };
-
+  const handlePointerDown = (e: React.PointerEvent) => { pointerPos.current = { x: e.clientX, y: e.clientY, time: Date.now() }; };
   const handlePointerUp = (e: React.PointerEvent, action: () => void) => {
     const dx = Math.abs(e.clientX - pointerPos.current.x);
     const dy = Math.abs(e.clientY - pointerPos.current.y);
     const dt = Date.now() - pointerPos.current.time;
-    if (dx < 15 && dy < 15 && dt < 500) {
-      e.preventDefault();
-      e.stopPropagation();
-      action();
-    }
+    if (dx < 15 && dy < 15 && dt < 500) { e.preventDefault(); e.stopPropagation(); action(); }
   };
 
   const onPageFlip = (e: any) => {
@@ -269,12 +338,17 @@ const MenuBookPage = ({
     }
   };
 
-  const handelOpendetail = async (id_for_detail: any) => {
+  // 🚀 3. [NEW] ใช้ useCallback เพื่อไม่ให้ฟังก์ชันเปลี่ยนตัวตนทุกครั้งที่หน้าอัปเดต
+  const handelOpendetail = useCallback((id_for_detail: any) => {
     const itemToDetail = initialItems.find((item: any) => item.id === id_for_detail);
     const isPackageSelected = packageSelections[id_for_detail] || false;
     setItemnDetail({ ...itemToDetail, isPackageSelected });
     setIsOpenDetail(true);
-  };
+  }, [initialItems, packageSelections]);
+
+  const handleTogglePackage = useCallback((itemId: number) => {
+    setPackageSelections((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
+  }, []);
 
   const handleAddToCart = async (cartItem: CartItem) => {
     cartItem.organizationId = organizationId ?? 1;
@@ -327,78 +401,19 @@ const MenuBookPage = ({
     }
   }, [tableNumber, relatedData.cartdatas]);
 
+
+  // 🚀 4. ตัวช่วย Render Card เรียกใช้ Memo Component แทนการสร้างสดใหม่
   const renderItemCard = (item: any, isEntertainer: boolean, isRightPage: boolean, isBottomPlacement: boolean = false) => {
-    if (!item) return <div className="flex-1 bg-transparent" />;
-    const isPkgChecked = packageSelections[item.id] || false;
-    const displayPrice = isPkgChecked ? item.price_package || 0 : item.price_sale;
-
-    const positionClass = isEntertainer
-      ? (isRightPage ? "bottom-3 right-3 sm:bottom-4 sm:right-4" : "bottom-3 left-3 sm:bottom-4 sm:left-4")
-      : (isBottomPlacement
-        ? (isRightPage ? "bottom-3 right-3 sm:bottom-4 sm:right-4" : "bottom-3 left-3 sm:bottom-4 sm:left-4")
-        : (isRightPage ? "top-3 right-3 sm:top-4 sm:right-4" : "top-3 left-3 sm:top-4 sm:left-4")
-      );
-
-    const checkboxPosition = isRightPage ? "top-3 left-3 sm:top-4 sm:left-4" : "top-3 right-3 sm:top-4 sm:right-4";
-
     return (
-      <div
-        key={item.id}
-        ref={stopNativeClick}
-        onPointerDown={handlePointerDown}
-        onPointerUp={(e) => handlePointerUp(e, () => handelOpendetail(item.id))}
-        style={{ touchAction: 'none' }}
-        className="relative w-full h-full cursor-pointer group bg-[#F5F1E8] overflow-hidden rounded-2xl shadow-[0_4px_10px_rgba(0,0,0,0.05)] border border-black/5 active:scale-[0.98] transition-transform duration-200"
-      >
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-[#F3EFE9] pointer-events-none">
-          {item.img ? (
-            <Image src={item.img} alt={item.menuName} fill className="object-cover transition-transform duration-700 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 500px" />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-[#A6978C] opacity-60">
-              <UtensilsCrossed size={40} strokeWidth={1.5} className="mb-2" />
-              <span className="font-serif tracking-widest text-[10px] font-semibold">NO IMAGE</span>
-            </div>
-          )}
-        </div>
-
-        <div className={`absolute ${positionClass} flex shadow-md z-20 max-w-[90%] group-hover:shadow-lg transition-all rounded-md overflow-hidden bg-white/95 pointer-events-none`}>
-          <div className="bg-[#614D43] text-white px-2.5 sm:px-3 py-1.5 flex items-center justify-center min-w-[36px] sm:min-w-[44px]">
-            <span className="font-bold text-[11px] sm:text-[13px]">{item.menuCode || "-"}</span>
-          </div>
-          <div className="bg-white/95 text-[#2A2422] px-2.5 sm:px-3 py-1.5 flex flex-col justify-center relative pr-9 sm:pr-10 min-w-[120px]">
-            <span className="font-bold text-[11px] sm:text-[12px] leading-tight line-clamp-1">{item.menuName}</span>
-            <span className="font-black text-[#614D43] text-[11px] sm:text-[12px] mt-[1px]">{displayPrice.toLocaleString()}.-</span>
-            <button className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#614D43] text-white rounded-md flex items-center justify-center transition-colors shadow-sm pointer-events-none">
-              <Plus size={14} strokeWidth={3} />
-            </button>
-          </div>
-        </div>
-
-        {item.category?.categoryName === "Entertainer" && item.package_hours > 0 && (
-          <div
-            className={`absolute ${checkboxPosition} z-50 flex items-center gap-2 bg-white/95 px-3 py-2 shadow-lg rounded-lg border border-[#614D43]/20 cursor-pointer hover:bg-orange-50 transition-colors`}
-            style={{ touchAction: 'none' }}
-            ref={stopNativeClick}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              handlePointerDown(e);
-            }}
-            onPointerUp={(e) => {
-              e.stopPropagation();
-              handlePointerUp(e, () => setPackageSelections((prev) => ({ ...prev, [item.id]: !prev[item.id] })));
-            }}
-          >
-            <Checkbox
-              id={`pkg-${item.id}`}
-              checked={isPkgChecked}
-              className="w-4 h-4 rounded-sm border-[#6B5A4E] data-[state=checked]:bg-[#614D43] pointer-events-none"
-            />
-            <label className="text-[10px] text-[#2A2422] font-black uppercase pointer-events-none">
-              Pkg {item.package_hours}h
-            </label>
-          </div>
-        )}
-      </div>
+      <MemoizedMenuCard 
+        item={item} 
+        isEntertainer={isEntertainer} 
+        isRightPage={isRightPage} 
+        isBottomPlacement={isBottomPlacement}
+        isPkgChecked={item ? packageSelections[item.id] || false : false}
+        onOpenDetail={handelOpendetail}
+        onTogglePackage={handleTogglePackage}
+      />
     );
   };
 
@@ -455,7 +470,6 @@ const MenuBookPage = ({
             transition={{ duration: 0.2 }}
             className="fixed top-16 left-4 right-4 sm:left-auto sm:right-6 z-50 sm:w-[380px] bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[60vh] sm:max-h-[70vh]"
           >
-            {/* แถบค้นหา */}
             <div className="relative shrink-0 border-b border-white/10 bg-black/20">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
               <Input
@@ -474,7 +488,6 @@ const MenuBookPage = ({
               </button>
             </div>
 
-            {/* รายการผลลัพธ์การค้นหา */}
             {searchTerm && (
               <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
                 {searchFilteredItems.length > 0 ? (
@@ -493,10 +506,9 @@ const MenuBookPage = ({
                           }}
                           className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-white/10 rounded-xl transition-all group active:scale-[0.98]"
                         >
-                          {/* รูปภาพเมนูขนาดย่อ */}
                           <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden relative shrink-0 border border-white/10 group-hover:border-orange-500/50 transition-colors">
                             {item.img ? (
-                              <Image src={item.img} alt={item.menuName} fill className="object-cover" sizes="48px" />
+                              <Image src={item.img} alt={item.menuName} fill className="object-cover" sizes="48px" quality={30} />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-white/20">
                                 <UtensilsCrossed size={20} />
@@ -504,7 +516,6 @@ const MenuBookPage = ({
                             )}
                           </div>
 
-                          {/* ข้อมูลชื่อและรหัสเมนู */}
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <span className="text-white font-medium text-sm truncate group-hover:text-orange-400 transition-colors">
                               {item.menuName}
@@ -515,7 +526,6 @@ const MenuBookPage = ({
                             </span>
                           </div>
 
-                          {/* ราคา */}
                           <div className="text-orange-500 font-bold text-sm shrink-0">
                             {displayPrice.toLocaleString()}.-
                           </div>
@@ -535,7 +545,6 @@ const MenuBookPage = ({
         )}
       </AnimatePresence>
 
-      {/* 📖 สมุดเมนู */}
       <div className="w-full h-full absolute inset-0 flex items-center justify-center pt-6 pb-4 sm:pt-10 sm:pb-6">
         <HTMLFlipBook
           key={isEntertainerMode ? "entertainer-secret-book" : "main-food-book"}
@@ -544,15 +553,14 @@ const MenuBookPage = ({
           minWidth={300} maxWidth={2500} minHeight={500} maxHeight={3000}
           showCover={false}
           mobileScrollSupport={false}
-          className="w-full h-full drop-shadow-2xl"
+          className="w-full h-full drop-shadow-xl"
           ref={bookRef}
           flippingTime={450}
           usePortrait={true}
           autoSize={true}
           drawShadow={true}
           showPageCorners={true}
-          maxShadowOpacity={0.4}
-          // 🔴 [FIX] ตัวแยกอุปกรณ์ : คอมพิวเตอร์ = ปิดคลิกเปลี่ยนหน้า | มือถือ = เปิดให้ปัดได้เหมือนเดิม
+          maxShadowOpacity={0.3}
           disableFlipByClick={isDesktop}
           swipeDistance={15}
           clickEventForward={true}
@@ -569,7 +577,6 @@ const MenuBookPage = ({
             if (page.isMainCover) {
               return (
                 <div key={`page-${pIndex}`} className="bg-[#12100E] w-full h-full relative overflow-hidden flex flex-col items-center justify-center shadow-inner p-4 sm:p-6 border-[12px] sm:border-[16px] border-[#1C1816]">
-                  <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
                   <div className={`absolute top-0 bottom-0 w-16 pointer-events-none z-10 ${isRightPage ? "right-0 bg-gradient-to-l" : "left-0 bg-gradient-to-r"} from-black/80 to-transparent`} />
 
                   <div className="absolute inset-4 sm:inset-6 border border-[#D4AF37]/40 z-20 flex flex-col items-center justify-center p-8">
@@ -590,7 +597,6 @@ const MenuBookPage = ({
             if (page.isBackCover) {
               return (
                 <div key={`page-${pIndex}`} className="bg-[#12100E] w-full h-full relative overflow-hidden flex flex-col items-center justify-center shadow-inner p-4 sm:p-6 border-[12px] sm:border-[16px] border-[#1C1816]">
-                  <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
                   <div className={`absolute top-0 bottom-0 w-16 pointer-events-none z-10 ${isRightPage ? "right-0 bg-gradient-to-l" : "left-0 bg-gradient-to-r"} from-black/80 to-transparent`} />
                   <div className="absolute inset-4 sm:inset-6 border border-[#D4AF37]/20 z-20 flex flex-col items-center justify-center p-8">
                     <div className="mb-6 text-[#D4AF37] opacity-40"><UtensilsCrossed size={40} strokeWidth={1} /></div>
@@ -615,10 +621,7 @@ const MenuBookPage = ({
                     <div className="w-16 h-[2px] bg-[#5C4A3D] mx-auto mt-4 rounded-full"></div>
                   </div>
 
-                  {/* ✅ แก้ไขตรงนี้: เพิ่ม overflow-y-auto, pb-6 และปรับสไตล์การเลื่อน */}
                   <div className="flex-1 w-full relative z-20 overflow-y-auto pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
-
-                    {/* ✅ ปรับ gap จาก 4 เป็น 3 ในจอมือถือ เพื่อให้บรรทัดชิดกันขึ้นนิดหน่อย แสดงเมนูได้เยอะขึ้น */}
                     <div className="flex flex-col gap-3 sm:gap-4 px-2">
                       {page.items.map((cat: any, idx: number) => {
                         const isActive = activeCategory === cat;
@@ -685,7 +688,6 @@ const MenuBookPage = ({
             if (page.isCover && !page.isBlank) {
               return (
                 <div key={`page-${pIndex}`} className="bg-[#F5F2EB] w-full h-full relative overflow-hidden flex flex-col items-center justify-center shadow-inner p-4">
-                  <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
                   <div className={`absolute top-0 bottom-0 w-12 pointer-events-none z-10 ${isRightPage ? "right-0 bg-gradient-to-l" : "left-0 bg-gradient-to-r"} from-black/10 to-transparent`} />
                   <div className="absolute inset-6 border border-[#B8A495]/40 z-0">
                     <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-[#5C4A3D]"></div>
@@ -718,12 +720,11 @@ const MenuBookPage = ({
 
                   {isEntertainerMode ? (
                     <>
-                      {itemCount >= 1 && <div className={`${itemCount === 1 ? 'h-full' : 'h-1/2'} w-full`}>{renderItemCard(page.items[0], true, isRightPage)}</div>}
-                      {itemCount >= 2 && <div className="h-1/2 w-full">{renderItemCard(page.items[1], true, isRightPage)}</div>}
+                      {itemCount >= 1 && <div className={`${itemCount === 1 ? 'h-full' : 'h-1/2'} w-full`}>{renderItemCard(page.items[0], true, isRightPage, false)}</div>}
+                      {itemCount >= 2 && <div className="h-1/2 w-full">{renderItemCard(page.items[1], true, isRightPage, false)}</div>}
                     </>
                   ) : (
                     <>
-                      {/* โครงสร้าง 5 รายการ (ใหญ่บน 1, เล็กล่าง 4) */}
                       {itemCount === 5 && pIndex % 2 === 0 && (
                         <>
                           <div className="h-[40%] w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
@@ -736,7 +737,6 @@ const MenuBookPage = ({
                         </>
                       )}
 
-                      {/* โครงสร้าง 5 รายการ (เล็กบน 4, ใหญ่ล่าง 1) */}
                       {itemCount === 5 && pIndex % 2 !== 0 && (
                         <>
                           <div className="grid grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3 h-[60%] w-full">
@@ -749,7 +749,6 @@ const MenuBookPage = ({
                         </>
                       )}
 
-                      {/* โครงสร้าง 4 รายการ (กริด 2x2) */}
                       {itemCount === 4 && (
                         <div className="grid grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3 h-full w-full">
                           <div>{renderItemCard(page.items[0], false, isRightPage, false)}</div>
@@ -759,7 +758,6 @@ const MenuBookPage = ({
                         </div>
                       )}
 
-                      {/* โครงสร้าง 3 รายการ (ใหญ่ 1 เล็ก 2) */}
                       {itemCount === 3 && pIndex % 2 === 0 && (
                         <>
                           <div className="h-[55%] w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
@@ -770,7 +768,6 @@ const MenuBookPage = ({
                         </>
                       )}
 
-                      {/* โครงสร้าง 3 รายการ (เล็ก 2 ใหญ่ 1) */}
                       {itemCount === 3 && pIndex % 2 !== 0 && (
                         <>
                           <div className="flex gap-2.5 sm:gap-3 h-[45%] w-full">
@@ -781,7 +778,6 @@ const MenuBookPage = ({
                         </>
                       )}
 
-                      {/* โครงสร้าง 2 รายการ */}
                       {itemCount === 2 && (
                         <>
                           <div className="h-1/2 w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
@@ -789,7 +785,6 @@ const MenuBookPage = ({
                         </>
                       )}
 
-                      {/* โครงสร้าง 1 รายการ */}
                       {itemCount === 1 && (
                         <div className="h-full w-full">{renderItemCard(page.items[0], false, isRightPage, false)}</div>
                       )}
@@ -852,14 +847,12 @@ const MenuBookPage = ({
         </SheetContent>
       </Sheet>
 
-      {/* 🔴 ซ่อนปุ่มลูกศรซ้ายบนมือถือ (เปลี่ยนเป็น hidden sm:block) */}
       <div className="fixed top-1/2 left-2 sm:left-6 -translate-y-1/2 z-30 pointer-events-auto hidden sm:block">
         <button onClick={() => bookRef.current?.pageFlip().flipPrev()} className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg border border-white/10">
           <ChevronLeft size={24} strokeWidth={1.5} />
         </button>
       </div>
 
-      {/* 🔴 ซ่อนปุ่มลูกศรขวาบนมือถือ (เปลี่ยนเป็น hidden sm:block) */}
       <div className="fixed top-1/2 right-2 sm:right-6 -translate-y-1/2 z-30 pointer-events-auto hidden sm:block">
         <button onClick={() => bookRef.current?.pageFlip().flipNext()} className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg border border-white/10">
           <ChevronRight size={24} strokeWidth={1.5} />
@@ -879,7 +872,7 @@ const MenuBookPage = ({
                   return (
                     <div key={item.id} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                       <div className="w-16 h-16 bg-gray-50 flex-shrink-0 relative overflow-hidden border border-gray-100 rounded-md">
-                        {menuItem?.img ? <Image src={menuItem.img} alt={menuItem.menuName || "Menu Image"} fill className="object-cover" sizes="64px" /> : <div className="flex items-center justify-center h-full text-xs text-gray-400">IMG</div>}
+                        {menuItem?.img ? <Image src={menuItem.img} alt={menuItem.menuName || "Menu Image"} fill className="object-cover" sizes="64px" quality={30} /> : <div className="flex items-center justify-center h-full text-xs text-gray-400">IMG</div>}
                       </div>
                       <div className="flex-1 min-w-0 py-1">
                         <div className="flex justify-between items-start mb-1">
