@@ -60,7 +60,7 @@ const column_status_table = (
           title="คลิกเพื่อเปิดหน้าสั่งอาหาร"
           onClick={() => {
             const origin = window.location.origin;
-            const url = `${origin}/orders?table=${tableId}&organizationId=${organizationId}`;
+            const url = `${origin}/orders_?table=${tableId}&organizationId=${organizationId}`;
 
             const popupWidth = 390;
             const popupHeight = 844;
