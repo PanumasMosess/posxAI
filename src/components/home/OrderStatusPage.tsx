@@ -143,15 +143,6 @@ export default function OrderStatusPage({
             categoryData?.categoryName ||
             "ไม่ระบุหมวดหมู่";
 
-          // ดักกรองตัดรายการ Entertainner ออกไปทิ้งทันที
-          if (
-            categoryName.toLowerCase().includes("entertainner") ||
-            categoryName.toLowerCase().includes("entertainer") ||
-            item.menu?.menuName?.toLowerCase().includes("entertainner") ||
-            item.menu?.menuName?.toLowerCase().includes("entertainer")
-          ) {
-            return;
-          }
 
           const modifierText = item.selectedModifiers
             ? item.selectedModifiers
@@ -320,11 +311,8 @@ export default function OrderStatusPage({
       initialActiveOrders.forEach((order: any) => {
         if (order.orderitems) {
           order.orderitems.forEach((item: any) => {
-            // ดักคัดกรองหมวดบันเทิงออกตอนลงทะเบียนเซ็ตระบบ
-            const catName = item.menu?.category?.name || "";
-            if (!catName.toLowerCase().includes("entertain")) {
-              printedItemsRef.current.add(item.id);
-            }
+            // เอาเงื่อนไขดักบล็อก Entertainner ตรงนี้ออกด้วยเหมือนกัน จะได้ลงทะเบียนออเดอร์เก่าให้ครบทุกเมนู
+            printedItemsRef.current.add(item.id);
           });
         }
       });
@@ -361,6 +349,7 @@ export default function OrderStatusPage({
             (item: any) => !printedItemsRef.current.has(item.orderItemId),
           );
           if (hasNewItem && ["NEW", "READY"].includes(g.status)) {
+            // สั่งทำงานแบบซิงโครนัส รอให้ QZ ปริ้นใบนี้จบอย่างสวยงามก่อน ค่อยสั่งใบถัดไป
             await handlePrint(g, true);
           }
         }
