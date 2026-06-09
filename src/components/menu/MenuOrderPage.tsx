@@ -86,12 +86,22 @@ const MenuOrderPage = ({
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
 
+  // 1. ✅ สร้างฟังก์ชันกรองข้อมูลตะกร้าเฉพาะโต๊ะที่เลือก
+  const filteredCartData = useMemo(() => {
+    if (!relatedData.cartdatas) return [];
+    if (tableNumber !== 0) {
+      return relatedData.cartdatas.filter((item: any) => item.tableId === tableNumber);
+    }
+    return relatedData.cartdatas;
+  }, [relatedData.cartdatas, tableNumber]);
+
+  // 2. ✅ คำนวณราคารวมเฉพาะจากตะกร้าที่กรองแล้ว
   const totalPrice = useMemo(() => {
-    return relatedData.cartdatas.reduce(
-      (sum, item) => sum + (item.price_sum || 0),
+    return filteredCartData.reduce(
+      (sum, item: any) => sum + (item.price_sum || 0),
       0,
     );
-  }, [relatedData.cartdatas]);
+  }, [filteredCartData]);
 
   const currentTableName = useMemo(() => {
     if (!tableNumber || !relatedData.tabledatas) return "-";
@@ -167,20 +177,21 @@ const MenuOrderPage = ({
 
   const handleConfirmOrder = async () => {
     try {
-      if (relatedData.cartdatas.length === 0) {
+      // 3. ✅ เช็คและสั่งเฉพาะข้อมูลที่กรองแล้ว
+      if (filteredCartData.length === 0) {
         toast.warning("ไม่มีรายการในตะกร้า");
         return;
       }
 
-      const cartDataWithEmployee = relatedData.cartdatas.map((item: any) => ({
+      const cartDataWithEmployee = filteredCartData.map((item: any) => ({
         ...item,
         employeeId: employeeId ? String(employeeId) : null,
       }));
 
       const result = await createOrder(cartDataWithEmployee);
       if (result.success) {
-        await updateCartStatusNEW(relatedData.cartdatas);
-        await updateTableStatus(relatedData.cartdatas, "OCCUPIED");
+        await updateCartStatusNEW(filteredCartData);
+        await updateTableStatus(filteredCartData, "OCCUPIED");
         toast.success("ส่งออเดอร์สำเร็จ!", {
           position: "bottom-center",
           className: "responsive-toast",
@@ -228,16 +239,10 @@ const MenuOrderPage = ({
     setHasMore(filteredItems.length > itemsPerPage);
   }, [filteredItems]);
 
+  // 4. ✅ อัปเดตจำนวนตะกร้าโดยใช้ข้อมูลที่กรองแล้ว
   useEffect(() => {
-    if (tableNumber !== 0 && relatedData.cartdatas) {
-      const itemsForThisTable = relatedData.cartdatas.filter(
-        (item) => item.tableId === tableNumber,
-      );
-      setCartCount(itemsForThisTable.length);
-    } else {
-      setCartCount(relatedData.cartdatas.length);
-    }
-  }, [tableNumber, relatedData.cartdatas]);
+    setCartCount(filteredCartData.length);
+  }, [filteredCartData]);
 
   return (
     <div className="bg-muted/20 min-h-screen pb-24 relative">
@@ -509,9 +514,10 @@ const MenuOrderPage = ({
           </SheetHeader>
 
           <ScrollArea className="flex-1 px-6 py-4">
-            {relatedData.cartdatas.length > 0 ? (
+            {/* 5. ✅ เปลี่ยนมาลูปข้อมูลที่กรองแล้วตรงนี้ */}
+            {filteredCartData.length > 0 ? (
               <div className="flex flex-col gap-4 pb-20">
-                {relatedData.cartdatas.map((item) => {
+                {filteredCartData.map((item: any) => {
                   const menuItem = initialItems.find(
                     (m: any) => m.id === item.menuId,
                   );
@@ -637,7 +643,7 @@ const MenuOrderPage = ({
             <Button
               className="w-full h-12 text-lg font-bold"
               onClick={handleConfirmOrder}
-              disabled={relatedData.cartdatas.length === 0}
+              disabled={filteredCartData.length === 0} // 6. ✅ เช็ค disabled ด้วยข้อมูลที่กรองแล้ว
             >
               ยืนยันการสั่งอาหาร
             </Button>
