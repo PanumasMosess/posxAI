@@ -24,7 +24,7 @@ const MainPageComponentsHome = ({
   const { employeeId } = useUser();
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [selectedTableToMove, setSelectedTableToMove] =
-    useState<StatusTable | null>(null);
+    useState<(StatusTable & { activeOrders?: any[] }) | null>(null);
   const [activeOrderIds, setActiveOrderIds] = useState<number[]>([]);
 
   const router = useRouter();
@@ -43,7 +43,7 @@ const MainPageComponentsHome = ({
     );
     const ids = activeOrders.map((o) => o.id);
     setActiveOrderIds(ids);
-    setSelectedTableToMove(table);
+    setSelectedTableToMove({ ...table, activeOrders });
     setIsMoveDialogOpen(true);
   };
 
@@ -84,11 +84,13 @@ const MainPageComponentsHome = ({
               tableName: t.tableName,
               status: t.status as any,
             }))}
-            onConfirm={async (fromTableId, toTableId) => {
+            currentOrderItems={selectedTableToMove.activeOrders}
+            onConfirm={async (fromTableId, toTableId, selectedOrderIds) => {
+              const idsToMove = selectedOrderIds === null ? activeOrderIds : selectedOrderIds;
               const result = await moveTableFunction(
                 fromTableId,
                 toTableId,
-                activeOrderIds,
+                idsToMove,
               );
 
               if (result.success) {
