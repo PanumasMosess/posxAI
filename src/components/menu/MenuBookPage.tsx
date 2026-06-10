@@ -620,8 +620,8 @@ const MenuBookPage = ({
           <button
             onClick={() => setIsCartOpen(true)}
             className={`relative flex items-center justify-center gap-2 h-11 sm:h-12 px-5 sm:px-6 ml-1 rounded-full transition-all duration-300 active:scale-95 ${cartCount > 0
-                ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.4)] border border-orange-500/50"
-                : "bg-white/10 hover:bg-white/20 text-white/90 border border-white/5"
+              ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.4)] border border-orange-500/50"
+              : "bg-white/10 hover:bg-white/20 text-white/90 border border-white/5"
               }`}
           >
             <ShoppingCart size={18} strokeWidth={2} />
@@ -1024,15 +1024,23 @@ const MenuBookPage = ({
         </SheetContent>
       </Sheet>
 
-      <div className="fixed top-1/2 left-2 sm:left-6 -translate-y-1/2 z-30 pointer-events-auto hidden sm:block">
-        <button onClick={() => bookRef.current?.pageFlip().flipPrev()} className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg border border-white/10">
-          <ChevronLeft size={24} strokeWidth={1.5} />
+      {/* ปุ่มเลื่อนหน้าซ้าย (แสดงทุกหน้าจอแล้ว) */}
+      <div className="fixed top-1/2 left-2 sm:left-6 -translate-y-1/2 z-30 pointer-events-auto">
+        <button
+          onClick={() => bookRef.current?.pageFlip().flipPrev()}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-black/20 sm:bg-white/10 hover:bg-black/40 sm:hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white/90 sm:text-white/80 hover:text-white transition-all shadow-lg border border-white/10"
+        >
+          <ChevronLeft strokeWidth={1.5} className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
       </div>
 
-      <div className="fixed top-1/2 right-2 sm:right-6 -translate-y-1/2 z-30 pointer-events-auto hidden sm:block">
-        <button onClick={() => bookRef.current?.pageFlip().flipNext()} className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg border border-white/10">
-          <ChevronRight size={24} strokeWidth={1.5} />
+      {/* ปุ่มเลื่อนหน้าขวา (แสดงทุกหน้าจอแล้ว) */}
+      <div className="fixed top-1/2 right-2 sm:right-6 -translate-y-1/2 z-30 pointer-events-auto">
+        <button
+          onClick={() => bookRef.current?.pageFlip().flipNext()}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-black/20 sm:bg-white/10 hover:bg-black/40 sm:hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white/90 sm:text-white/80 hover:text-white transition-all shadow-lg border border-white/10"
+        >
+          <ChevronRight strokeWidth={1.5} className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
       </div>
 
@@ -1085,9 +1093,38 @@ const MenuBookPage = ({
         </SheetContent>
       </Sheet>
 
+      {/* ของเดิมที่มีอยู่แล้ว */}
       <MenuOrderHistorySheet isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen} relatedData={relatedData} tableNumber={tableNumber} />
       <AnimatePresence>{isOpenDetail && <MenuOrderDetailDialog stateDialog={setIsOpenDetail} open={isOpenDetail} menuDetail={itemnDetail} tableNumber={tableNumber} dataTable={relatedData.tabledatas} onAddToCart={handleAddToCart} />}</AnimatePresence>
       <ShoutoutDialog isOpen={isShoutoutOpen} onClose={() => setIsShoutoutOpen(false)} organizationId={organizationId ?? 1} />
+
+      {/* 🔴 เพิ่มส่วนนี้: ROTATE DEVICE OVERLAY (แสดงเฉพาะมือถือแนวนอนเท่านั้น) */}
+      <div className="hidden [@media(max-width:950px)_and_(max-height:500px)_and_(orientation:landscape)]:flex fixed inset-0 z-[99999] bg-[#0a0a0a]/95 backdrop-blur-xl flex-col items-center justify-center text-white px-6 text-center">
+        <motion.div
+          initial={{ rotate: -90 }}
+          animate={{ rotate: [-90, 0, 0, -90] }}
+          transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut", times: [0, 0.4, 0.8, 1] }}
+          className="mb-8"
+        >
+          <div className="w-16 h-28 border-[3px] border-white/20 rounded-3xl flex items-center justify-center relative bg-black shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+            {/* ลำโพงบน */}
+            <div className="w-5 h-1 bg-white/20 rounded-full absolute top-2.5" />
+            {/* หน้าจอจำลอง */}
+            <div className="w-12 h-20 border-2 border-white/10 rounded-xl flex items-center justify-center bg-white/5">
+              <UtensilsCrossed size={16} className="text-white/20" />
+            </div>
+          </div>
+        </motion.div>
+
+        <h2 className="text-2xl font-serif text-white/90 font-bold tracking-[0.2em] mb-4 notranslate uppercase drop-shadow-lg">
+          Portrait Only
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed tracking-wide">
+          กรุณาหมุนโทรศัพท์ของคุณเป็น <span className="text-orange-500 font-bold">แนวตั้ง</span><br />
+          เพื่อการแสดงผลสมุดเมนูที่สมบูรณ์
+        </p>
+      </div>
+
     </div>
   );
 };
