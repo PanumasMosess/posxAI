@@ -61,33 +61,19 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     lastYearTotal,
     employeeStats,
   } = useMemo(() => {
-    // 🟢 1. หากะล่าสุด (Latest Shift) เพื่อใช้เป็นบรรทัดฐานของคำว่า "วันนี้/เดือนนี้/ปีนี้"
-    let logicalNow = new Date();
-    if (orders && orders.length > 0) {
-      let maxTime = 0;
-      orders.forEach((payment: any) => {
-        const refStr =
-          payment.shift?.createdAt ||
-          payment.shift?.startTime ||
-          payment.createdAt;
-        const t = new Date(refStr).getTime();
-        if (t > maxTime) maxTime = t;
-      });
-      if (maxTime > 0) {
-        logicalNow = new Date(maxTime);
-      }
-    }
+    // 🟢 บังคับใช้ "เวลาปัจจุบันจริงๆ (Real Time)" ห้ามไปเดาเวลาจากกะเก่าเด็ดขาด
+    const realNow = new Date();
 
-    // เซ็ตเวลาเริ่มต้นของ "วัน/เดือน/ปี" จากกะล่าสุด แทนการใช้เวลาปัจจุบัน
     const todayMillis = new Date(
-      logicalNow.getFullYear(),
-      logicalNow.getMonth(),
-      logicalNow.getDate(),
+      realNow.getFullYear(),
+      realNow.getMonth(),
+      realNow.getDate(),
     ).getTime();
+
     const yesterdayMillis = todayMillis - 86400000;
 
-    const thisMonth = logicalNow.getMonth();
-    const thisYear = logicalNow.getFullYear();
+    const thisMonth = realNow.getMonth();
+    const thisYear = realNow.getFullYear();
     const lastMonthDate = new Date(thisYear, thisMonth - 1, 1);
     const lastMonth = lastMonthDate.getMonth();
     const lastMonthYear = lastMonthDate.getFullYear();
@@ -147,11 +133,13 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
     });
 
     orders.forEach((payment: any) => {
-      // 🟢 2. ดึงวันที่ของแต่ละบิล จากกะ (Shift Date) อย่างเข้มงวด
+      // 🟢 ดึงวันที่ของบิล โดยเช็คจาก "เวลาเปิดกะ (startTime)" ของบิลนั้นๆ อย่างเคร่งครัด
+      // ถ้าร้านเปิดกะเมื่อวาน แล้วขายข้ามมาตี 1 ของวันนี้ ยอดจะถูกทบรวมเป็นของเมื่อวานตามเวลาเปิดกะทันที (ไม่ตัด 00:00)
       const referenceDateStr =
-        payment.shift?.createdAt ||
         payment.shift?.startTime ||
+        payment.shift?.createdAt ||
         payment.createdAt;
+
       const targetDateObj = new Date(referenceDateStr);
 
       const timeZero = new Date(
@@ -189,7 +177,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
         });
       }
 
-      // กระจายยอดเข้าพนักงาน (รายวัน/รายเดือน/รายปี อิงตามกะ 100%)
+      // กระจายยอดเข้าพนักงาน (ยอดทบรวมข้ามคืน จะวิ่งเข้าช่องวันเดียวกันได้อย่างถูกต้อง)
       Object.entries(empItemTotals).forEach(([eId, data]) => {
         if (empStatsMap.has(eId)) {
           const stat = empStatsMap.get(eId);
@@ -211,7 +199,7 @@ const ProfilleMain = ({ orders, allEmployees = [] }: ProfilleMainProps) => {
         }
       });
 
-      // 🟢 3. อัปเดตกราฟภาพรวมร้าน (รายวัน/รายเดือน/รายปี)
+      // อัปเดตกราฟภาพรวมร้าน
       const isAll = isAdmin && selectedEmpId === "ALL";
       const salesToAdd = isAll
         ? billTotal
