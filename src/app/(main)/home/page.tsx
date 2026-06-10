@@ -28,6 +28,7 @@ const Home = async () => {
           },
         },
         include: {
+          menu: true,
           orderitems: {
             include: {
               menu: true,

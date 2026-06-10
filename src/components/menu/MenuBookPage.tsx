@@ -55,10 +55,7 @@ const LanguageSwitcher = () => {
   const [currentFlag, setCurrentFlag] = useState("https://flagcdn.com/w40/th.png");
 
   useEffect(() => {
-    // ---------------------------------------------------------
-    // 🚨 1. โค้ดส่วนนี้คือหัวใจสำคัญที่ป้องกัน React แครชจาก Google Translate 🚨
-    // ---------------------------------------------------------
-if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
+    if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
       const originalRemoveChild = Node.prototype.removeChild;
       Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
         if (child.parentNode !== this) {
@@ -69,8 +66,8 @@ if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototyp
 
       const originalInsertBefore = Node.prototype.insertBefore;
       Node.prototype.insertBefore = function <T extends Node>(
-        this: Node, 
-        newNode: T, 
+        this: Node,
+        newNode: T,
         referenceNode: Node | null
       ): T {
         if (referenceNode && referenceNode.parentNode !== this) {
@@ -87,13 +84,13 @@ if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototyp
     addScript.id = "google-translate-script";
     addScript.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
     addScript.async = true;
-    
+
     window.googleTranslateElementInit = () => {
       new window.google.translate.TranslateElement(
-        { 
+        {
           pageLanguage: "auto",
           includedLanguages: "th,en,lo,zh-CN,ko",
-          autoDisplay: false, 
+          autoDisplay: false,
         },
         "google_translate_element"
       );
@@ -136,7 +133,7 @@ if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototyp
   return (
     <div className="relative pointer-events-auto">
       <div id="google_translate_element" className="hidden"></div>
-      
+
       {/* ปุ่มธงชาติมุมขวา */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -188,16 +185,15 @@ const MenuImage = memo(({ src, alt, isNearby }: { src: string, alt: string, isNe
           <UtensilsCrossed size={24} strokeWidth={1.5} className="text-[#A6978C]/30 animate-pulse" />
         </div>
       )}
-      
+
       {shouldLoad && (
         <img
           src={src}
           alt={alt || "Menu"}
           onLoad={() => setIsLoaded(true)}
-          decoding="async" 
-          className={`absolute inset-0 w-full h-full object-cover z-10 transition-all duration-500 ${
-            isLoaded ? 'opacity-100 group-hover:scale-105' : 'opacity-0'
-          }`}
+          decoding="async"
+          className={`absolute inset-0 w-full h-full object-cover z-10 transition-all duration-500 ${isLoaded ? 'opacity-100 group-hover:scale-105' : 'opacity-0'
+            }`}
           style={{ willChange: "transform, opacity" }}
         />
       )}
@@ -206,15 +202,15 @@ const MenuImage = memo(({ src, alt, isNearby }: { src: string, alt: string, isNe
 });
 MenuImage.displayName = "MenuImage";
 
-const MemoizedMenuCard = memo(({ 
-  item, 
-  isEntertainer, 
-  isRightPage, 
-  isBottomPlacement, 
-  isPkgChecked, 
+const MemoizedMenuCard = memo(({
+  item,
+  isEntertainer,
+  isRightPage,
+  isBottomPlacement,
+  isPkgChecked,
   isNearby,
-  onOpenDetail, 
-  onTogglePackage 
+  onOpenDetail,
+  onTogglePackage
 }: any) => {
   if (!item) return <div className="flex-1 bg-transparent" />;
 
@@ -244,7 +240,7 @@ const MemoizedMenuCard = memo(({
       ref={stopNativeClick}
       onPointerDown={handlePointerDown}
       onPointerUp={(e) => handlePointerUp(e, () => onOpenDetail(item.id))}
-      style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
+      style={{ touchAction: 'pan-y' }}
       className="relative w-full h-full cursor-pointer group bg-[#F5F1E8] overflow-hidden rounded-2xl shadow-sm border border-black/5 active:scale-[0.98] transition-transform duration-200"
     >
       <div className="absolute inset-0 w-full h-full pointer-events-none">
@@ -274,7 +270,7 @@ const MemoizedMenuCard = memo(({
       {item.category?.categoryName === "Entertainer" && item.package_hours > 0 && (
         <div
           className={`absolute ${checkboxPosition} z-50 flex items-center gap-2 bg-white/95 px-3 py-2 shadow-md rounded-lg border border-[#614D43]/20 cursor-pointer hover:bg-orange-50 transition-colors`}
-          style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
+          style={{ touchAction: 'pan-y' }}
           ref={stopNativeClick}
           onPointerDown={(e) => { e.stopPropagation(); handlePointerDown(e); }}
           onPointerUp={(e) => { e.stopPropagation(); handlePointerUp(e, () => onTogglePackage(item.id)); }}
@@ -329,9 +325,19 @@ const MenuBookPage = ({
     return ["All", ...catsArray];
   }, [initialItems, relatedData.categories]);
 
+  // 1. ✅ กรองข้อมูลตะกร้าให้แสดงเฉพาะของโต๊ะนั้นๆ (หรือโต๊ะทั้งหมดถ้าเป็น 0)
+  const filteredCartData = useMemo(() => {
+    if (!relatedData.cartdatas) return [];
+    if (tableNumber !== 0) {
+      return relatedData.cartdatas.filter((item: any) => item.tableId === tableNumber);
+    }
+    return relatedData.cartdatas;
+  }, [relatedData.cartdatas, tableNumber]);
+
+  // 2. ✅ คำนวณราคารวมเฉพาะของตะกร้าที่ถูกกรองแล้ว
   const totalPrice = useMemo(() => {
-    return relatedData.cartdatas.reduce((sum, item) => sum + (item.price_sum || 0), 0);
-  }, [relatedData.cartdatas]);
+    return filteredCartData.reduce((sum, item: any) => sum + (item.price_sum || 0), 0);
+  }, [filteredCartData]);
 
   const currentTableName = useMemo(() => {
     if (!tableNumber || !relatedData.tabledatas) return "-";
@@ -515,14 +521,15 @@ const MenuBookPage = ({
 
   const handleConfirmOrder = async () => {
     try {
-      if (relatedData.cartdatas.length === 0) return toast.warning("ไม่มีรายการในตะกร้า");
-      const cartDataWithEmployee = relatedData.cartdatas.map((item: any) => ({
+      // 3. ✅ ส่งออเดอร์เฉพาะรายการที่อยู่ในตะกร้าของโต๊ะนั้นๆ เท่านั้น
+      if (filteredCartData.length === 0) return toast.warning("ไม่มีรายการในตะกร้า");
+      const cartDataWithEmployee = filteredCartData.map((item: any) => ({
         ...item, employeeId: employeeId ? String(employeeId) : null,
       }));
       const result = await createOrder(cartDataWithEmployee);
       if (result.success) {
-        await updateCartStatusNEW(relatedData.cartdatas);
-        await updateTableStatus(relatedData.cartdatas, "OCCUPIED");
+        await updateCartStatusNEW(filteredCartData);
+        await updateTableStatus(filteredCartData, "OCCUPIED");
         toast.success("ส่งออเดอร์สำเร็จ!", { position: "bottom-center" });
         setIsCartOpen(false);
         router.refresh();
@@ -531,27 +538,18 @@ const MenuBookPage = ({
   };
 
   useEffect(() => {
-    if (relatedData.cartdatas) {
-      if (tableNumber !== 0) {
-        const itemsForThisTable = relatedData.cartdatas.filter((item) => item.tableId === tableNumber);
-        const totalItemsQty = itemsForThisTable.reduce((sum, item) => sum + (item.quantity || 1), 0);
-        setCartCount(totalItemsQty);
-      } else {
-        const totalItemsQty = relatedData.cartdatas.reduce((sum, item) => sum + (item.quantity || 1), 0);
-        setCartCount(totalItemsQty);
-      }
-    } else {
-      setCartCount(0);
-    }
-  }, [tableNumber, relatedData.cartdatas]);
+    // 4. ✅ ใช้ filteredCartData คำนวณจำนวนชิ้นบนปุ่มตะกร้า
+    const totalItemsQty = filteredCartData.reduce((sum, item: any) => sum + (item.quantity || 1), 0);
+    setCartCount(totalItemsQty);
+  }, [filteredCartData]);
 
 
   const renderItemCard = (item: any, isEntertainer: boolean, isRightPage: boolean, isBottomPlacement: boolean = false, isNearby: boolean = false) => {
     return (
-      <MemoizedMenuCard 
-        item={item} 
-        isEntertainer={isEntertainer} 
-        isRightPage={isRightPage} 
+      <MemoizedMenuCard
+        item={item}
+        isEntertainer={isEntertainer}
+        isRightPage={isRightPage}
         isBottomPlacement={isBottomPlacement}
         isPkgChecked={item ? packageSelections[item.id] || false : false}
         isNearby={isNearby}
@@ -564,7 +562,7 @@ const MenuBookPage = ({
   return (
     <div
       className="fixed inset-0 bg-[#0a0a0a] overflow-hidden flex flex-col items-center justify-center font-sans select-none"
-      style={{ overscrollBehavior: 'none' }} // 👈 ลบ touchAction: 'none' ตรงนี้ออกเพื่อให้ Sheet/Cart สกรอลล์ได้
+      style={{ overscrollBehavior: 'none' }}
     >
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -589,48 +587,46 @@ const MenuBookPage = ({
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
           <span className="text-white/90 text-[10px] sm:text-xs font-bold tracking-widest uppercase">Table <span className="text-orange-500 notranslate">{currentTableName}</span></span>
         </div>
-        
+
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
           <button onClick={() => setIsSearchOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10 shadow-lg">
             <Search size={16} strokeWidth={2} />
           </button>
-          
+
           <button onClick={() => setIsSidebarOpen(true)} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all bg-black/60 backdrop-blur-md border border-white/10 shadow-lg">
             <Menu size={18} strokeWidth={2} />
           </button>
 
           <div className="w-[1px] h-4 bg-white/20 mx-0.5 sm:mx-1" />
-          
+
           <LanguageSwitcher />
         </div>
       </div>
 
       {/* ================= BOTTOM ACTION BAR ================= */}
-{/* ขยับลงมาให้เหลือ bottom-3 หรือ bottom-4 */}
-<div className="fixed bottom-3 sm:bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+      <div className="fixed bottom-3 sm:bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
         <div className="pointer-events-auto flex items-center p-1.5 sm:p-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          
+
           <button onClick={() => setIsShoutoutOpen(true)} className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all active:scale-95">
             <MonitorUp size={20} strokeWidth={1.5} />
           </button>
-          
+
           <button onClick={() => setIsHistoryOpen(true)} className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all active:scale-95">
             <ClipboardList size={20} strokeWidth={1.5} />
           </button>
-          
+
           <div className="w-[1px] h-6 sm:h-7 bg-white/20 mx-1 sm:mx-1.5" />
-          
+
           <button
             onClick={() => setIsCartOpen(true)}
-            className={`relative flex items-center justify-center gap-2 h-11 sm:h-12 px-5 sm:px-6 ml-1 rounded-full transition-all duration-300 active:scale-95 ${
-              cartCount > 0
-              ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.4)] border border-orange-500/50"
-              : "bg-white/10 hover:bg-white/20 text-white/90 border border-white/5"
-            }`}
+            className={`relative flex items-center justify-center gap-2 h-11 sm:h-12 px-5 sm:px-6 ml-1 rounded-full transition-all duration-300 active:scale-95 ${cartCount > 0
+                ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.4)] border border-orange-500/50"
+                : "bg-white/10 hover:bg-white/20 text-white/90 border border-white/5"
+              }`}
           >
             <ShoppingCart size={18} strokeWidth={2} />
             <span className="text-[13px] sm:text-sm font-medium tracking-wide">ตะกร้า</span>
-            
+
             {cartCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-white text-orange-600 text-[10px] sm:text-[11px] font-black min-w-[20px] sm:min-w-[24px] h-5 sm:h-6 px-1.5 rounded-full flex items-center justify-center shadow-lg border-2 border-orange-100 notranslate animate-in zoom-in">
                 {cartCount}
@@ -744,9 +740,9 @@ const MenuBookPage = ({
           disableFlipByClick={isDesktop}
           swipeDistance={15}
           clickEventForward={true}
-          useMouseEvents={true} // 👈 แก้บังคับให้เป็น true เพื่อให้ใช้นิ้วพลิกหน้าได้ดีขึ้นบนบางมือถือ
+          useMouseEvents={true}
           onFlip={onPageFlip}
-          style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอได้
+          style={{ touchAction: 'pan-y' }}
           startPage={0}
           startZIndex={0}
         >
@@ -810,7 +806,7 @@ const MenuBookPage = ({
                           <button
                             key={idx}
                             ref={stopNativeClick}
-                            style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
+                            style={{ touchAction: 'pan-y' }}
                             onPointerDown={handlePointerDown}
                             onPointerUp={(e) => handlePointerUp(e, () => {
                               if (cat === "Entertainer") {
@@ -851,7 +847,7 @@ const MenuBookPage = ({
                     <p className="text-[#A38A75] text-[10px] sm:text-[11px] tracking-[0.3em] uppercase text-center mb-8">Exclusive Lounge Mode</p>
                     <button
                       ref={stopNativeClick}
-                      style={{ touchAction: 'pan-y' }} // 👈 แก้ให้รูดหน้าจอขึ้นลงได้
+                      style={{ touchAction: 'pan-y' }}
                       onPointerDown={handlePointerDown}
                       onPointerUp={(e) => handlePointerUp(e, () => {
                         setBookStartPage(0);
@@ -1046,9 +1042,10 @@ const MenuBookPage = ({
             <SheetTitle className="text-center text-lg font-serif font-bold tracking-[0.1em] text-[#2A2422]">YOUR CART ({cartCount})</SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
-            {relatedData.cartdatas.length > 0 ? (
+            {/* 5. ✅ นำ filteredCartData มา Map แสดงผลแทนอันเก่า */}
+            {filteredCartData.length > 0 ? (
               <div className="flex flex-col gap-4 pb-6">
-                {relatedData.cartdatas.map((item) => {
+                {filteredCartData.map((item: any) => {
                   const menuItem = initialItems.find((m: any) => m.id === item.menuId);
                   return (
                     <div key={item.id} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
@@ -1082,7 +1079,8 @@ const MenuBookPage = ({
           </div>
           <div className="shrink-0 p-5 sm:p-6 border-t border-gray-200 bg-white safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-10">
             <div className="flex justify-between items-center mb-5"><span className="text-gray-500 text-xs tracking-widest font-bold">TOTAL AMOUNT</span><span className="text-2xl font-serif font-black text-[#2A2422] notranslate">{totalPrice.toLocaleString()}.-</span></div>
-            <Button className="w-full h-14 text-sm font-bold tracking-widest bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/20" onClick={handleConfirmOrder} disabled={relatedData.cartdatas.length === 0}>CONFIRM ORDER</Button>
+            {/* 6. ✅ เช็ค disabled ด้วย filteredCartData */}
+            <Button className="w-full h-14 text-sm font-bold tracking-widest bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/20" onClick={handleConfirmOrder} disabled={filteredCartData.length === 0}>CONFIRM ORDER</Button>
           </div>
         </SheetContent>
       </Sheet>

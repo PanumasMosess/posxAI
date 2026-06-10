@@ -797,9 +797,9 @@ export type TableItem = {
 export interface MoveTableDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  currentTable: TableItem;
-  allTables: TableItem[];
-  onConfirm: (fromId: number, toId: number) => void;
+  currentTable: any; 
+  allTables: any[];
+  onConfirm: (fromId: number, toId: number, selectedOrderIds: number[] | null) => void;
 }
 
 export interface UserState {
