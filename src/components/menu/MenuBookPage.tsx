@@ -52,7 +52,7 @@ declare global {
 }
 const LanguageSwitcher = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentFlag, setCurrentFlag] = useState("https://flagcdn.com/w40/th.png");
+  const [currentFlag, setCurrentFlag] = useState("https://cdn-icons-png.flaticon.com/512/814/814513.png");
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototype) {
@@ -84,7 +84,7 @@ const LanguageSwitcher = () => {
     addScript.id = "google-translate-script";
     addScript.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
     addScript.async = true;
-
+    
     window.googleTranslateElementInit = () => {
       new window.google.translate.TranslateElement(
         {
@@ -97,11 +97,13 @@ const LanguageSwitcher = () => {
     };
     document.body.appendChild(addScript);
 
-    // เช็คค่าเริ่มต้นจาก Cookie
-    const match = document.cookie.match(/googtrans=\/auto\/(.{2,5})/);
+     // เช็คค่าเริ่มต้นจาก Cookie
+    const match = document.cookie.match(/googtrans=\/[^/]+\/([^;]+)/);
     if (match && match[1]) {
       const savedLang = languages.find(l => l.code === match[1]);
-      if (savedLang) setCurrentFlag(savedLang.flagUrl);
+      if (savedLang) {
+        setCurrentFlag(savedLang.flagUrl); // ถ้ามีคุกกี้ ก็เปลี่ยนไอคอนเป็นธงตามที่เคยเลือกไว้
+      }
     }
   }, []);
 
@@ -134,7 +136,7 @@ const LanguageSwitcher = () => {
     <div className="relative pointer-events-auto">
       <div id="google_translate_element" className="hidden"></div>
 
-      {/* ปุ่มธงชาติมุมขวา */}
+      {/* ปุ่มธงชาติ/ลูกโลกมุมขวา */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all bg-black/60 backdrop-blur-md border border-white/20 overflow-hidden shadow-lg"
