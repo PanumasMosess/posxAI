@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
-import MenuOrderPage from "@/components/menu/MenuOrderPage";
+//import MenuOrderPage from "@/components/menu/MenuOrderPage";
 import prisma from "@/lib/prisma";
 import { PropsUrl } from "@/lib/type";
 import { Building2 } from "lucide-react";
+import MenuViewSwitcher from "@/components/menu/MenuViewSwitcher";
 
 export const dynamic = "force-dynamic";
 
@@ -121,7 +122,7 @@ const page = async (props: PropsUrl) => {
     },
   });
 
-  // console.dir(JSON.stringify(orerData));
+    // console.dir(JSON.stringify(orerData));
 
   const relatedData = {
     categories: categoriesData,
@@ -131,12 +132,12 @@ const page = async (props: PropsUrl) => {
   };
 
   return (
-    <MenuOrderPage
+    <MenuViewSwitcher
       relatedData={relatedData}
       initialItems={itemsData}
       id_user={0}
       organizationId={organizationId}
-    ></MenuOrderPage>
+    ></MenuViewSwitcher>
   );
 };
 
