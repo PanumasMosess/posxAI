@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `shift` ADD COLUMN `amountQr` DOUBLE NULL DEFAULT 0;
