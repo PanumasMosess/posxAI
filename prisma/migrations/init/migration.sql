@@ -25,8 +25,12 @@ CREATE TABLE `employees` (
 CREATE TABLE `categorystock` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `categoryName` VARCHAR(191) NOT NULL,
+    `requiresKitchen` BOOLEAN NOT NULL DEFAULT true,
+    `printerName` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
+    `categoryCode` VARCHAR(191) NULL,
+    `menuRunningNumber` INTEGER NOT NULL DEFAULT 0,
     `createdById` INTEGER NOT NULL,
     `organizationId` INTEGER NULL,
 
@@ -71,9 +75,12 @@ CREATE TABLE `stock` (
 -- CreateTable
 CREATE TABLE `menu` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `menuCode` VARCHAR(191) NULL,
     `menuName` VARCHAR(191) NOT NULL,
     `price_sale` DOUBLE NOT NULL,
     `price_cost` DOUBLE NOT NULL,
+    `package_hours` INTEGER NULL,
+    `price_package` DOUBLE NULL,
     `unit` VARCHAR(191) NOT NULL,
     `img` VARCHAR(191) NULL,
     `description` VARCHAR(191) NULL,
@@ -84,6 +91,7 @@ CREATE TABLE `menu` (
     `categoryMenuId` INTEGER NOT NULL,
     `unitPriceId` INTEGER NOT NULL DEFAULT 1,
     `organizationId` INTEGER NULL,
+    `mcEmployeeId` INTEGER NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -111,6 +119,14 @@ CREATE TABLE `table` (
     `cashType` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
+    `posX` DOUBLE NOT NULL DEFAULT 0,
+    `posY` DOUBLE NOT NULL DEFAULT 0,
+    `width` DOUBLE NOT NULL DEFAULT 120,
+    `height` DOUBLE NOT NULL DEFAULT 120,
+    `rotation` DOUBLE NOT NULL DEFAULT 0,
+    `floorPlanLocked` BOOLEAN NOT NULL DEFAULT false,
+    `shape` VARCHAR(191) NOT NULL DEFAULT 'circle',
+    `seatCount` INTEGER NOT NULL DEFAULT 4,
     `closeById` INTEGER NOT NULL,
     `organizationId` INTEGER NULL,
 
@@ -124,7 +140,9 @@ CREATE TABLE `order` (
     `price_sum` DOUBLE NOT NULL,
     `price_pre_unit` DOUBLE NOT NULL,
     `orderDetail` VARCHAR(191) NULL,
+    `note` VARCHAR(191) NULL,
     `status` VARCHAR(191) NOT NULL,
+    `employeeId` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `menuId` INTEGER NOT NULL,
@@ -155,6 +173,7 @@ CREATE TABLE `cart` (
     `price_sum` DOUBLE NOT NULL,
     `price_pre_unit` DOUBLE NOT NULL,
     `status` VARCHAR(191) NULL,
+    `note` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `menuId` INTEGER NOT NULL,
@@ -200,8 +219,8 @@ CREATE TABLE `paymentorder` (
     `organizationId` INTEGER NULL,
     `tableId` INTEGER NULL,
     `order_running_code` VARCHAR(191) NOT NULL,
+    `shiftId` INTEGER NULL,
 
-    UNIQUE INDEX `paymentorder_order_running_code_key`(`order_running_code`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -313,6 +332,31 @@ CREATE TABLE `posiotion` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `permission` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `permissionKey` VARCHAR(191) NOT NULL,
+    `permissionName` VARCHAR(191) NOT NULL,
+    `permissionDesc` VARCHAR(191) NULL,
+    `status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `organizationId` INTEGER NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `position_permission` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `allowed` BOOLEAN NOT NULL DEFAULT false,
+    `positionId` INTEGER NOT NULL,
+    `permissionId` INTEGER NOT NULL,
+
+    UNIQUE INDEX `position_permission_positionId_permissionId_key`(`positionId`, `permissionId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `member` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `organizationId` INTEGER NOT NULL,
@@ -367,14 +411,56 @@ CREATE TABLE `employeepin` (
     `surname` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NULL,
     `img` VARCHAR(191) NULL,
+    `tel` INTEGER NULL,
     `status` VARCHAR(191) NOT NULL DEFAULT 'ON',
     `position_id` INTEGER NOT NULL,
     `login_fail` INTEGER NOT NULL,
     `created_by` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
-    `birthday` DATETIME(3) NOT NULL,
+    `birthday` DATETIME(3) NULL,
     `organizationId` INTEGER NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `display_backdrop` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `organizationId` INTEGER NOT NULL,
+    `createdById` INTEGER NULL,
+    `imageUrl` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NULL,
+    `igName` VARCHAR(191) NULL,
+    `message` VARCHAR(191) NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `sequence` INTEGER NOT NULL DEFAULT 0,
+    `duration` INTEGER NOT NULL DEFAULT 10,
+    `isTemporary` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `shift` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `organizationId` INTEGER NOT NULL,
+    `status` ENUM('OPEN', 'CLOSED') NOT NULL DEFAULT 'OPEN',
+    `startingCash` DOUBLE NOT NULL DEFAULT 0,
+    `expectedCash` DOUBLE NULL,
+    `endingCash` DOUBLE NULL,
+    `amountQr` DOUBLE NULL DEFAULT 0,
+    `expectedQr` DOUBLE NULL DEFAULT 0,
+    `endingQr` DOUBLE NULL,
+    `note` VARCHAR(191) NULL,
+    `openedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `closedAt` DATETIME(3) NULL,
+    `openedById` INTEGER NOT NULL,
+    `closedById` INTEGER NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -420,6 +506,9 @@ ALTER TABLE `menu` ADD CONSTRAINT `menu_unitPriceId_fkey` FOREIGN KEY (`unitPric
 
 -- AddForeignKey
 ALTER TABLE `menu` ADD CONSTRAINT `menu_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `menu` ADD CONSTRAINT `menu_mcEmployeeId_fkey` FOREIGN KEY (`mcEmployeeId`) REFERENCES `employeepin`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `formularstock` ADD CONSTRAINT `formularstock_menuId_fkey` FOREIGN KEY (`menuId`) REFERENCES `menu`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -482,6 +571,9 @@ ALTER TABLE `paymentorder` ADD CONSTRAINT `paymentorder_tableId_fkey` FOREIGN KE
 ALTER TABLE `paymentorder` ADD CONSTRAINT `paymentorder_order_running_code_fkey` FOREIGN KEY (`order_running_code`) REFERENCES `orderrunning`(`runningCode`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `paymentorder` ADD CONSTRAINT `paymentorder_shiftId_fkey` FOREIGN KEY (`shiftId`) REFERENCES `shift`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `printer` ADD CONSTRAINT `printer_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -536,6 +628,15 @@ ALTER TABLE `posiotion` ADD CONSTRAINT `posiotion_createdById_fkey` FOREIGN KEY 
 ALTER TABLE `posiotion` ADD CONSTRAINT `posiotion_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `permission` ADD CONSTRAINT `permission_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `position_permission` ADD CONSTRAINT `position_permission_positionId_fkey` FOREIGN KEY (`positionId`) REFERENCES `posiotion`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `position_permission` ADD CONSTRAINT `position_permission_permissionId_fkey` FOREIGN KEY (`permissionId`) REFERENCES `permission`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `member` ADD CONSTRAINT `member_tierId_fkey` FOREIGN KEY (`tierId`) REFERENCES `membertier`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -549,3 +650,19 @@ ALTER TABLE `membertransaction` ADD CONSTRAINT `membertransaction_createdById_fk
 
 -- AddForeignKey
 ALTER TABLE `employeepin` ADD CONSTRAINT `employeepin_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `display_backdrop` ADD CONSTRAINT `display_backdrop_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `display_backdrop` ADD CONSTRAINT `display_backdrop_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `employeepin`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `shift` ADD CONSTRAINT `shift_openedById_fkey` FOREIGN KEY (`openedById`) REFERENCES `employeepin`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `shift` ADD CONSTRAINT `shift_closedById_fkey` FOREIGN KEY (`closedById`) REFERENCES `employeepin`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `shift` ADD CONSTRAINT `shift_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
