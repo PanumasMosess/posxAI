@@ -10,7 +10,7 @@ const page = async () => {
   const rawOrders = await prisma.order.findMany({
     where: {
       status: {
-        in: ["COMPLETED", "CANCELLED", "PAY_COMPLETED"],
+        in: ["PAY_COMPLETED"],
       },
       organizationId: organizationId,
     },
