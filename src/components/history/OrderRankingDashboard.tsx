@@ -15,9 +15,11 @@ export default function OrderRankingDashboard({
   topFood,
   topEntertainer,
   topEmployee,
+  prRankData = [],
 }: OrderRankingDashboardProps) {
   const column_food_rank_data = column_food_rank();
   const column_pr_rank_data = column_pr_rank();
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-6 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -36,7 +38,7 @@ export default function OrderRankingDashboard({
           </div>
         </div>
 
-        {/* 🟢 Top 1 Analytics Cards */}
+        {/* Top 1 Analytics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-start gap-4 transition-all hover:shadow-md">
             <div className="h-12 w-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
@@ -110,10 +112,8 @@ export default function OrderRankingDashboard({
               data={initialItems}
             />
 
-            <DataTablePRRank
-              columns={column_pr_rank_data}
-              data={initialItems}
-            />
+            {/* 🟢 ส่ง prRankData เข้าไปแทน initialItems */}
+            <DataTablePRRank columns={column_pr_rank_data} data={prRankData} />
           </div>
         </div>
       </div>
