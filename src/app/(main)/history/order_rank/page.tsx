@@ -34,9 +34,12 @@ const page = async () => {
 
   const groupedMap = new Map();
 
-  // 🟢 1. สร้าง Map สำหรับเก็บสถิติการขาย
   const menuStatsMap = new Map<string, number>();
-  const entertainerStatsMap = new Map<string, number>();
+  // 🟢 เปลี่ยนมาเก็บ object เพื่อให้ได้ทั้งยอดจำนวน และ ยอดเงินรวม
+  const entertainerStatsMap = new Map<
+    string,
+    { count: number; price_sum: number }
+  >();
   const employeeOrderCountMap = new Map<string, number>();
 
   for (const order of rawOrders) {
@@ -74,7 +77,7 @@ const page = async () => {
       name: order.menu?.menuName || "ไม่ทราบชื่อ",
       image: order.menu?.img || null,
       prName: prName,
-      quantity: order.quantity, // เก็บ quantity ไว้ใช้แสดงผลในตารางด้วย
+      quantity: order.quantity,
     };
 
     if (isEntertainerItem) {
@@ -87,24 +90,28 @@ const page = async () => {
       group.updatedAt = order.updatedAt;
     }
 
-    // 🟢 2. คำนวณสถิติ (ไม่นับออเดอร์ที่ถูก Cancelled)
     if (order.status !== "CANCELLED") {
       const qty = order.quantity || 0;
+      const price = order.price_sum || 0;
 
-      // 2.1 สถิติพนักงานรับออเดอร์
+      // สถิติพนักงานรับออเดอร์
       const takerId = order.employeeId ? String(order.employeeId) : "system";
       employeeOrderCountMap.set(
         takerId,
         (employeeOrderCountMap.get(takerId) || 0) + qty,
       );
 
-      // 2.2 สถิติ Entertainer vs อาหาร
+      // สถิติ Entertainer vs อาหาร
       if (isEntertainerItem) {
         const entId = String(order.menu.mcEmployeeId);
-        entertainerStatsMap.set(
-          entId,
-          (entertainerStatsMap.get(entId) || 0) + qty,
-        );
+        const currentEnt = entertainerStatsMap.get(entId) || {
+          count: 0,
+          price_sum: 0,
+        };
+        entertainerStatsMap.set(entId, {
+          count: currentEnt.count + qty,
+          price_sum: currentEnt.price_sum + price,
+        });
       } else {
         const menuName = order.menu?.menuName || "ไม่ทราบชื่อ";
         menuStatsMap.set(menuName, (menuStatsMap.get(menuName) || 0) + qty);
@@ -160,19 +167,21 @@ const page = async () => {
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
 
-  // 🟢 3. จัดเรียงข้อมูลสถิติเพื่อหาอันดับ 1
+  const prRankData = Array.from(entertainerStatsMap.entries())
+    .map(([id, stats]) => ({
+      id,
+      name: employeeMap.get(id) || "ไม่ทราบชื่อ",
+      count: stats.count,
+      price_sum: stats.price_sum,
+    }))
+    .sort((a, b) => b.count - a.count);
+
   const topFood =
     Array.from(menuStatsMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)[0] || null;
 
-  const topEntertainer =
-    Array.from(entertainerStatsMap.entries())
-      .map(([id, count]) => ({
-        name: employeeMap.get(id) || "ไม่ทราบชื่อ",
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)[0] || null;
+  const topEntertainer = prRankData.length > 0 ? prRankData[0] : null;
 
   const topEmployee =
     Array.from(employeeOrderCountMap.entries())
@@ -194,6 +203,7 @@ const page = async () => {
         topFood={topFood}
         topEntertainer={topEntertainer}
         topEmployee={topEmployee}
+        prRankData={prRankData} 
       />
     </div>
   );

@@ -797,9 +797,13 @@ export type TableItem = {
 export interface MoveTableDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  currentTable: any; 
+  currentTable: any;
   allTables: any[];
-  onConfirm: (fromId: number, toId: number, selectedOrderIds: number[] | null) => void;
+  onConfirm: (
+    fromId: number,
+    toId: number,
+    selectedOrderIds: number[] | null,
+  ) => void;
 }
 
 export interface UserState {
@@ -1028,4 +1032,5 @@ export interface OrderRankingDashboardProps {
   topFood?: TopStat;
   topEntertainer?: TopStat;
   topEmployee?: TopStat;
+  prRankData?: any[];
 }
