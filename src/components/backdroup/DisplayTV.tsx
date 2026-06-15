@@ -3,12 +3,29 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Store, Zap, Instagram, Volume2, VolumeX } from "lucide-react"; // 🟢 เพิ่ม Volume2 และ VolumeX
+import { Store, Zap, Volume2, VolumeX } from "lucide-react";
 import { BackdropItem } from "@/lib/type";
 import {
   checkTemporaryShoutout,
   deleteTemporaryShoutout,
 } from "@/lib/actions/actionBackdrop";
+
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 
 const DisplayTV = ({
   items,
@@ -20,7 +37,6 @@ const DisplayTV = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [priorityItem, setPriorityItem] = useState<any>(null);
 
-  // 🟢 เพิ่ม State สำหรับควบคุมการเปิด-ปิดเสียง (เริ่มต้นเป็น true เพื่อให้ Autoplay ทำงานได้)
   const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
@@ -104,6 +120,12 @@ const DisplayTV = ({
   const isVideo = currentItem?.imageUrl?.match(/\.(mp4|webm|mov)$/i);
   const isCustomer = !!priorityItem;
 
+  // 🟢 คำนวณคิวถัดไปเพื่อเอาไฟล์ไป "โหลดรอ (Preload)" ล่วงหน้า
+  const nextItem = priorityItem
+    ? items[currentIndex]
+    : items[(currentIndex + 1) % items.length];
+  const isNextVideo = nextItem?.imageUrl?.match(/\.(mp4|webm|mov)$/i);
+
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
       <AnimatePresence mode="wait">
@@ -112,22 +134,22 @@ const DisplayTV = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1, ease: "easeInOut" }}
+          // 🟢 ลดเวลา Fade เหลือ 0.5 วิ เพื่อให้เปลี่ยนฉากไวขึ้น ไม่หน่วง
+          transition={{ duration: 0.5, ease: "easeInOut" }}
           className="absolute inset-0 w-full h-full flex items-center justify-center"
         >
           {isVideo ? (
-            // 🟢 ครอบกลุ่มวิดีโอด้วย div relative เพื่อวางปุ่มควบคุมเสียง
             <div className="relative w-full h-full flex items-center justify-center">
               <video
                 src={currentItem.imageUrl}
                 autoPlay
-                muted={isMuted} // 🟢 เปลี่ยนมาผูกกับ State แทนการ Hardcode
+                muted={isMuted}
                 loop
                 playsInline
-                className="object-contain w-full h-full"
+                preload="auto"
+                className="object-contain w-full h-full bg-black"
               />
 
-              {/* 🟢 ปุ่มลอยเปิด-ปิดเสียง (โชว์เฉพาะสไลด์ที่เป็นวิดีโอ) */}
               <button
                 onClick={() => setIsMuted(!isMuted)}
                 className="absolute top-8 right-8 z-50 p-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/20 text-white hover:bg-black/70 hover:scale-110 active:scale-95 transition-all shadow-2xl group"
@@ -168,7 +190,7 @@ const DisplayTV = ({
                   {currentItem.igName && (
                     <div className="flex items-center justify-center gap-4 relative z-10">
                       <div className="bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 p-2.5 rounded-xl shadow-lg ring-1 ring-white/30">
-                        <Instagram className="w-8 h-8 md:w-9 md:h-9 text-white" />
+                        <InstagramIcon className="w-8 h-8 md:w-9 md:h-9 text-white" />
                       </div>
                       <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80 tracking-wider drop-shadow-md">
                         {currentItem.igName}
@@ -205,6 +227,16 @@ const DisplayTV = ({
               : "bg-gradient-to-r from-blue-500 to-purple-500"
           }`}
         />
+      </div>
+
+      {/* 🟢 หลุมดำ Preloader แอบโหลดคิวถัดไปหลังบ้าน */}
+      <div className="hidden" aria-hidden="true">
+        {nextItem?.imageUrl &&
+          (isNextVideo ? (
+            <video src={nextItem.imageUrl} preload="auto" muted playsInline />
+          ) : (
+            <img src={nextItem.imageUrl.trim()} alt="preload" />
+          ))}
       </div>
     </div>
   );
