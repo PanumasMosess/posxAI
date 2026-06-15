@@ -1,6 +1,5 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import HistoryOrderPage from "@/components/history/HistoryOrderPage";
 import OrderRankingDashboard from "@/components/history/OrderRankingDashboard";
 
 const page = async () => {
@@ -24,10 +23,11 @@ const page = async () => {
 
   const allEmployees = await prisma.employeepin.findMany({
     where: { organizationId: organizationId },
-    select: { id: true, name: true, surname: true },
+    select: { id: true, name: true, surname: true }, // ไม่ต้องดึง img จากพนักงานแล้ว
   });
 
   const employeeMap = new Map();
+
   for (const emp of allEmployees) {
     employeeMap.set(String(emp.id), `${emp.name} ${emp.surname}`);
   }
@@ -35,11 +35,13 @@ const page = async () => {
   const groupedMap = new Map();
 
   const menuStatsMap = new Map<string, number>();
-  // 🟢 เปลี่ยนมาเก็บ object เพื่อให้ได้ทั้งยอดจำนวน และ ยอดเงินรวม
+
+  // 🟢 1. เพิ่ม property 'image' เข้าไปใน Map สำหรับเก็บรูปจาก order
   const entertainerStatsMap = new Map<
     string,
-    { count: number; price_sum: number }
+    { count: number; price_sum: number; image: string | null }
   >();
+
   const employeeOrderCountMap = new Map<string, number>();
 
   for (const order of rawOrders) {
@@ -107,10 +109,14 @@ const page = async () => {
         const currentEnt = entertainerStatsMap.get(entId) || {
           count: 0,
           price_sum: 0,
+          image: null, // ค่าเริ่มต้น
         };
+
+        // 🟢 2. เก็บรูปจาก order.menu.img (ถ้ามีรูปใหม่มา ก็เก็บไว้ หรือจะใช้รูปแรกที่เจอก็ได้)
         entertainerStatsMap.set(entId, {
           count: currentEnt.count + qty,
           price_sum: currentEnt.price_sum + price,
+          image: currentEnt.image || order.menu?.img || null,
         });
       } else {
         const menuName = order.menu?.menuName || "ไม่ทราบชื่อ";
@@ -171,7 +177,7 @@ const page = async () => {
     .map(([id, stats]) => ({
       id: id,
       name: employeeMap.get(id) || "ไม่ทราบชื่อ",
-      image: null,
+      image: stats.image, // 🟢 3. ดึงรูปที่เก็บไว้ใน stats มาใช้ได้เลย (มาจาก order)
       quantity: stats.count,
       price_sum: stats.price_sum,
     }))
@@ -182,7 +188,6 @@ const page = async () => {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)[0] || null;
 
-  // ดึงที่ 1 ของ PR มาจาก prRankData ได้เลย (ใช้ .quantity แทน .count)
   const topEntertainer =
     prRankData.length > 0
       ? { name: prRankData[0].name, count: prRankData[0].quantity }
