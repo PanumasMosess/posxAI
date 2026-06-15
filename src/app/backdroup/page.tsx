@@ -2,7 +2,6 @@
 
 import { auth } from "@/auth";
 import DisplayTV from "@/components/backdroup/DisplayTV";
-import SettingBackdropPage from "@/components/settings/backdroup/SettingBackDroupPage";
 import prisma from "@/lib/prisma";
 
 const page = async () => {
@@ -12,6 +11,7 @@ const page = async () => {
     where: {
       organizationId: organizationId,
       isTemporary: false,
+      isActive: true,
     },
 
     orderBy: [
