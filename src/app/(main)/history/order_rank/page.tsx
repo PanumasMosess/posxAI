@@ -169,19 +169,24 @@ const page = async () => {
 
   const prRankData = Array.from(entertainerStatsMap.entries())
     .map(([id, stats]) => ({
-      id,
+      id: id,
       name: employeeMap.get(id) || "ไม่ทราบชื่อ",
-      count: stats.count,
+      image: null,
+      quantity: stats.count,
       price_sum: stats.price_sum,
     }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.quantity - a.quantity);
 
   const topFood =
     Array.from(menuStatsMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)[0] || null;
 
-  const topEntertainer = prRankData.length > 0 ? prRankData[0] : null;
+  // ดึงที่ 1 ของ PR มาจาก prRankData ได้เลย (ใช้ .quantity แทน .count)
+  const topEntertainer =
+    prRankData.length > 0
+      ? { name: prRankData[0].name, count: prRankData[0].quantity }
+      : null;
 
   const topEmployee =
     Array.from(employeeOrderCountMap.entries())
@@ -203,7 +208,7 @@ const page = async () => {
         topFood={topFood}
         topEntertainer={topEntertainer}
         topEmployee={topEmployee}
-        prRankData={prRankData} 
+        prRankData={prRankData}
       />
     </div>
   );
