@@ -112,7 +112,6 @@ export default function OrderRankingDashboard({
               data={initialItems}
             />
 
-            {/* 🟢 ส่ง prRankData เข้าไปแทน initialItems */}
             <DataTablePRRank columns={column_pr_rank_data} data={prRankData} />
           </div>
         </div>
