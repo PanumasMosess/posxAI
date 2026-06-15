@@ -15,7 +15,7 @@ export default function OrderRankingDashboard({
   topFood,
   topEntertainer,
   topEmployee,
-  prRankData = [],
+  prRankData ,
 }: OrderRankingDashboardProps) {
   const column_food_rank_data = column_food_rank();
   const column_pr_rank_data = column_pr_rank();
@@ -112,7 +112,7 @@ export default function OrderRankingDashboard({
               data={initialItems}
             />
 
-            <DataTablePRRank columns={column_pr_rank_data} data={prRankData} />
+            <DataTablePRRank columns={column_pr_rank_data} data={prRankData || []} />
           </div>
         </div>
       </div>

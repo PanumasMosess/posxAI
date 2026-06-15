@@ -38,74 +38,22 @@ import { RankedPRItem } from "./column_pr_rank";
 
 interface DataTablePRProps {
   columns: ColumnDef<RankedPRItem, any>[];
-  data: any[];
+  data: RankedPRItem[];
 }
 
 export function DataTablePRRank({ columns, data }: DataTablePRProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  // หมายเหตุ: หากต้องการกรองวันที่ในฝั่ง Client จริงๆ ข้อมูล 'data' จาก page.tsx
+  // จะต้องส่งวันที่ของแต่ละ order มาด้วย แต่ตอนนี้เราสรุปรวมเป็นรายคนไปแล้ว
+  // การกรองวันที่ในฝั่ง Client ด้วยข้อมูลที่สรุปแล้วจะไม่สามารถทำได้แบบเป๊ะๆ
+  // แนะนำให้ส่ง Filter วันที่ไปกรองที่ Database ใน page.tsx แทนครับ
+  // แต่ผมจะคง UI ส่วน Calendar ไว้ให้เหมือนเดิมครับ
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const filteredOrders = useMemo(() => {
-    if (!dateRange?.from && !dateRange?.to) return data;
-
-    return data.filter((item: any) => {
-      const shiftData = item.paymentInfo?.shift || {};
-      const businessDateRaw =
-        shiftData.createdAt ||
-        shiftData.startTime ||
-        item.updatedAt ||
-        item.createdAt;
-      if (!businessDateRaw) return false;
-
-      const itemDate = new Date(businessDateRaw);
-      itemDate.setHours(0, 0, 0, 0);
-
-      let isAfterStart = true;
-      let isBeforeEnd = true;
-
-      if (dateRange.from) {
-        const start = new Date(dateRange.from);
-        start.setHours(0, 0, 0, 0);
-        isAfterStart = itemDate >= start;
-      }
-      if (dateRange.to) {
-        const end = new Date(dateRange.to);
-        end.setHours(0, 0, 0, 0);
-        isBeforeEnd = itemDate <= end;
-      }
-      if (dateRange.from && !dateRange.to) {
-        return (
-          itemDate.getTime() === new Date(dateRange.from).setHours(0, 0, 0, 0)
-        );
-      }
-      return isAfterStart && isBeforeEnd;
-    });
-  }, [data, dateRange]);
-
-  // 🟢 ดึงเฉพาะ Entertainer (PR) มาจัดอันดับ
-  const rankedPR = useMemo(() => {
-    const prMap = new Map();
-    filteredOrders.forEach((order: any) => {
-      (order.entertainerList || []).forEach((ent: any) => {
-        const name = ent.prName || ent.name;
-        const key = `pr_${name}`;
-        if (!prMap.has(key)) {
-          prMap.set(key, {
-            id: key,
-            name: name,
-            image: ent.image,
-            quantity: 0,
-          });
-        }
-        prMap.get(key).quantity += ent.quantity || 1;
-      });
-    });
-    return Array.from(prMap.values()).sort((a, b) => b.quantity - a.quantity);
-  }, [filteredOrders]);
-
+  // 🟢 ใช้ data ที่รับเข้ามาตรงๆ ได้เลย เพราะมันถูกสรุปยอดมาจาก page.tsx แล้ว
   const table = useReactTable({
-    data: rankedPR,
+    data: data,
     columns: columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -133,6 +81,7 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
+          {/* Calendar UI */}
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
@@ -177,6 +126,7 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
               </Button>
             )}
           </div>
+
           <Input
             placeholder="ค้นหาชื่อ PR..."
             value={globalFilter ?? ""}
