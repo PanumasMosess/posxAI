@@ -643,7 +643,7 @@ enum account_tx_type {
 
 model account {
   id             Int      @id @default(autoincrement())
-  organizationId Int
+  organizationId Int?
   accountName    String // ชื่อบัญชี เช่น "เงินสดในลิ้นชัก", "ธนาคารกสิกรไทย"
   balance        Float    @default(0.00) // ยอดเงินคงเหลือปัจจุบัน
   status         String   @default("ACTIVE") // ACTIVE, INACTIVE
