@@ -21,9 +21,8 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Receipt, CalendarIcon, X } from "lucide-react";
-// 🟢 อย่าลืม import useEffect เข้ามาด้วยนะครับ
-import { useState, useMemo, useEffect } from "react";
+import { Receipt, CalendarIcon, X, Printer } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -44,16 +43,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { generatePrintSummaryHTML } from "@/lib/printers/summary-shift";
+import { useUser } from "@/components/providers/UserContext";
+import qz from "qz-tray";
+import {
+  getCertContentFromS3,
+  signDataWithS3Key,
+} from "@/lib/actions/actionIndex";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  organizationId: number;
 }
+
+const PRINTER_STORAGE_KEY = "pos_selected_printer";
 
 export function Data_table_payment<TData, TValue>({
   columns,
   data,
+  organizationId,
 }: DataTableProps<TData, TValue>) {
+  const { employeeName } = useUser();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
@@ -61,12 +72,76 @@ export function Data_table_payment<TData, TValue>({
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedShift, setSelectedShift] = useState<string>("all");
 
-  // 🟢 รีเซ็ตกะการขายกลับเป็น "all" ทุกครั้งที่ผู้ใช้เปลี่ยนวันที่
+  const [printers, setPrinters] = useState<string[]>([]);
+  const [selectedPrinter, setSelectedPrinter] = useState<string>("");
+
   useEffect(() => {
     setSelectedShift("all");
   }, [dateRange]);
 
-  // 🟢 1. กรองข้อมูลตาม "วันที่" เป็นอันดับแรก
+  const initQZSecurity = useCallback(() => {
+    qz.security.setCertificatePromise((resolve: any, reject: any) => {
+      getCertContentFromS3(`digital-certificate_${organizationId}.txt`)
+        .then((res: any) => {
+          if (res.success && res.data) resolve(res.data);
+          else reject("Load Cert Failed");
+        })
+        .catch(reject);
+    });
+
+    qz.security.setSignaturePromise((toSign: string) => {
+      return function (resolve: any, reject: any) {
+        signDataWithS3Key(toSign, organizationId.toString())
+          .then((res: any) => {
+            if (res.success && res.data) resolve(res.data);
+            else reject("Sign Failed");
+          })
+          .catch(reject);
+      };
+    });
+  }, [organizationId]);
+
+  // ฟังก์ชันสำหรับเซฟการตั้งค่าเมื่อพนักงานเปลี่ยนเครื่องปริ้น
+  const handlePrinterChange = (printerName: string) => {
+    setSelectedPrinter(printerName);
+    localStorage.setItem(PRINTER_STORAGE_KEY, printerName);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPrinters = async () => {
+      try {
+        if (!qz.websocket.isActive()) {
+          initQZSecurity();
+          await qz.websocket.connect();
+        }
+        const list = await qz.printers.find();
+        if (isMounted) {
+          setPrinters(list);
+
+          if (list.length > 0) {
+            const savedPrinter = localStorage.getItem(PRINTER_STORAGE_KEY);
+
+            if (savedPrinter && list.includes(savedPrinter)) {
+              setSelectedPrinter(savedPrinter);
+            } else {
+              setSelectedPrinter(list[0]);
+              localStorage.setItem(PRINTER_STORAGE_KEY, list[0]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("QZ Error fetching printers:", err);
+      }
+    };
+
+    fetchPrinters();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initQZSecurity]);
+
   const dateFilteredData = useMemo(() => {
     if (!dateRange?.from && !dateRange?.to) return data;
 
@@ -105,7 +180,6 @@ export function Data_table_payment<TData, TValue>({
     });
   }, [data, dateRange]);
 
-  // 🟢 2. ดึงตัวเลือก "รอบการขาย" ออกมาจากข้อมูลที่ผ่านการกรองวันที่แล้วเท่านั้น
   const availableShifts = useMemo(() => {
     const shifts = new Set(
       dateFilteredData
@@ -115,7 +189,6 @@ export function Data_table_payment<TData, TValue>({
     return Array.from(shifts).sort((a: any, b: any) => Number(a) - Number(b));
   }, [dateFilteredData]);
 
-  // 🟢 3. เอาข้อมูลวันที่มากรอง "รอบการขาย" อีกชั้นนึง เพื่อส่งเข้าตาราง
   const filteredData = useMemo(() => {
     if (selectedShift === "all") return dateFilteredData;
     return dateFilteredData.filter(
@@ -124,7 +197,7 @@ export function Data_table_payment<TData, TValue>({
   }, [dateFilteredData, selectedShift]);
 
   const table = useReactTable({
-    data: filteredData, // ใช้ข้อมูลผลลัพธ์สุดท้าย
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -200,6 +273,64 @@ export function Data_table_payment<TData, TValue>({
     return firstRow?.runningRef?.order?.[0]?.menu?.unitPrice?.label || "บาท";
   }, [table.getFilteredRowModel().rows]);
 
+  const handlePrintSummary = async () => {
+    if (!selectedPrinter) {
+      alert("กรุณาเลือกเครื่องพิมพ์ก่อนครับ");
+      return;
+    }
+
+    let dateText = "ทั้งหมด";
+    if (dateRange?.from) {
+      dateText = format(dateRange.from, "dd MMM yyyy", { locale: th });
+      if (dateRange.to) {
+        dateText += " - " + format(dateRange.to, "dd MMM yyyy", { locale: th });
+      }
+    }
+
+    const shiftText =
+      selectedShift === "all" ? "ทุกกะ" : `กะที่ ${selectedShift}`;
+    const printTime = format(new Date(), "dd/MM/yyyy HH:mm");
+    const currentPrinterName = employeeName || "-";
+
+    const printContent = generatePrintSummaryHTML({
+      dateText,
+      shiftText,
+      printTime,
+      printerName: currentPrinterName,
+      totalSum,
+      currencyLabel,
+      filteredBreakdown,
+    });
+
+    try {
+      if (!qz.websocket.isActive()) {
+        initQZSecurity();
+        await qz.websocket.connect();
+      }
+
+      const config = qz.configs.create(selectedPrinter, {
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+      });
+
+      const printData = [
+        {
+          type: "pixel",
+          format: "html",
+          flavor: "plain",
+          data: printContent,
+          options: {
+            pageWidth: 3.15,
+          },
+        },
+      ];
+
+      await qz.print(config, printData);
+    } catch (error) {
+      console.error("QZ Print Error:", error);
+      alert("เกิดข้อผิดพลาดในการสั่งพิมพ์ เช็คการเชื่อมต่อเครื่องพิมพ์ครับ");
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between py-6 gap-4">
@@ -239,8 +370,18 @@ export function Data_table_payment<TData, TValue>({
             </div>
           </div>
 
-          <div className="flex flex-col bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full sm:w-auto min-w-[200px]">
-            <div className="flex items-baseline gap-2 justify-center sm:justify-start">
+          <div className="relative flex flex-col bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full sm:w-auto min-w-[200px]">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handlePrintSummary}
+              className="absolute top-1.5 right-1.5 h-7 w-7 text-emerald-600 hover:bg-emerald-200 dark:hover:bg-emerald-800/50"
+              title="พิมพ์สรุปยอดนี้ออกเครื่องปริ้น"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+
+            <div className="flex items-baseline gap-2 justify-center sm:justify-start pr-6">
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
                 ยอดตามการค้นหา:
               </span>
@@ -251,12 +392,40 @@ export function Data_table_payment<TData, TValue>({
                 {currencyLabel}
               </span>
             </div>
+
             <div className="flex items-center justify-center sm:justify-start gap-3 mt-1.5 text-xs font-semibold text-emerald-600/90 dark:text-emerald-400/90">
               <span>CASH: {filteredBreakdown.CASH.toLocaleString()}</span>
               <span className="opacity-40">|</span>
               <span>QR: {filteredBreakdown.QR.toLocaleString()}</span>
               <span className="opacity-40">|</span>
               <span>MEM: {filteredBreakdown.MEMBER.toLocaleString()}</span>
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between gap-2">
+              <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                เครื่องพิมพ์:
+              </span>
+              <Select
+                value={selectedPrinter}
+                onValueChange={handlePrinterChange}
+              >
+                <SelectTrigger className="h-6 text-xs w-[140px] bg-white dark:bg-zinc-950 border-emerald-200 dark:border-emerald-800">
+                  <SelectValue placeholder="เลือกเครื่องพิมพ์" />
+                </SelectTrigger>
+                <SelectContent>
+                  {printers.length > 0 ? (
+                    printers.map((p) => (
+                      <SelectItem key={p} value={p} className="text-xs">
+                        {p}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled className="text-xs">
+                      ไม่พบเครื่องพิมพ์
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
