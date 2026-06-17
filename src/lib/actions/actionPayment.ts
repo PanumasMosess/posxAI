@@ -140,7 +140,7 @@ export const createPaymentOrder = async (data: any) => {
           createdById: data.createdById,
           organizationId: data.organizationId,
           tableId: data.tableId,
-          order_running_code: data.orderId, 
+          order_running_code: data.orderId,
           shiftId: data.shiftId || null,
 
         },
@@ -152,16 +152,45 @@ export const createPaymentOrder = async (data: any) => {
         data.paidOrderIds.length > 0
       ) {
         await tx.order.updateMany({
-          where: {
-            id: { in: data.paidOrderIds },
-          },
-          data: {
-            status: "PAY_COMPLETED",
-            updatedAt: new Date(),
-          },
+          where: { 
+            id: { in: data.paidOrderIds } },
+          data: { status: "PAY_COMPLETED", updatedAt: new Date() },
         });
       }
 
+      // 🟢 2. เพิ่มส่วนนี้!!: จัดการเรื่องบันทึกรายรับเข้าบัญชี (ถ้าเป็นเงินสด หรือ QR)
+      if (["CASH", "QR"].includes(data.paymentMethod) && data.accountId) {
+        // 2.0 ดึงข้อมูลบัญชีปัจจุบันขึ้นมาก่อน เพื่อเอายอดเงินมาบวก
+        const account = await tx.account.findUnique({
+          where: { id: data.accountId },
+        });
+
+        if (!account) throw new Error("ไม่พบข้อมูลบัญชีที่ระบุ");
+
+        // คำนวณยอดเงินคงเหลือใหม่
+        const newBalance = Number(account.balance) + Number(data.totalAmount);
+
+        // 2.1 บันทึก Log ธุรกรรม (เพิ่ม title และ accountBalance เข้าไปตามที่ Prisma ร้องขอ)
+        await tx.account_transaction.create({
+          data: {
+            accountId: data.accountId,
+            organizationId: data.organizationId,
+            categoryId: null,
+            type: "SALES",
+            amount: data.totalAmount,
+            note: `รับชำระค่าอาหาร (บิล: ${data.orderId}) - ${data.paymentMethod}`,
+            createdById: data.createdById,
+            title: `รายรับค่าอาหาร บิล ${data.orderId}`, // 🟢 เติม title
+            accountBalance: newBalance, // 🟢 เติม accountBalance
+          },
+        });
+
+        // 2.2 อัปเดตยอดเงินคงเหลือในสมุดบัญชีนั้น (ใช้ค่ายอดใหม่ที่เราคำนวณไว้เลย)
+        await tx.account.update({
+          where: { id: data.accountId },
+          data: { balance: newBalance },
+        });
+      }
       // 3. จัดการเรื่องเครดิต MEMBER
       if (data.paymentMethod === "MEMBER") {
         if (!data.memberPhone) {
@@ -243,5 +272,29 @@ export const getMemberByPhone = async (
   } catch (error) {
     console.error("Get Member Error:", error);
     return { success: false, message: "เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล" };
+  }
+};
+
+export const getActiveAccounts = async (organizationId: any) => {
+  try {
+    const orgIdParsed = Number(organizationId);
+
+    const accounts = await prisma.account.findMany({
+      where: { 
+        organizationId: orgIdParsed, 
+        status: "ACTIVE" 
+      },
+      select: { 
+        id: true, 
+        accountName: true, 
+        balance: true 
+      },
+      orderBy: { accountName: 'asc' }
+    });
+
+    return { success: true, data: accounts };
+  } catch (error) {
+    console.error("❌ Prisma Error in getActiveAccounts:", error); 
+    return { success: false, message: "ดึงข้อมูลบัญชีล้มเหลว" };
   }
 };

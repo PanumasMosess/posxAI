@@ -21,6 +21,10 @@ import {
   Flame,
   UserCheck2,
   Tv,
+  Landmark,
+  BarChart3,
+  FileText,
+  History,
 } from "lucide-react";
 
 const menuList = [
@@ -86,6 +90,23 @@ const menuList = [
     ],
   },
   {
+    title: "บัญชีและการเงิน",
+    icon: Landmark,
+    subItems: [
+      {
+        title: "บันทึกรายรับ-รายจ่าย",
+        url: "/accounting/record",
+        icon: FileText,
+      },
+      {
+        title: "รายการเดินบัญชี",
+        url: "/accounting/history",
+        icon: History, 
+      },
+      { title: "รายงานสรุปบัญชี", url: "/accounting/report", icon: BarChart3 },
+    ],
+  },
+  {
     title: "ประวัติ",
     url: "#",
     icon: ScrollText,
@@ -116,6 +137,7 @@ const settingsMenu = {
   subItems: [
     { title: "จัดการโต๊ะ", url: "/settings/tables", icon: Table },
     { title: "จัดการเครื่องปริ้น", url: "/settings/printers", icon: Printer },
+    { title: "จัดการบัญชี", url: "/settings/accounting", icon: Wallet },
     { title: "จัดการพนักงาน", url: "/settings/employees", icon: UserCog },
     { title: "จัดการหน้าจอโปรโมชั่น ", url: "/settings/backdroup", icon: Tv },
   ],

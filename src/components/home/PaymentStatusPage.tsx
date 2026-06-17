@@ -33,6 +33,7 @@ import {
   getMemberByPhone,
   updateStatusOrder,
   updateStatusTable,
+  getActiveAccounts,
 } from "@/lib/actions/actionPayment";
 import { useRouter } from "next/navigation";
 import {
@@ -82,6 +83,9 @@ const PaymentStatusPage = ({
   const { employeeId, employeeName, organizationName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
+
   // State สำหรับเก็บรายการอาหารที่ถูกเลือกเพื่อชำระเงิน
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
@@ -104,6 +108,18 @@ const PaymentStatusPage = ({
 
   const [isAutoPrint, setIsAutoPrint] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+
+  useEffect(() => {
+    const loadAccounts = async () => {
+      const res = await getActiveAccounts(organizationId);
+      if (res.success && res.data) {
+        setAccounts(res.data);
+        // เลือกลำดับแรกให้เป็น Default อัตโนมัติ (เพื่อความไวของพนักงาน)
+        if (res.data.length > 0) setSelectedAccountId(res.data[0].id);
+      }
+    };
+    loadAccounts();
+  }, [organizationId]);
 
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
@@ -417,6 +433,11 @@ const PaymentStatusPage = ({
       return;
     }
 
+    if (["CASH", "QR"].includes(paymentMethod) && !selectedAccountId) {
+      toast.error("กรุณาเลือก บัญชีรับเงิน ก่อนทำรายการครับ");
+      return;
+    }
+
     if (paymentMethod === "MEMBER") {
       if (!memberData) {
         toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
@@ -448,6 +469,7 @@ const PaymentStatusPage = ({
       table: selectedOrder.table,
       tableId: selectedOrder.tableId,
       paymentMethod: paymentMethod,
+      accountId: selectedAccountId,
       totalAmount: finalTotal,
       discount: discountAmount,
       createdById: employeeId,
@@ -867,6 +889,9 @@ const PaymentStatusPage = ({
                   setMemberData={setMemberData}
                   isLoadingMember={isLoadingMember}
                   handleCheckMember={handleCheckMember}
+                  accounts={accounts}
+                  selectedAccountId={selectedAccountId}
+                  setSelectedAccountId={setSelectedAccountId}
                 />
 
                 <div>
