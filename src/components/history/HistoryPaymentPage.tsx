@@ -3,7 +3,10 @@ import { HistoryPaymentProps } from "@/lib/type";
 import { Data_table_payment } from "./tables/data-table-payment";
 import column_payment from "./tables/column_payment";
 
-const HistoryPaymentPage = ({ initialItems }: HistoryPaymentProps) => {
+const HistoryPaymentPage = ({
+  initialItems,
+  organizationId,
+}: HistoryPaymentProps) => {
   const column_payment_data = column_payment();
   return (
     <div>
@@ -12,6 +15,7 @@ const HistoryPaymentPage = ({ initialItems }: HistoryPaymentProps) => {
           <Data_table_payment
             columns={column_payment_data}
             data={initialItems}
+            organizationId={organizationId}
           />
         </div>
       </div>

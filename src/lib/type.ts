@@ -1034,3 +1034,17 @@ export interface OrderRankingDashboardProps {
   topEmployee?: TopStat;
   prRankData?: any[];
 }
+
+export interface PrintSummaryProps {
+  dateText: string;
+  shiftText: string;
+  printTime: string;
+  printerName: string;
+  totalSum: number;
+  currencyLabel: string;
+  filteredBreakdown: {
+    CASH: number;
+    QR: number;
+    MEMBER: number;
+  };
+}
