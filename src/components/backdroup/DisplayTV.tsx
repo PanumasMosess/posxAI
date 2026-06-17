@@ -120,7 +120,6 @@ const DisplayTV = ({
   const isVideo = currentItem?.imageUrl?.match(/\.(mp4|webm|mov)$/i);
   const isCustomer = !!priorityItem;
 
-  // 🟢 คำนวณคิวถัดไปเพื่อเอาไฟล์ไป "โหลดรอ (Preload)" ล่วงหน้า
   const nextItem = priorityItem
     ? items[currentIndex]
     : items[(currentIndex + 1) % items.length];
@@ -134,7 +133,6 @@ const DisplayTV = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          // 🟢 ลดเวลา Fade เหลือ 0.5 วิ เพื่อให้เปลี่ยนฉากไวขึ้น ไม่หน่วง
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="absolute inset-0 w-full h-full flex items-center justify-center"
         >

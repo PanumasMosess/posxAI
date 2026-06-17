@@ -13,21 +13,36 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
       total,
       currency,
       paymentMethod,
-      shopName, 
-      staffName, 
+      shopName,
+      staffName,
     },
     ref,
   ) => {
     const totalQty = items.reduce((acc, item) => acc + item.quantity, 0);
 
     const curr = currency || "LAK";
-
-    // 🟢 ถ้ามีข้อมูลส่งมาจะใช้ค่าตามจริง ถ้าไม่มีจะดึงค่าสำรองดั้งเดิมมาแสดง
     const displayShop = shopName || "18 Garage";
     const displayStaff = staffName || "LARNOY";
 
     const totalBaht = (total / 650).toFixed(2);
     const totalUSD = (total / 20500).toFixed(2);
+
+    const groupedItems = items.reduce(
+      (acc, current) => {
+        const existingItem = acc.find(
+          (item: (typeof items)[0]) => item.name === current.name,
+        );
+
+        if (existingItem) {
+          existingItem.quantity += current.quantity;
+          existingItem.price += current.price;
+        } else {
+          acc.push({ ...current });
+        }
+        return acc;
+      },
+      [] as typeof items,
+    );
 
     return (
       <div
@@ -81,55 +96,61 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
               <th className="py-1.5 text-right w-[55%] pr-1">ລວມ</th>
             </tr>
           </thead>
+          {/* 🟢 เปลี่ยนจาก items.map เป็น groupedItems.map ตรงนี้ */}
           <tbody className="align-top">
-            {items.map((item, index) => {
-              const startModIndex = item.name.indexOf(" (+");
-              let mainName = item.name;
-              let modifiersList: string[] = [];
+            {groupedItems.map(
+              (
+                item: { name: string; quantity: number; price: number },
+                index: number,
+              ) => {
+                const startModIndex = item.name.indexOf(" (+");
+                let mainName = item.name;
+                let modifiersList: string[] = [];
 
-              if (startModIndex !== -1) {
-                mainName = item.name.substring(0, startModIndex);
-                const modsString = item.name.substring(
-                  startModIndex + 3,
-                  item.name.length - 1,
+                if (startModIndex !== -1) {
+                  mainName = item.name.substring(0, startModIndex);
+                  const modsString = item.name.substring(
+                    startModIndex + 3,
+                    item.name.length - 1,
+                  );
+                  modifiersList = modsString.split(", ");
+                }
+
+                const unitPrice = item.price / item.quantity;
+
+                return (
+                  <tr key={index} className="text-gray-900 font-bold">
+                    <td className="py-1.5 pl-1 pr-1 text-left align-top w-[55%] break-words">
+                      <div className="leading-tight">- {mainName}</div>
+                      {modifiersList.length > 0 && (
+                        <div className="flex flex-col font-normal text-gray-500 mt-0.5">
+                          {modifiersList.map((mod, i) => (
+                            <span
+                              key={i}
+                              className="pl-2 text-[8px] leading-snug"
+                            >
+                              + {mod}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="py-1.5 text-center align-top w-[10%]">
+                      {item.quantity}
+                    </td>
+
+                    <td className="py-1.5 text-right align-top whitespace-nowrap w-[17%]">
+                      {unitPrice.toLocaleString()}
+                    </td>
+
+                    <td className="py-1.5 text-right align-top pr-1 whitespace-nowrap w-[18%]">
+                      {item.price.toLocaleString()}
+                    </td>
+                  </tr>
                 );
-                modifiersList = modsString.split(", ");
-              }
-
-              const unitPrice = item.price / item.quantity;
-
-              return (
-                <tr key={index} className="text-gray-900 font-bold">
-                  <td className="py-1.5 pl-1 pr-1 text-left align-top w-[55%] break-words">
-                    <div className="leading-tight">- {mainName}</div>
-                    {modifiersList.length > 0 && (
-                      <div className="flex flex-col font-normal text-gray-500 mt-0.5">
-                        {modifiersList.map((mod, i) => (
-                          <span
-                            key={i}
-                            className="pl-2 text-[8px] leading-snug"
-                          >
-                            + {mod}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="py-1.5 text-center align-top w-[10%]">
-                    {item.quantity}
-                  </td>
-
-                  <td className="py-1.5 text-right align-top whitespace-nowrap w-[17%]">
-                    {unitPrice.toLocaleString()}
-                  </td>
-
-                  <td className="py-1.5 text-right align-top pr-1 whitespace-nowrap w-[18%]">
-                    {item.price.toLocaleString()}
-                  </td>
-                </tr>
-              );
-            })}
+              },
+            )}
           </tbody>
         </table>
 
@@ -174,7 +195,7 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
 
         <div className="text-center pb-0.5">
           <div className="font-bold text-[9px] tracking-wide">
-            ຂອບໃຈ ໂอกາດຫນ้าເຊີນໄຫມ່
+            ຂອບໃຈ ໂอกາດຫນ້າເຊີນໄຫມ່
           </div>
         </div>
       </div>

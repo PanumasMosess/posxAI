@@ -22,9 +22,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Receipt, CalendarIcon, X } from "lucide-react";
-import { useState, useMemo } from "react";
+// 🟢 อย่าลืม import useEffect เข้ามาด้วยนะครับ
+import { useState, useMemo, useEffect } from "react";
 
-// 🟢 นำเข้า UI สำหรับทำ Date Range Picker
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
@@ -36,6 +36,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -50,10 +58,16 @@ export function Data_table_payment<TData, TValue>({
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // 🟢 State สำหรับเก็บช่วงวันที่ (จากวันที่ - ถึงวันที่)
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [selectedShift, setSelectedShift] = useState<string>("all");
 
-  const filteredData = useMemo(() => {
+  // 🟢 รีเซ็ตกะการขายกลับเป็น "all" ทุกครั้งที่ผู้ใช้เปลี่ยนวันที่
+  useEffect(() => {
+    setSelectedShift("all");
+  }, [dateRange]);
+
+  // 🟢 1. กรองข้อมูลตาม "วันที่" เป็นอันดับแรก
+  const dateFilteredData = useMemo(() => {
     if (!dateRange?.from && !dateRange?.to) return data;
 
     return data.filter((item: any) => {
@@ -81,7 +95,6 @@ export function Data_table_payment<TData, TValue>({
         isBeforeEnd = itemDate <= end;
       }
 
-      // ถ้าระบุแค่วันเริ่มต้น ให้ค้นหาเฉพาะวันนั้นวันเดียว
       if (dateRange.from && !dateRange.to) {
         return (
           itemDate.getTime() === new Date(dateRange.from).setHours(0, 0, 0, 0)
@@ -92,8 +105,26 @@ export function Data_table_payment<TData, TValue>({
     });
   }, [data, dateRange]);
 
+  // 🟢 2. ดึงตัวเลือก "รอบการขาย" ออกมาจากข้อมูลที่ผ่านการกรองวันที่แล้วเท่านั้น
+  const availableShifts = useMemo(() => {
+    const shifts = new Set(
+      dateFilteredData
+        .map((item: any) => item.shift?.shiftSequence)
+        .filter(Boolean),
+    );
+    return Array.from(shifts).sort((a: any, b: any) => Number(a) - Number(b));
+  }, [dateFilteredData]);
+
+  // 🟢 3. เอาข้อมูลวันที่มากรอง "รอบการขาย" อีกชั้นนึง เพื่อส่งเข้าตาราง
+  const filteredData = useMemo(() => {
+    if (selectedShift === "all") return dateFilteredData;
+    return dateFilteredData.filter(
+      (item: any) => String(item.shift?.shiftSequence) === selectedShift,
+    );
+  }, [dateFilteredData, selectedShift]);
+
   const table = useReactTable({
-    data: filteredData,
+    data: filteredData, // ใช้ข้อมูลผลลัพธ์สุดท้าย
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -115,7 +146,6 @@ export function Data_table_payment<TData, TValue>({
     },
   });
 
-  // 🟢 รวมยอดค้นหา พร้อมแยกประเภทการชำระเงิน
   const { totalSum, filteredBreakdown } = useMemo(() => {
     let total = 0;
     const breakdown = { CASH: 0, QR: 0, MEMBER: 0 };
@@ -134,7 +164,6 @@ export function Data_table_payment<TData, TValue>({
     return { totalSum: total, filteredBreakdown: breakdown };
   }, [table.getFilteredRowModel().rows]);
 
-  // 🟢 รวมยอดวันนี้ พร้อมแยกประเภทการชำระเงิน
   const { todayTotal, todayBreakdown } = useMemo(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -189,7 +218,6 @@ export function Data_table_payment<TData, TValue>({
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto flex-wrap justify-end">
-          {/* 🟢 ยอดขายวันนี้ + ขยายฟอนต์ตัวย่อย */}
           <div className="flex flex-col bg-blue-50 dark:bg-blue-900/20 px-4 py-2.5 rounded-lg border border-blue-200 dark:border-blue-800 w-full sm:w-auto min-w-[200px]">
             <div className="flex items-baseline gap-2 justify-center sm:justify-start">
               <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
@@ -202,7 +230,6 @@ export function Data_table_payment<TData, TValue>({
                 {currencyLabel}
               </span>
             </div>
-            {/* 🟢 ขยายฟอนต์เป็น text-xs และปรับให้หนา font-semibold */}
             <div className="flex items-center justify-center sm:justify-start gap-3 mt-1.5 text-xs font-semibold text-blue-600/90 dark:text-blue-400/90">
               <span>CASH: {todayBreakdown.CASH.toLocaleString()}</span>
               <span className="opacity-40">|</span>
@@ -212,7 +239,6 @@ export function Data_table_payment<TData, TValue>({
             </div>
           </div>
 
-          {/* 🟢 ยอดตามการค้นหา + ขยายฟอนต์ตัวย่อย */}
           <div className="flex flex-col bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full sm:w-auto min-w-[200px]">
             <div className="flex items-baseline gap-2 justify-center sm:justify-start">
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
@@ -225,7 +251,6 @@ export function Data_table_payment<TData, TValue>({
                 {currencyLabel}
               </span>
             </div>
-            {/* 🟢 ขยายฟอนต์เป็น text-xs และปรับให้หนา font-semibold */}
             <div className="flex items-center justify-center sm:justify-start gap-3 mt-1.5 text-xs font-semibold text-emerald-600/90 dark:text-emerald-400/90">
               <span>CASH: {filteredBreakdown.CASH.toLocaleString()}</span>
               <span className="opacity-40">|</span>
@@ -242,7 +267,7 @@ export function Data_table_payment<TData, TValue>({
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-[260px] justify-start text-left font-normal bg-white dark:bg-zinc-950",
+                      "w-[240px] justify-start text-left font-normal bg-white dark:bg-zinc-950",
                       !dateRange && "text-zinc-500",
                     )}
                   >
@@ -287,13 +312,27 @@ export function Data_table_payment<TData, TValue>({
                   <X className="h-4 w-4" />
                 </Button>
               )}
+
+              <Select value={selectedShift} onValueChange={setSelectedShift}>
+                <SelectTrigger className="w-[140px] bg-white dark:bg-zinc-950">
+                  <SelectValue placeholder="เลือกรอบการขาย" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกกะการทำงาน</SelectItem>
+                  {availableShifts.map((shift) => (
+                    <SelectItem key={`shift-${shift}`} value={String(shift)}>
+                      กะที่ {shift}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <Input
               placeholder="ค้นหา..."
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
-              className="w-full sm:w-[200px]"
+              className="w-full sm:w-[180px]"
             />
           </div>
         </div>
