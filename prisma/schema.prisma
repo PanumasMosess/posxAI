@@ -650,7 +650,7 @@ model account {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization organization          @relation(fields: [organizationId], references: [id])
+  organization organization?          @relation(fields: [organizationId], references: [id])
   transactions account_transaction[]
 }
 
@@ -664,7 +664,7 @@ model account_category {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization organization          @relation(fields: [organizationId], references: [id])
+  organization organization?          @relation(fields: [organizationId], references: [id])
   transactions account_transaction[]
 }
 
@@ -693,7 +693,7 @@ model account_transaction {
   updatedAt DateTime @updatedAt
 
   // Relations
-  organization organization      @relation(fields: [organizationId], references: [id])
+  organization organization?      @relation(fields: [organizationId], references: [id])
   account      account           @relation(fields: [accountId], references: [id])
   category     account_category? @relation(fields: [categoryId], references: [id])
   paymentorder paymentorder?     @relation(fields: [paymentOrderId], references: [id])
