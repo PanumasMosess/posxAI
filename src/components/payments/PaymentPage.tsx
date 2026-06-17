@@ -30,6 +30,7 @@ import {
   getMemberByPhone,
   updateStatusOrder,
   updateStatusTable,
+  getActiveAccounts,
 } from "@/lib/actions/actionPayment";
 import { useRouter } from "next/navigation";
 import {
@@ -79,6 +80,9 @@ const PaymentPage = ({
   const { employeeId, employeeName, organizationName } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
+
   // 🟢 State สำหรับเก็บรายการอาหารที่ถูกเลือกเพื่อชำระเงิน
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
@@ -102,6 +106,17 @@ const PaymentPage = ({
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   const [isAutoPrint, setIsAutoPrint] = useState(false);
+
+  useEffect(() => {
+    const loadAccounts = async () => {
+      const res = await getActiveAccounts(organizationId);
+      if (res.success && res.data) {
+        setAccounts(res.data);
+        if (res.data.length > 0) setSelectedAccountId(res.data[0].id);
+      }
+    };
+    loadAccounts();
+  }, [organizationId]);
 
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
@@ -416,6 +431,11 @@ const PaymentPage = ({
       return;
     }
 
+    if (["CASH", "QR"].includes(paymentMethod) && !selectedAccountId) {
+      toast.error("กรุณาเลือก บัญชีรับเงิน ก่อนทำรายการครับ");
+      return;
+    }
+
     if (paymentMethod === "MEMBER") {
       if (!memberData) {
         toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
@@ -449,6 +469,7 @@ const PaymentPage = ({
         table: selectedOrder.table,
         tableId: selectedOrder.tableId,
         paymentMethod: paymentMethod,
+        accountId: selectedAccountId,
         totalAmount: finalTotal,
         discount: discountAmount,
         createdById: Number(employeeId),
@@ -761,6 +782,9 @@ const PaymentPage = ({
                   setMemberData={setMemberData}
                   isLoadingMember={isLoadingMember}
                   handleCheckMember={handleCheckMember}
+                  accounts={accounts}
+                  selectedAccountId={selectedAccountId}
+                  setSelectedAccountId={setSelectedAccountId}
                 />
 
                 <div>

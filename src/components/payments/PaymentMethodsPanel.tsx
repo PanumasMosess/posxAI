@@ -38,7 +38,10 @@ export default function PaymentMethodsPanel({
   setMemberData,
   isLoadingMember,
   handleCheckMember,
-}: PaymentMethodsPanelProps) {
+  accounts = [],
+  selectedAccountId,
+  setSelectedAccountId,
+}: PaymentMethodsPanelProps & { accounts?: any[], selectedAccountId?: number, setSelectedAccountId?: any }) {
   return (
     <div className="space-y-4">
       {/* Buttons เลือกประเภทการจ่าย */}
@@ -70,6 +73,27 @@ export default function PaymentMethodsPanel({
         />
       </div>
 
+{/* 🟢 เลือกบัญชีรับเงิน (ปรับสีให้เข้ากับ UI ของคุณ) */}
+      {["QR", "CASH"].includes(paymentMethod) && (
+        <div className="bg-zinc-50 dark:bg-zinc-900/50 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 animate-in fade-in duration-300 mb-2">
+          <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+            บัญชีรับเงิน <span className="text-red-500">*</span>
+          </label>
+          <select 
+            value={selectedAccountId || ""} 
+            onChange={(e) => setSelectedAccountId(Number(e.target.value))}
+            className="w-full h-11 px-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl font-medium text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-500/50 transition-colors cursor-pointer"
+          >
+            <option value="" disabled>-- กรุณาเลือกบัญชีรับเงิน --</option>
+            {accounts.map((acc: any) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.accountName}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* พื้นที่แสดงรายละเอียดของการจ่ายแต่ละประเภท */}
       <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800 transition-all duration-300">
         {/* QR Code */}
@@ -78,21 +102,19 @@ export default function PaymentMethodsPanel({
             <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
               <button
                 onClick={() => setQrType("THAI")}
-                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                  qrType === "THAI"
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${qrType === "THAI"
                     ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600"
                     : "text-zinc-500 hover:text-zinc-700"
-                }`}
+                  }`}
               >
                 🇹🇭 Thai QR
               </button>
               <button
                 onClick={() => setQrType("LAO")}
-                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                  qrType === "LAO"
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${qrType === "LAO"
                     ? "bg-white dark:bg-zinc-700 shadow-sm text-red-600"
                     : "text-zinc-500 hover:text-zinc-700"
-                }`}
+                  }`}
               >
                 🇱🇦 Lao QR
               </button>
@@ -399,11 +421,10 @@ export default function PaymentMethodsPanel({
                       เครดิตคงเหลือ
                     </p>
                     <p
-                      className={`font-bold text-lg ${
-                        memberData.creditBalance < finalTotal
+                      className={`font-bold text-lg ${memberData.creditBalance < finalTotal
                           ? "text-red-500 dark:text-red-400" // ✅ ตอนเงินไม่พอ (สว่างขึ้นในโหมดมืด)
                           : "text-zinc-900 dark:text-zinc-100" // ✅ ตอนเงินพอ (สีขาวในโหมดมืด)
-                      }`}
+                        }`}
                     >
                       {memberData.creditBalance.toLocaleString()}{" "}
                       <span className="text-xs font-normal">{currency}</span>

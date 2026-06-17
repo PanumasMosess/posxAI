@@ -265,16 +265,17 @@ model paymentorder {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
 
-  createdById        Int
-  creator            employeepin   @relation(fields: [createdById], references: [id])
-  organizationId     Int?
-  organization       organization? @relation(fields: [organizationId], references: [id])
-  tableId            Int?
-  table              table?        @relation(fields: [tableId], references: [id])
-  order_running_code String        
-  runningRef         orderrunning? @relation(fields: [order_running_code], references: [runningCode])
-  shiftId            Int?
-  shift              shift?        @relation(fields: [shiftId], references: [id])
+  createdById         Int
+  creator             employeepin           @relation(fields: [createdById], references: [id])
+  organizationId      Int?
+  organization        organization?         @relation(fields: [organizationId], references: [id])
+  tableId             Int?
+  table               table?                @relation(fields: [tableId], references: [id])
+  order_running_code  String
+  runningRef          orderrunning?         @relation(fields: [order_running_code], references: [runningCode])
+  shiftId             Int?
+  shift               shift?                @relation(fields: [shiftId], references: [id])
+  accountTransactions account_transaction[]
 }
 
 model organization {
@@ -284,30 +285,33 @@ model organization {
   ownerId   Int
   createdAt DateTime @default(now())
 
-  menus            menu[]
-  orders           order[]
-  employees        employees[]
-  categories       categorystock[]
-  tables           table[]
-  unitprices       unitprice[]
-  carts            cart[]
-  stocks           stock[]
-  suppliers        supplier[]
-  formularstocks   formularstock[]
-  order_runnings   orderrunning[]
-  paymentorders    paymentorder[]
-  printers         printer[]
-  stations         station[]
-  modifiergroups   modifiergroup[]
-  modifieritems    modifieritem[]
-  menumodifiers    menumodifier[]
-  orderitems       orderitem[]
-  ordermodifiers   ordermodifier[]
-  posiotions       posiotion[]
-  employeepins     employeepin[]
-  permissions      permission[]
-  displayBackdrops display_backdrop[]
-  shifts           shift[]
+  menus               menu[]
+  orders              order[]
+  employees           employees[]
+  categories          categorystock[]
+  tables              table[]
+  unitprices          unitprice[]
+  carts               cart[]
+  stocks              stock[]
+  suppliers           supplier[]
+  formularstocks      formularstock[]
+  order_runnings      orderrunning[]
+  paymentorders       paymentorder[]
+  printers            printer[]
+  stations            station[]
+  modifiergroups      modifiergroup[]
+  modifieritems       modifieritem[]
+  menumodifiers       menumodifier[]
+  orderitems          orderitem[]
+  ordermodifiers      ordermodifier[]
+  posiotions          posiotion[]
+  employeepins        employeepin[]
+  permissions         permission[]
+  displayBackdrops    display_backdrop[]
+  shifts              shift[]
+  accounts            account[]
+  accountCategories   account_category[]
+  accountTransactions account_transaction[]
 }
 
 model printer {
@@ -547,22 +551,23 @@ model employeepin {
   updatedAt   DateTime  @updatedAt
   birthday    DateTime?
 
-  organizationId     Int?
-  organization       organization?       @relation(fields: [organizationId], references: [id])
-  openedShifts       shift[]             @relation("ShiftOpenedBy")
-  closedShifts       shift[]             @relation("ShiftClosedBy")
-  categorystocks     categorystock[]
-  suppliers          supplier[]
-  stocks             stock[]
-  menus              menu[]              @relation("MenuCreator")
-  tables             table[]
-  paymentorders      paymentorder[]
-  printers           printer[]
-  stations           station[]
-  posiotions         posiotion[]
-  membertransactions membertransaction[]
-  mcMenus            menu[]              @relation("MenuMC")
-  displayBackdrops   display_backdrop[]
+  organizationId      Int?
+  organization        organization?         @relation(fields: [organizationId], references: [id])
+  openedShifts        shift[]               @relation("ShiftOpenedBy")
+  closedShifts        shift[]               @relation("ShiftClosedBy")
+  categorystocks      categorystock[]
+  suppliers           supplier[]
+  stocks              stock[]
+  menus               menu[]                @relation("MenuCreator")
+  tables              table[]
+  paymentorders       paymentorder[]
+  printers            printer[]
+  stations            station[]
+  posiotions          posiotion[]
+  membertransactions  membertransaction[]
+  mcMenus             menu[]                @relation("MenuMC")
+  displayBackdrops    display_backdrop[]
+  accountTransactions account_transaction[]
 }
 
 model display_backdrop {
@@ -617,8 +622,81 @@ model shift {
   organization  organization?  @relation(fields: [organizationId], references: [id])
   paymentorders paymentorder[]
 
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  accountTransactions account_transaction[]
+
+  @@map("shift")
+}
+
+enum account_tx_type {
+  SALES // รายรับอัตโนมัติจาก POS (ผูกบิล)
+  INCOME // รายรับอื่นๆ (กรอกมือ)
+  EXPENSE // รายจ่าย (กรอกมือ)
+  TRANSFER_OUT // โอนเงินออกไปยังบัญชีอื่น
+  TRANSFER_IN // รับเงินโอนมาจากบัญชีอื่น
+  ADJUSTMENT_UP // ปรับยอดเงินเพิ่มขึ้น (กรอกมือ/แอดมิน)
+  ADJUSTMENT_DOWN // ปรับยอดเงินลดลง (กรอกมือ/แอดมิน)
+  OVERRIDE_BALANCE // แก้ไขเลขยอดเงินในบัญชีตรงๆ (ระบบบันทึกส่วนต่างให้)
+  AR_PAYMENT        // รับชำระหนี้ (ลูกค้าจ่ายยอดที่เซ็นติดไว้)
+}
+
+model account {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  accountName    String // ชื่อบัญชี เช่น "เงินสดในลิ้นชัก", "ธนาคารกสิกรไทย"
+  balance        Float    @default(0.00) // ยอดเงินคงเหลือปัจจุบัน
+  status         String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization organization          @relation(fields: [organizationId], references: [id])
+  transactions account_transaction[]
+}
+
+model account_category {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  name           String // ชื่อหมวดหมู่ เช่น "ค่าวัตถุดิบ", "รายได้เบ็ดเตล็ด"
+  type           String // "INCOME" หรือ "EXPENSE" (เอาไว้กรองตอนให้ User เลือกหมวด)
+  note           String?
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization organization          @relation(fields: [organizationId], references: [id])
+  transactions account_transaction[]
+}
+
+model account_transaction {
+  id             Int  @id @default(autoincrement())
+  organizationId Int
+  accountId      Int
+  categoryId     Int?
+
+  type           account_tx_type
+  amount         Float // จำนวนเงินในรายการนั้นๆ (เก็บเป็นบวกเสมอ)
+  accountBalance Float // ยอดเงินคงเหลือในบัญชี ณ ตอนที่ทำรายการ (Running Balance)
+
+  docNumber String? // เลขที่เอกสาร (ถ้ามี)
+  title     String // หัวข้อรายการ/รายละเอียด
+  note      String? // หมายเหตุเพิ่มเติม
+  docFile   String? // URL ไฟล์แนบ หรือรูปใบเสร็จ
+
+  paymentOrderId Int? // ผูกกับบิลหน้าร้าน (สำหรับ type: SALES)
+  shiftId        Int? // ผูกกับกะการทำงาน
+  createdById    Int // พนักงานผู้ทำรายการ
+
+  transferPairId Int? // กรณีโอนเงิน: ผูก ID ของรายการโอนฝั่งตรงข้าม
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("shift")
+  // Relations
+  organization organization      @relation(fields: [organizationId], references: [id])
+  account      account           @relation(fields: [accountId], references: [id])
+  category     account_category? @relation(fields: [categoryId], references: [id])
+  paymentorder paymentorder?     @relation(fields: [paymentOrderId], references: [id])
+  shift        shift?            @relation(fields: [shiftId], references: [id])
+  creator      employeepin       @relation(fields: [createdById], references: [id])
 }
