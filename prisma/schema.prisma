@@ -656,7 +656,7 @@ model account {
 
 model account_category {
   id             Int      @id @default(autoincrement())
-  organizationId Int
+  organizationId Int?
   name           String // ชื่อหมวดหมู่ เช่น "ค่าวัตถุดิบ", "รายได้เบ็ดเตล็ด"
   type           String // "INCOME" หรือ "EXPENSE" (เอาไว้กรองตอนให้ User เลือกหมวด)
   note           String?
@@ -670,7 +670,7 @@ model account_category {
 
 model account_transaction {
   id             Int  @id @default(autoincrement())
-  organizationId Int
+  organizationId Int?
   accountId      Int
   categoryId     Int?
 

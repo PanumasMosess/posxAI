@@ -14,7 +14,7 @@ CREATE TABLE `account` (
 -- CreateTable
 CREATE TABLE `account_category` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `organizationId` INTEGER NOT NULL,
+    `organizationId` INTEGER NULL,
     `name` VARCHAR(191) NOT NULL,
     `type` VARCHAR(191) NOT NULL,
     `note` VARCHAR(191) NULL,
@@ -28,7 +28,7 @@ CREATE TABLE `account_category` (
 -- CreateTable
 CREATE TABLE `account_transaction` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `organizationId` INTEGER NOT NULL,
+    `organizationId` INTEGER NULL,
     `accountId` INTEGER NOT NULL,
     `categoryId` INTEGER NULL,
     `type` ENUM('SALES', 'INCOME', 'EXPENSE', 'TRANSFER_OUT', 'TRANSFER_IN', 'ADJUSTMENT_UP', 'ADJUSTMENT_DOWN', 'OVERRIDE_BALANCE', 'AR_PAYMENT') NOT NULL,
@@ -52,10 +52,10 @@ CREATE TABLE `account_transaction` (
 ALTER TABLE `account` ADD CONSTRAINT `account_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `account_category` ADD CONSTRAINT `account_category_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `account_category` ADD CONSTRAINT `account_category_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `account_transaction` ADD CONSTRAINT `account_transaction_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `account_transaction` ADD CONSTRAINT `account_transaction_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organization`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `account_transaction` ADD CONSTRAINT `account_transaction_accountId_fkey` FOREIGN KEY (`accountId`) REFERENCES `account`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
