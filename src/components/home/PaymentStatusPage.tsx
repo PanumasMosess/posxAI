@@ -433,10 +433,10 @@ const PaymentStatusPage = ({
       return;
     }
 
-    if (["CASH", "QR"].includes(paymentMethod) && !selectedAccountId) {
-      toast.error("กรุณาเลือก บัญชีรับเงิน ก่อนทำรายการครับ");
-      return;
-    }
+    // if (["CASH", "QR"].includes(paymentMethod) && !selectedAccountId) {
+    //   toast.error("กรุณาเลือก บัญชีรับเงิน ก่อนทำรายการครับ");
+    //   return;
+    // }
 
     if (paymentMethod === "MEMBER") {
       if (!memberData) {

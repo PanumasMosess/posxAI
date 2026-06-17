@@ -25,6 +25,7 @@ import {
   BarChart3,
   FileText,
   History,
+  CreditCard,
 } from "lucide-react";
 
 const menuList = [
@@ -99,9 +100,14 @@ const menuList = [
         icon: FileText,
       },
       {
+        title: "รับชำระหนี้สมาชิก",
+        url: "/accounting/member_payment",
+        icon: CreditCard,
+      },
+      {
         title: "รายการเดินบัญชี",
         url: "/accounting/history",
-        icon: History, 
+        icon: History,
       },
       { title: "รายงานสรุปบัญชี", url: "/accounting/report", icon: BarChart3 },
     ],

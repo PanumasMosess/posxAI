@@ -73,8 +73,8 @@ export default function PaymentMethodsPanel({
         />
       </div>
 
-{/* 🟢 เลือกบัญชีรับเงิน (ปรับสีให้เข้ากับ UI ของคุณ) */}
-      {["QR", "CASH"].includes(paymentMethod) && (
+      {/* 🟢 เลือกบัญชีรับเงิน (ปรับสีให้เข้ากับ UI ของคุณ) */}
+      {/* {["QR", "CASH"].includes(paymentMethod) && (
         <div className="bg-zinc-50 dark:bg-zinc-900/50 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 animate-in fade-in duration-300 mb-2">
           <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
             บัญชีรับเงิน <span className="text-red-500">*</span>
@@ -92,7 +92,7 @@ export default function PaymentMethodsPanel({
             ))}
           </select>
         </div>
-      )}
+      )} */}
 
       {/* พื้นที่แสดงรายละเอียดของการจ่ายแต่ละประเภท */}
       <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800 transition-all duration-300">

@@ -126,7 +126,7 @@ export const updateStatusTable = async (idTable: number, status: string) => {
 export const createPaymentOrder = async (data: any) => {
   try {
     await prisma.$transaction(async (tx) => {
-      // 1. สร้างประวัติการชำระเงิน (Payment Order)
+      // 1. สร้างประวัติการชำระเงิน (Payment Order) -> เก็บไว้ปกติเพื่อให้บิลจบได้
       await tx.paymentorder.create({
         data: {
           cashReceived: data.cashReceived,
@@ -142,7 +142,7 @@ export const createPaymentOrder = async (data: any) => {
           tableId: data.tableId,
           order_running_code: data.orderId,
           shiftId: data.shiftId || null,
-
+          
         },
       });
 
@@ -158,7 +158,8 @@ export const createPaymentOrder = async (data: any) => {
         });
       }
 
-      // 🟢 2. เพิ่มส่วนนี้!!: จัดการเรื่องบันทึกรายรับเข้าบัญชี (ถ้าเป็นเงินสด หรือ QR)
+      // 🔴 เปิดคอมเมนต์ครอบปิดส่วนนี้ทั้งหมดชั่วคราว เพื่อไม่ให้บันทึกลงสมุดบัญชีร้าน
+      /*
       if (["CASH", "QR"].includes(data.paymentMethod) && data.accountId) {
         // 2.0 ดึงข้อมูลบัญชีปัจจุบันขึ้นมาก่อน เพื่อเอายอดเงินมาบวก
         const account = await tx.account.findUnique({
@@ -170,7 +171,7 @@ export const createPaymentOrder = async (data: any) => {
         // คำนวณยอดเงินคงเหลือใหม่
         const newBalance = Number(account.balance) + Number(data.totalAmount);
 
-        // 2.1 บันทึก Log ธุรกรรม (เพิ่ม title และ accountBalance เข้าไปตามที่ Prisma ร้องขอ)
+        // 2.1 บันทึก Log ธุรกรรม
         await tx.account_transaction.create({
           data: {
             accountId: data.accountId,
@@ -180,18 +181,20 @@ export const createPaymentOrder = async (data: any) => {
             amount: data.totalAmount,
             note: `รับชำระค่าอาหาร (บิล: ${data.orderId}) - ${data.paymentMethod}`,
             createdById: data.createdById,
-            title: `รายรับค่าอาหาร บิล ${data.orderId}`, // 🟢 เติม title
-            accountBalance: newBalance, // 🟢 เติม accountBalance
+            title: `รายรับค่าอาหาร บิล ${data.orderId}`, 
+            accountBalance: newBalance, 
           },
         });
 
-        // 2.2 อัปเดตยอดเงินคงเหลือในสมุดบัญชีนั้น (ใช้ค่ายอดใหม่ที่เราคำนวณไว้เลย)
+        // 2.2 อัปเดตยอดเงินคงเหลือในสมุดบัญชีนั้น
         await tx.account.update({
           where: { id: data.accountId },
           data: { balance: newBalance },
         });
       }
-      // 3. จัดการเรื่องเครดิต MEMBER
+      */
+
+      // 3. จัดการเรื่องเครดิต MEMBER (ส่วนนี้ปล่อยทำงานปกติ หรือถ้ายังไม่เปิดให้เซ็นก็ปล่อยไว้ได้ครับเพราะมีโค้ดหน้าบ้านดักอยู่แล้ว)
       if (data.paymentMethod === "MEMBER") {
         if (!data.memberPhone) {
           throw new Error("ไม่พบเบอร์โทรศัพท์สมาชิก");
