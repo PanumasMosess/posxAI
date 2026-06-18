@@ -259,19 +259,19 @@ const column_setting_member = (
       );
     },
   },
-  {
-    id: "pay_credit",
-    header: "ชำระเครดิต",
-    cell: ({ row }) => {
-      const member = row.original;
+  // {
+  //   id: "pay_credit",
+  //   header: "ชำระเครดิต",
+  //   cell: ({ row }) => {
+  //     const member = row.original;
 
-      return (
-        <div className="flex justify-center">
-          <FormPayCredit member={member} onPay={handlePayCredit} />
-        </div>
-      );
-    },
-  },
+  //     return (
+  //       <div className="flex justify-center">
+  //         <FormPayCredit member={member} onPay={handlePayCredit} />
+  //       </div>
+  //     );
+  //   },
+  // },
   {
     accessorKey: "updatedAt",
     header: () => <div className="text-center font-semibold">อัปเดตล่าสุด</div>,
