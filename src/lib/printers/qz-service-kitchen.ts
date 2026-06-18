@@ -71,7 +71,7 @@ export const printToKitchen = async (
             padding: 0; 
             box-sizing: border-box; 
             font-family: 'Noto Sans Lao', 'Phetsarath OT', 'Saysettha OT', sans-serif;
-            font-size: 12px;
+            font-size: 16px;
             line-height: 1; 
           }
 
@@ -89,7 +89,7 @@ export const printToKitchen = async (
             margin-bottom: 4px; 
           }
           .title { 
-            font-size: 16px; 
+            font-size: 20px; 
             font-weight: bold; 
             background: #000; 
             color: #fff; 
@@ -98,7 +98,7 @@ export const printToKitchen = async (
             display: inline-block; 
             margin-bottom: 2px;
           }
-          .time { font-size: 10px; font-weight: bold; }
+          .time { font-size: 14px; font-weight: bold; }
 
           .menu-row { 
             display: flex; 
@@ -107,20 +107,20 @@ export const printToKitchen = async (
             margin-top: 2px; 
           }
           .menu-name { 
-            font-size: 14px; 
+            font-size: 24px; /* 🟢 ปรับเฉพาะชื่อเมนูจาก 18px เป็น 24px */
             font-weight: bold; 
             width: 80%; 
             line-height: 1.1; 
           }
           .menu-qty { 
-            font-size: 16px; 
+            font-size: 28px; /* 🟢 ปรับเฉพาะจำนวนจาก 22px เป็น 28px */
             font-weight: 900; 
             width: 20%; 
             text-align: right; 
           }
           
           .modifiers-box { 
-            font-size: 11px; 
+            font-size: 15px; 
             font-weight: bold; 
             margin-top: 2px; 
             padding-left: 6px; 
@@ -135,7 +135,7 @@ export const printToKitchen = async (
             list-style: none; 
           }
           .sub-item { 
-            font-size: 11px; 
+            font-size: 15px; 
             margin-bottom: 3px; 
             display: flex; 
             justify-content: space-between; 
@@ -143,7 +143,7 @@ export const printToKitchen = async (
           }
           .table-tag { 
             font-weight: bold; 
-            font-size: 11px; 
+            font-size: 15px; 
             margin-right: 4px; 
           }
         </style>
@@ -184,7 +184,7 @@ export const printToKitchen = async (
                   <span class="table-tag">[ โต๊ะ ${order.tableName} ]</span>
                   ${order.note ? `<span style="font-weight:bold;">(Note: ${order.note})</span>` : ""}
                 </div>
-                <div style="font-weight:bold; font-size:12px;">x${order.quantity}</div>
+                <div style="font-weight:bold; font-size:16px;">x${order.quantity}</div>
               </li>`;
               })
               .join("")}
