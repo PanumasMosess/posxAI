@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 
 export const recordTransaction = async (data: {
   accountId: number;
+  categoryId?: number;
   categoryName: string;
   amount: number;
   type: "INCOME" | "EXPENSE";
@@ -12,15 +13,17 @@ export const recordTransaction = async (data: {
 }) => {
   try {
     await prisma.$transaction(async (tx) => {
-      const account = await tx.account.findUnique({ where: { id: data.accountId } });
+      const account = await tx.account.findUnique({
+        where: { id: data.accountId },
+      });
       if (!account) throw new Error("ไม่พบข้อมูลบัญชี");
       const cleanCategoryName = data.categoryName.trim();
       let category = await tx.account_category.findFirst({
-        where: { 
-          name: cleanCategoryName, 
-          type: data.type, 
-          organizationId: data.organizationId 
-        }
+        where: {
+          name: cleanCategoryName,
+          type: data.type,
+          organizationId: data.organizationId,
+        },
       });
       if (!category) {
         category = await tx.account_category.create({
@@ -28,8 +31,8 @@ export const recordTransaction = async (data: {
             name: cleanCategoryName,
             type: data.type,
             status: "ACTIVE",
-            organizationId: data.organizationId
-          }
+            organizationId: data.organizationId,
+          },
         });
       }
       let diffAmount = data.amount;
@@ -38,7 +41,8 @@ export const recordTransaction = async (data: {
       if (data.type === "INCOME") {
         newBalance = account.balance + data.amount;
       } else if (data.type === "EXPENSE") {
-        if (account.balance < data.amount) throw new Error("ยอดเงินในบัญชีไม่เพียงพอ");
+        if (account.balance < data.amount)
+          throw new Error("ยอดเงินในบัญชีไม่เพียงพอ");
         diffAmount = data.amount;
         newBalance = account.balance - data.amount;
       }
@@ -54,7 +58,7 @@ export const recordTransaction = async (data: {
           type: data.type,
           amount: data.type === "EXPENSE" ? -diffAmount : diffAmount,
           accountBalance: newBalance,
-          title: category.name, 
+          title: category.name,
           note: data.note,
           createdById: data.userId,
         },
