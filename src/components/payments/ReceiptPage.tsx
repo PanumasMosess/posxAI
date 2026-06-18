@@ -24,8 +24,8 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
     const displayShop = shopName || "18 Garage";
     const displayStaff = staffName || "LARNOY";
 
-    const totalBaht = (total / 650).toFixed(2);
-    const totalUSD = (total / 20500).toFixed(2);
+    const totalBaht = (total / 670).toFixed(2);
+    const totalUSD = (total / 21000).toFixed(2);
 
     const groupedItems = items.reduce(
       (acc, current) => {
@@ -160,8 +160,8 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
             <div className="mb-0.5 pb-0.5 border-b border-gray-300 w-fit">
               ອັດຕາແລກປ່ຽນ
             </div>
-            <div>B: 650</div>
-            <div>$: 20,500</div>
+            <div>B: 670</div>
+            <div>$: 21,000</div>
           </div>
 
           <div className="flex flex-col items-end flex-grow pl-4">
