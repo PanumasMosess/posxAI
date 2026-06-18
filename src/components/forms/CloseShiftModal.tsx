@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Wallet, QrCode, Banknote, Loader2 } from "lucide-react";
+import { Wallet, QrCode, Banknote, Loader2, CreditCard } from "lucide-react";
 import { toast } from "react-toastify";
 import { CloseShiftModalProps } from "@/lib/type";
 import { closeShift } from "@/lib/actions/actionShift";
@@ -26,6 +26,7 @@ export function CloseShiftModal({
 }: CloseShiftModalProps) {
   const [actualCash, setActualCash] = useState<string>("");
   const [actualQr, setActualQr] = useState<string>("");
+  const [actualMember, setActualMember] = useState<string>(""); 
   const [note, setNote] = useState<string>("");
   const [isPending, setIsPending] = useState(false);
 
@@ -37,12 +38,14 @@ export function CloseShiftModal({
 
     const endingCash = actualCash === "" ? 0 : parseFloat(actualCash);
     const endingQr = actualQr === "" ? 0 : parseFloat(actualQr);
-
+    const endingMember = actualMember === "" ? 0 : parseFloat(actualMember); 
     if (
       isNaN(endingCash) ||
       endingCash < 0 ||
       isNaN(endingQr) ||
-      endingQr < 0
+      endingQr < 0 ||
+      isNaN(endingMember) ||
+      endingMember < 0
     ) {
       toast.error("กรุณาระบุจำนวนเงินให้ถูกต้อง");
       return;
@@ -55,6 +58,7 @@ export function CloseShiftModal({
         employeeId,
         endingCash,
         endingQr,
+        endingMember,
         note,
       );
 
@@ -70,6 +74,7 @@ export function CloseShiftModal({
 
         setActualCash("");
         setActualQr("");
+        setActualMember(""); 
         setNote("");
         onClose();
         window.dispatchEvent(new Event("manual-lock"));
@@ -101,7 +106,7 @@ export function CloseShiftModal({
 
         <div className="grid gap-5 py-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="col-span-2 space-y-2">
               <Label
                 htmlFor="actualCash"
                 className="text-sm font-semibold flex items-center gap-1"
@@ -126,7 +131,7 @@ export function CloseShiftModal({
                 className="text-sm font-semibold flex items-center gap-1"
               >
                 <QrCode className="w-4 h-4 text-blue-600" />
-                ยอด QR ตรวจได้ (บาท)
+                ยอด QR (บาท)
               </Label>
               <Input
                 id="actualQr"
@@ -134,6 +139,24 @@ export function CloseShiftModal({
                 value={actualQr}
                 onChange={(e) => setActualQr(e.target.value)}
                 className="text-xl h-12 text-center font-bold border-zinc-300 focus-visible:ring-blue-500 text-blue-600"
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="actualMember"
+                className="text-sm font-semibold flex items-center gap-1"
+              >
+                <CreditCard className="w-4 h-4 text-purple-600" />
+                ยอด Member (บาท)
+              </Label>
+              <Input
+                id="actualMember"
+                type="number"
+                value={actualMember}
+                onChange={(e) => setActualMember(e.target.value)}
+                className="text-xl h-12 text-center font-bold border-zinc-300 focus-visible:ring-purple-500 text-purple-600"
                 placeholder="0.00"
               />
             </div>

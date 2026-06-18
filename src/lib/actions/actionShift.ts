@@ -41,7 +41,7 @@ export const openShift = async (
   organizationId: number,
   employeeId: number,
   startingCash: number,
-  amountQr: number, // 🟢 เพิ่มพารามิเตอร์รับค่ายอด QR
+  amountQr: number,
   note?: string,
 ) => {
   try {
@@ -79,6 +79,7 @@ export const closeShift = async (
   employeeId: number,
   actualEndingCash: number,
   actualEndingQr: number,
+  actualEndingMember: number, 
   note?: string,
 ) => {
   try {
@@ -90,31 +91,33 @@ export const closeShift = async (
       return { success: false, message: "ไม่พบข้อมูลกะ หรือกะนี้ถูกปิดไปแล้ว" };
     }
 
+    // 1. คำนวณยอดเงินสด (CASH)
     const cashSalesAgg = await prisma.paymentorder.aggregate({
-      _sum: {
-        totalAmount: true,
-      },
-      where: {
-        shiftId: shiftId,
-        paymentMethod: "CASH",
-      },
+      _sum: { totalAmount: true },
+      where: { shiftId: shiftId, paymentMethod: "CASH" },
     });
     const totalCashSales = cashSalesAgg._sum.totalAmount || 0;
     const expectedCashInDrawer = currentShift.startingCash + totalCashSales;
 
+    // 2. คำนวณยอดสแกนจ่าย (QR)
     const qrSalesAgg = await prisma.paymentorder.aggregate({
-      _sum: {
-        totalAmount: true,
-      },
-      where: {
-        shiftId: shiftId,
-        paymentMethod: { not: "CASH" },
-      },
+      _sum: { totalAmount: true },
+      where: { shiftId: shiftId, paymentMethod: "QR" }, 
     });
     const totalQrSales = qrSalesAgg._sum.totalAmount || 0;
-    const startingQr = (currentShift as any).amountQr || 0;
+    const startingQr = currentShift.amountQr || 0;
     const expectedQrInBank = startingQr + totalQrSales;
 
+    // 3. 🟢 คำนวณยอดจ่ายผ่านสมาชิก (MEMBER)
+    const memberSalesAgg = await prisma.paymentorder.aggregate({
+      _sum: { totalAmount: true },
+      where: { shiftId: shiftId, paymentMethod: "MEMBER" }, 
+    });
+    const totalMemberSales = memberSalesAgg._sum.totalAmount || 0;
+    const startingMember = currentShift.amountMember || 0;
+    const expectedMemberTotal = startingMember + totalMemberSales;
+
+    // 4. บันทึกปิดกะ
     const closedShift = await prisma.shift.update({
       where: { id: shiftId },
       data: {
@@ -125,13 +128,17 @@ export const closeShift = async (
         endingCash: actualEndingCash,
         expectedQr: expectedQrInBank,
         endingQr: actualEndingQr,
+        expectedMember: expectedMemberTotal, 
+        endingMember: actualEndingMember,
         note: note || null,
       },
     });
 
+    // 5. คำนวณส่วนต่าง
     const diffCash = actualEndingCash - expectedCashInDrawer;
     const diffQr = actualEndingQr - expectedQrInBank;
-    const totalDiff = diffCash + diffQr;
+    const diffMember = actualEndingMember - expectedMemberTotal; 
+    const totalDiff = diffCash + diffQr + diffMember;
 
     return {
       success: true,
@@ -140,9 +147,15 @@ export const closeShift = async (
         expectedCash: expectedCashInDrawer,
         actualCash: actualEndingCash,
         diffCash: diffCash,
+
         expectedQr: expectedQrInBank,
         actualQr: actualEndingQr,
         diffQr: diffQr,
+
+        expectedMember: expectedMemberTotal,
+        actualMember: actualEndingMember, 
+        diffMember: diffMember, 
+
         totalDiff: totalDiff,
       },
     };
