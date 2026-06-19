@@ -1,7 +1,7 @@
 "use client";
 
 import { CartItem, MenuPOSPageClientProps } from "@/lib/type";
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense, useMemo, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import {
   Loader2,
@@ -77,6 +77,29 @@ const MenuOrderPage = ({
     Record<number, boolean>
   >({});
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2; 
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
   const categories = useMemo(() => {
     const cats = new Set(
       initialItems
@@ -86,7 +109,6 @@ const MenuOrderPage = ({
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
 
-  // 1. ✅ สร้างฟังก์ชันกรองข้อมูลตะกร้าเฉพาะโต๊ะที่เลือก
   const filteredCartData = useMemo(() => {
     if (!relatedData.cartdatas) return [];
     if (tableNumber !== 0) {
@@ -95,7 +117,6 @@ const MenuOrderPage = ({
     return relatedData.cartdatas;
   }, [relatedData.cartdatas, tableNumber]);
 
-  // 2. ✅ คำนวณราคารวมเฉพาะจากตะกร้าที่กรองแล้ว
   const totalPrice = useMemo(() => {
     return filteredCartData.reduce(
       (sum, item: any) => sum + (item.price_sum || 0),
@@ -177,7 +198,6 @@ const MenuOrderPage = ({
 
   const handleConfirmOrder = async () => {
     try {
-      // 3. ✅ เช็คและสั่งเฉพาะข้อมูลที่กรองแล้ว
       if (filteredCartData.length === 0) {
         toast.warning("ไม่มีรายการในตะกร้า");
         return;
@@ -239,7 +259,6 @@ const MenuOrderPage = ({
     setHasMore(filteredItems.length > itemsPerPage);
   }, [filteredItems]);
 
-  // 4. ✅ อัปเดตจำนวนตะกร้าโดยใช้ข้อมูลที่กรองแล้ว
   useEffect(() => {
     setCartCount(filteredCartData.length);
   }, [filteredCartData]);
@@ -280,7 +299,6 @@ const MenuOrderPage = ({
                 />
               </div>
 
-              {/* ส่วนข้อมูลโต๊ะ */}
               <div className="flex-1 min-w-0">
                 <h1 className="font-bold text-lg text-foreground truncate">
                   POSX
@@ -296,7 +314,6 @@ const MenuOrderPage = ({
                 </div>
               </div>
 
-              {/* ปุ่มโชว์ขึ้นจอ */}
               <button
                 onClick={() => setIsShoutoutOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full hover:bg-primary hover:text-primary-foreground transition-all active:scale-95 flex-shrink-0"
@@ -331,7 +348,28 @@ const MenuOrderPage = ({
             )}
           </div>
         </div>
-        <div className="flex overflow-x-auto hide-scrollbar py-3 px-4 gap-2">
+
+        <div
+          ref={scrollContainerRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          className={`flex overflow-x-auto hide-scrollbar py-3 px-4 gap-2 select-none ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          <style dangerouslySetInnerHTML={{__html: `
+            .hide-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+          `}} />
+          
           {categories.map((cat: any) => (
             <button
               key={cat}
@@ -359,11 +397,11 @@ const MenuOrderPage = ({
             next={loadMoreItems}
             hasMore={hasMore}
             loader={
-              <div className="flex justify-center items-center my-4">
+              <div className="flex justify-center items-center my-4 col-span-2">
                 <Loader2 className="animate-spin h-6 w-6 text-primary" />
               </div>
             }
-            className="flex flex-col gap-4"
+            className="grid grid-cols-2 gap-3"
           >
             {currentItems.map((item: any, index) => {
               const isPkgChecked = packageSelections[item.id] || false;
@@ -377,11 +415,11 @@ const MenuOrderPage = ({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-card text-card-foreground p-3 rounded-xl shadow-sm border border-border flex gap-4 items-center active:scale-[0.98] transition-transform"
+                  className="bg-card text-card-foreground p-2 rounded-xl shadow-sm border border-border flex flex-col active:scale-[0.98] transition-transform h-full"
                   onClick={() => handelOpendetail(item.id)}
                 >
                   <div
-                    className={`relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted ${
+                    className={`relative w-full aspect-square mb-2 flex-shrink-0 rounded-lg overflow-hidden bg-muted ${
                       item.category?.categoryName === "Entertainer" && item.img
                         ? "cursor-pointer ring-2 ring-primary/50"
                         : ""
@@ -402,7 +440,7 @@ const MenuOrderPage = ({
                         alt={item.menuName}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 100px, 150px"
+                        sizes="(max-width: 768px) 50vw, 33vw"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
@@ -410,12 +448,13 @@ const MenuOrderPage = ({
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 flex flex-col justify-between min-h-[6rem] py-1">
+                  
+                  <div className="flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1">
+                      <h3 className="font-semibold text-sm text-foreground line-clamp-2 leading-tight mb-1">
                         {item.menuName}
                       </h3>
-                      <p className="text-xs text-muted-foreground line-clamp-1">
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">
                         {item.description || "รายละเอียดสินค้าเพิ่มเติม"}
                       </p>
                       {item.category?.categoryName === "Entertainer" &&
@@ -437,23 +476,23 @@ const MenuOrderPage = ({
                             />
                             <label
                               htmlFor={`pkg-${item.id}`}
-                              className="text-[11px] font-medium text-amber-600 cursor-pointer"
+                              className="text-[10px] font-medium text-amber-600 cursor-pointer line-clamp-1"
                             >
-                              จัดแพ็กเกจเหมา {item.package_hours} ชม.
+                              เหมา {item.package_hours} ชม.
                             </label>
                           </div>
                         )}
                     </div>
 
-                    <div className="flex justify-between items-end mt-2">
-                      <span className="font-bold text-foreground text-lg">
+                    <div className="flex justify-between items-center mt-3">
+                      <span className="font-bold text-foreground text-sm">
                         {displayPrice > 0
                           ? `${displayPrice.toLocaleString()} ${item.unitPrice?.label || "฿"}`
                           : `0 ${item.unitPrice?.label || "฿"}`}
                       </span>
 
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm">
-                        <Plus size={18} />
+                      <div className="w-7 h-7 flex-shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm">
+                        <Plus size={16} />
                       </div>
                     </div>
                   </div>
@@ -514,7 +553,6 @@ const MenuOrderPage = ({
           </SheetHeader>
 
           <ScrollArea className="flex-1 px-6 py-4">
-            {/* 5. ✅ เปลี่ยนมาลูปข้อมูลที่กรองแล้วตรงนี้ */}
             {filteredCartData.length > 0 ? (
               <div className="flex flex-col gap-4 pb-20">
                 {filteredCartData.map((item: any) => {
@@ -643,7 +681,7 @@ const MenuOrderPage = ({
             <Button
               className="w-full h-12 text-lg font-bold"
               onClick={handleConfirmOrder}
-              disabled={filteredCartData.length === 0} // 6. ✅ เช็ค disabled ด้วยข้อมูลที่กรองแล้ว
+              disabled={filteredCartData.length === 0}
             >
               ยืนยันการสั่งอาหาร
             </Button>
