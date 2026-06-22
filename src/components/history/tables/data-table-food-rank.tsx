@@ -20,7 +20,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { UtensilsCrossed, CalendarIcon, X, Clock } from "lucide-react"; 
+import { UtensilsCrossed, CalendarIcon, X, Clock } from "lucide-react";
 import { useState, useMemo } from "react";
 
 import { format } from "date-fns";
@@ -47,8 +47,10 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
 
+  // State สำหรับกะที่เลือก
   const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
 
+  // 🟢 1. กรองข้อมูลด้วย "วันที่เปิดกะ (businessDate)" ที่ส่งตรงมาจาก page.tsx
   const ordersByDate = useMemo(() => {
     if (!dateRange?.from) return data;
 
@@ -58,43 +60,35 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
       : fromDateStr;
 
     return data.filter((item: any) => {
-      const shiftData = item.paymentInfo?.shift || {};
-      const businessDateRaw =
-        shiftData.openedAt ||
-        shiftData.createdAt ||
-        shiftData.startTime ||
-        item.updatedAt ||
-        item.createdAt;
+      if (!item.businessDate) return false;
 
-      if (!businessDateRaw) return false;
-
-      const itemDateStr = format(new Date(businessDateRaw), "yyyy-MM-dd");
+      const itemDateStr = format(new Date(item.businessDate), "yyyy-MM-dd");
       return itemDateStr >= fromDateStr && itemDateStr <= toDateStr;
     });
   }, [data, dateRange]);
 
+  // 🟢 2. ดึงลำดับกะ (shiftSequence) เฉพาะของวันที่เลือกมาสร้างเมนู Dropdown ให้กด
   const availableShifts = useMemo(() => {
     const seqSet = new Set<number>();
 
     ordersByDate.forEach((item: any) => {
-      const seq = item.paymentInfo?.shift?.shiftSequence;
-      if (seq) {
-        seqSet.add(seq);
+      if (item.shiftSequence) {
+        seqSet.add(item.shiftSequence);
       }
     });
 
     return Array.from(seqSet).sort((a, b) => a - b);
   }, [ordersByDate]);
 
+  // 🟢 3. นำข้อมูลมากรอง "กะที่เลือก" อีกชั้นหนึ่ง
   const finalOrdersByShift = useMemo(() => {
     if (selectedShiftSeq === "All") return ordersByDate;
     return ordersByDate.filter((item: any) => {
-      return (
-        String(item.paymentInfo?.shift?.shiftSequence) === selectedShiftSeq
-      );
+      return String(item.shiftSequence) === selectedShiftSeq;
     });
   }, [ordersByDate, selectedShiftSeq]);
 
+  // 🟢 4. สรุปนับจำนวนเมนูอาหารขายดีจากข้อมูลที่ผ่านการกรองวันและกะมาเรียบร้อยแล้ว
   const rankedFood = useMemo(() => {
     const foodMap = new Map();
     finalOrdersByShift.forEach((order: any) => {
@@ -115,6 +109,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return Array.from(foodMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [finalOrdersByShift]);
 
+  // ดึงรายชื่อหมวดหมู่ทั้งหมด (ยกเว้น Entertainer)
   const categories = useMemo(() => {
     const cats = new Set(
       rankedFood
@@ -124,6 +119,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return ["All", ...Array.from(cats)];
   }, [rankedFood]);
 
+  // แสดงเมนูแยกตามหมวดหมู่ตัวเลือกหลัก
   const finalRankedFood = useMemo(() => {
     const foodWithoutEntertainer = rankedFood.filter(
       (f: any) => f.categoryName !== "Entertainer",
@@ -208,7 +204,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                     selected={dateRange}
                     onSelect={(range) => {
                       setDateRange(range);
-                      setSelectedShiftSeq("All"); // 🟢 รีเซ็ตกะเมื่อกดเปลี่ยนวัน
+                      setSelectedShiftSeq("All"); // รีเซ็ตกะเมื่อกดเปลี่ยนวัน
                     }}
                     numberOfMonths={2}
                   />
@@ -220,7 +216,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                   size="icon"
                   onClick={() => {
                     setDateRange(undefined);
-                    setSelectedShiftSeq("All"); // 🟢 รีเซ็ตกะเมื่อกดล้างวัน
+                    setSelectedShiftSeq("All"); // รีเซ็ตกะเมื่อล้างวัน
                   }}
                   className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
                 >
@@ -229,7 +225,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
               )}
             </div>
 
-            {/* 🟢 ตัวเลือกกะ (จะแสดงต่อท้ายวันที่ เมื่อเลือกวันที่แบบ "วันเดียว" เท่านั้น และดึงกะของวันนั้นจริงๆ) */}
+            {/* 🟢 ตัวเลือกกะ: จะโชว์ต่อเมื่อเลือกวันที่แบบ "วันเดียว" เท่านั้น และดึงกะของวันนั้นมาจริง ๆ */}
             {dateRange?.from && !dateRange.to && (
               <div className="relative w-full sm:w-[130px]">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />

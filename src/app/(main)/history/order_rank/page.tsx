@@ -121,6 +121,12 @@ const page = async () => {
             ? employeeMap.get(String(order.employeeId)) || "ไม่ทราบชื่อพนักงาน"
             : "สั่งผ่านระบบ",
           paymentInfo: payment,
+          businessDate:
+            payment.shift?.openedAt ||
+            payment.shift?.createdAt ||
+            payment.createdAt,
+          shiftId: payment.shift?.id || null,
+          shiftSequence: (payment.shift as any)?.shiftSequence || null,
         });
       }
 
