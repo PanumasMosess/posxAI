@@ -23,7 +23,7 @@ import {
 import { UtensilsCrossed, CalendarIcon, X, Clock } from "lucide-react";
 import { useState, useMemo } from "react";
 
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { th } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
@@ -50,29 +50,53 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
   // State สำหรับกะที่เลือก
   const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
 
-  // 🟢 1. กรองวันที่: หันมาใช้ item.businessDate ที่อยู่ที่ Root ชั้นนอกสุดที่ล็อกค่าเปิดกะ openedAt มาแล้ว
-  const ordersByDate = useMemo(() => {
-    if (!dateRange?.from) return data;
+  // 🟢 1. แยกข้อมูลอาหาร (Flatten) ออกมาจากก้อน payment group
+  const rawFoods = useMemo(() => {
+    const foods: any[] = [];
+    data.forEach((group: any) => {
+      const bDate = group.businessDate;
+      const sSeq = group.shiftSequence;
 
-    const fromDateStr = format(dateRange.from, "yyyy-MM-dd");
-    const toDateStr = dateRange.to
-      ? format(dateRange.to, "yyyy-MM-dd")
-      : fromDateStr;
-
-    return data.filter((item: any) => {
-      if (!item.businessDate) return false;
-
-      const itemDateStr = format(new Date(item.businessDate), "yyyy-MM-dd");
-      return itemDateStr >= fromDateStr && itemDateStr <= toDateStr;
+      if (group.foodList && Array.isArray(group.foodList)) {
+        group.foodList.forEach((food: any) => {
+          foods.push({
+            name: food.name,
+            image: food.image,
+            quantity: food.quantity || 1,
+            categoryName: food.categoryName || "ไม่มีหมวดหมู่",
+            price: food.price || 0,
+            businessDate: bDate,
+            shiftSequence: sSeq,
+          });
+        });
+      }
     });
-  }, [data, dateRange]);
+    return foods;
+  }, [data]);
 
-  // 🟢 2. ดึงลำดับกะ: แก้ไขให้อ่านจาก item.shiftSequence ชั้นนอกสุดโดยตรง
+  // 🟢 2. กรองข้อมูลจาก "อาหารเดี่ยว" ด้วยวันที่
+  // (ใช้วิธีเปรียบเทียบแบบ Time Value เพื่อตัดปัญหา Timezone เพี้ยน 100%)
+  const ordersByDate = useMemo(() => {
+    if (!dateRange?.from) return rawFoods;
+
+    const filterStart = startOfDay(dateRange.from).getTime();
+    const filterEnd = dateRange.to
+      ? endOfDay(dateRange.to).getTime()
+      : endOfDay(dateRange.from).getTime();
+
+    return rawFoods.filter((item: any) => {
+      if (!item.businessDate) return false;
+      const itemTime = new Date(item.businessDate).getTime();
+      return itemTime >= filterStart && itemTime <= filterEnd;
+    });
+  }, [rawFoods, dateRange]);
+
+  // 🟢 3. ดึงลำดับกะ (shiftSequence) เฉพาะของวันที่เลือกมาสร้างเป็น Dropdown
   const availableShifts = useMemo(() => {
     const seqSet = new Set<number>();
 
     ordersByDate.forEach((item: any) => {
-      if (item.shiftSequence) {
+      if (item.shiftSequence !== null && item.shiftSequence !== undefined) {
         seqSet.add(item.shiftSequence);
       }
     });
@@ -80,7 +104,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return Array.from(seqSet).sort((a, b) => a - b);
   }, [ordersByDate]);
 
-  // 🟢 3. กรองข้อมูลรอบสุดท้ายด้วยหมายเลขกะที่เลือก (อ่านจากชั้นนอกสุดตรง ๆ)
+  // 🟢 4. กรองข้อมูลรอบสุดท้ายด้วยหมายเลขกะที่เลือก
   const finalOrdersByShift = useMemo(() => {
     if (selectedShiftSeq === "All") return ordersByDate;
     return ordersByDate.filter((item: any) => {
@@ -88,28 +112,26 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     });
   }, [ordersByDate, selectedShiftSeq]);
 
-  // สรุปนับจำนวนเมนูอาหารขายดีจากข้อมูลที่ผ่านการกรองแล้ว
+  // 🟢 5. นำอาหารที่กรองวัน/กะเสร็จแล้ว มารวมยอด (Group By)
   const rankedFood = useMemo(() => {
     const foodMap = new Map();
-    finalOrdersByShift.forEach((order: any) => {
-      (order.foodList || []).forEach((food: any) => {
-        const key = `food_${food.name}`;
-        if (!foodMap.has(key)) {
-          foodMap.set(key, {
-            id: key,
-            name: food.name,
-            image: food.image,
-            quantity: 0,
-            categoryName: food.categoryName || "ไม่มีหมวดหมู่",
-          });
-        }
-        foodMap.get(key).quantity += food.quantity || 1;
-      });
+    finalOrdersByShift.forEach((food: any) => {
+      const key = `food_${food.name}`;
+      if (!foodMap.has(key)) {
+        foodMap.set(key, {
+          id: key,
+          name: food.name,
+          image: food.image,
+          quantity: 0,
+          categoryName: food.categoryName,
+        });
+      }
+      foodMap.get(key).quantity += food.quantity;
     });
     return Array.from(foodMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [finalOrdersByShift]);
 
-  // ดึงรายชื่อหมวดหมู่ทั้งหมด (ยกเว้น Entertainer)
+  // 🟢 6. ดึงรายชื่อหมวดหมู่ทั้งหมด (ยกเว้น Entertainer)
   const categories = useMemo(() => {
     const cats = new Set(
       rankedFood
@@ -119,7 +141,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return ["All", ...Array.from(cats)];
   }, [rankedFood]);
 
-  // แสดงเมนูแยกตามหมวดหมู่ตัวเลือกหลัก
+  // 🟢 7. กรองหมวดหมู่อาหารขั้นสุดท้ายก่อนลงตาราง
   const finalRankedFood = useMemo(() => {
     const foodWithoutEntertainer = rankedFood.filter(
       (f: any) => f.categoryName !== "Entertainer",
@@ -204,7 +226,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                     selected={dateRange}
                     onSelect={(range) => {
                       setDateRange(range);
-                      setSelectedShiftSeq("All"); // รีเซ็ตกะเมื่อกดเปลี่ยนวัน
+                      setSelectedShiftSeq("All"); // เคลียร์ตัวเลือกกะเมื่อเปลี่ยนวัน
                     }}
                     numberOfMonths={2}
                   />
@@ -216,7 +238,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                   size="icon"
                   onClick={() => {
                     setDateRange(undefined);
-                    setSelectedShiftSeq("All"); // รีเซ็ตกะเมื่อกดล้างวัน
+                    setSelectedShiftSeq("All"); // เคลียร์ตัวเลือกกะเมื่อลบวันที่
                   }}
                   className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
                 >
@@ -225,18 +247,16 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
               )}
             </div>
 
-            {dateRange?.from && !dateRange.to && (
+            {/* 🟢 ตัวเลือกกะ: โชว์เมื่อมีกะให้เลือกในวันนั้นๆ */}
+            {availableShifts.length > 0 && (
               <div className="relative w-full sm:w-[130px]">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <select
                   value={selectedShiftSeq}
                   onChange={(e) => setSelectedShiftSeq(e.target.value)}
-                  disabled={availableShifts.length === 0}
                   className="h-10 w-full appearance-none rounded-md border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:opacity-50 disabled:bg-zinc-100 dark:disabled:bg-zinc-900"
                 >
-                  <option value="All">
-                    {availableShifts.length === 0 ? "ไม่มีกะ" : "รวมทุกกะ"}
-                  </option>
+                  <option value="All">รวมทุกกะ</option>
                   {availableShifts.map((seq) => (
                     <option key={seq} value={String(seq)}>
                       กะที่ {seq}
