@@ -19,10 +19,10 @@ const page = async () => {
         include: {
           order: {
             where: {
-              status: "PAY_COMPLETED", 
+              status: "PAY_COMPLETED",
             },
             include: {
-              menu: { include: { unitPrice: true } },
+              menu: { include: { unitPrice: true, category: true } },
               table: true,
               orderitems: {
                 include: {
@@ -119,7 +119,7 @@ const page = async () => {
           employeeName: order.employeeId
             ? employeeMap.get(String(order.employeeId)) || "ไม่ทราบชื่อพนักงาน"
             : "สั่งผ่านระบบ",
-          paymentInfo: payment, // จับคู่ Payment ใส่ให้เลย
+          paymentInfo: payment, 
         });
       }
 
@@ -137,6 +137,7 @@ const page = async () => {
         image: order.menu?.img || null,
         prName: prName,
         quantity: order.quantity,
+        categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
       };
 
       if (isEntertainerItem) {
