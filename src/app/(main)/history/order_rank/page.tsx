@@ -92,6 +92,7 @@ const page = async () => {
   >();
   const employeeOrderCountMap = new Map<string, number>();
 
+  const prRawData: any[] = [];
   const processedOrderIds = new Set<number>();
 
   for (const payment of paymentsData) {
@@ -119,7 +120,7 @@ const page = async () => {
           employeeName: order.employeeId
             ? employeeMap.get(String(order.employeeId)) || "ไม่ทราบชื่อพนักงาน"
             : "สั่งผ่านระบบ",
-          paymentInfo: payment, 
+          paymentInfo: payment,
         });
       }
 
@@ -138,46 +139,56 @@ const page = async () => {
         prName: prName,
         quantity: order.quantity,
         categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
+        price: order.price_sum || 0,
       };
-
-      if (isEntertainerItem) {
-        group.entertainerList.push(itemData);
-      } else {
-        group.foodList.push(itemData);
-      }
-
-      if (new Date(order.updatedAt) > new Date(group.updatedAt)) {
-        group.updatedAt = order.updatedAt;
-      }
 
       const qty = order.quantity || 0;
       const price = order.price_sum || 0;
 
-      // สถิติพนักงานรับออเดอร์
-      const takerId = order.employeeId ? String(order.employeeId) : "system";
-      employeeOrderCountMap.set(
-        takerId,
-        (employeeOrderCountMap.get(takerId) || 0) + qty,
-      );
-
-      // สถิติ Entertainer vs อาหาร
       if (isEntertainerItem) {
+        group.entertainerList.push(itemData);
+
         const entId = String(order.menu.mcEmployeeId);
+
+        prRawData.push({
+          id: entId,
+          name: employeeMap.get(entId) || "ไม่ทราบชื่อ",
+          image: order.menu?.img || null,
+          quantity: qty,
+          price_sum: price,
+          businessDate:
+            payment.shift?.openedAt ||
+            payment.shift?.createdAt ||
+            payment.createdAt,
+          shiftId: payment.shift?.id || null,
+          shiftSequence: (payment.shift as any)?.shiftSequence || null,
+        });
+
         const currentEnt = entertainerStatsMap.get(entId) || {
           count: 0,
           price_sum: 0,
           image: null,
         };
-
         entertainerStatsMap.set(entId, {
           count: currentEnt.count + qty,
           price_sum: currentEnt.price_sum + price,
           image: currentEnt.image || order.menu?.img || null,
         });
       } else {
+        group.foodList.push(itemData);
         const menuName = order.menu?.menuName || "ไม่ทราบชื่อ";
         menuStatsMap.set(menuName, (menuStatsMap.get(menuName) || 0) + qty);
       }
+
+      if (new Date(order.updatedAt) > new Date(group.updatedAt)) {
+        group.updatedAt = order.updatedAt;
+      }
+
+      const takerId = order.employeeId ? String(order.employeeId) : "system";
+      employeeOrderCountMap.set(
+        takerId,
+        (employeeOrderCountMap.get(takerId) || 0) + qty,
+      );
     }
   }
 
@@ -186,7 +197,7 @@ const page = async () => {
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
 
-  const prRankData = Array.from(entertainerStatsMap.entries())
+  const prRankDataSummary = Array.from(entertainerStatsMap.entries())
     .map(([id, stats]) => ({
       id: id,
       name: employeeMap.get(id) || "ไม่ทราบชื่อ",
@@ -202,8 +213,11 @@ const page = async () => {
       .sort((a, b) => b.count - a.count)[0] || null;
 
   const topEntertainer =
-    prRankData.length > 0
-      ? { name: prRankData[0].name, count: prRankData[0].quantity }
+    prRankDataSummary.length > 0
+      ? {
+          name: prRankDataSummary[0].name,
+          count: prRankDataSummary[0].quantity,
+        }
       : null;
 
   const topEmployee =
@@ -226,7 +240,7 @@ const page = async () => {
         topFood={topFood}
         topEntertainer={topEntertainer}
         topEmployee={topEmployee}
-        prRankData={prRankData}
+        prRankData={prRawData}
       />
     </div>
   );
