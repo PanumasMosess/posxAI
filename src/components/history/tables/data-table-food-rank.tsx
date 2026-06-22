@@ -50,7 +50,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
   // State สำหรับกะที่เลือก
   const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
 
-  // 🟢 1. กรองข้อมูลด้วย "วันที่เปิดกะ (businessDate)" ที่ส่งตรงมาจาก page.tsx
+  // 🟢 1. กรองวันที่: หันมาใช้ item.businessDate ที่อยู่ที่ Root ชั้นนอกสุดที่ล็อกค่าเปิดกะ openedAt มาแล้ว
   const ordersByDate = useMemo(() => {
     if (!dateRange?.from) return data;
 
@@ -67,7 +67,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     });
   }, [data, dateRange]);
 
-  // 🟢 2. ดึงลำดับกะ (shiftSequence) เฉพาะของวันที่เลือกมาสร้างเมนู Dropdown ให้กด
+  // 🟢 2. ดึงลำดับกะ: แก้ไขให้อ่านจาก item.shiftSequence ชั้นนอกสุดโดยตรง
   const availableShifts = useMemo(() => {
     const seqSet = new Set<number>();
 
@@ -80,7 +80,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return Array.from(seqSet).sort((a, b) => a - b);
   }, [ordersByDate]);
 
-  // 🟢 3. นำข้อมูลมากรอง "กะที่เลือก" อีกชั้นหนึ่ง
+  // 🟢 3. กรองข้อมูลรอบสุดท้ายด้วยหมายเลขกะที่เลือก (อ่านจากชั้นนอกสุดตรง ๆ)
   const finalOrdersByShift = useMemo(() => {
     if (selectedShiftSeq === "All") return ordersByDate;
     return ordersByDate.filter((item: any) => {
@@ -88,7 +88,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     });
   }, [ordersByDate, selectedShiftSeq]);
 
-  // 🟢 4. สรุปนับจำนวนเมนูอาหารขายดีจากข้อมูลที่ผ่านการกรองวันและกะมาเรียบร้อยแล้ว
+  // สรุปนับจำนวนเมนูอาหารขายดีจากข้อมูลที่ผ่านการกรองแล้ว
   const rankedFood = useMemo(() => {
     const foodMap = new Map();
     finalOrdersByShift.forEach((order: any) => {
@@ -192,7 +192,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                         format(dateRange.from, "dd MMM yy", { locale: th })
                       )
                     ) : (
-                      <span>ช่วงวันที่...</span>
+                      <span>เลือกวันที่...</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -216,7 +216,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                   size="icon"
                   onClick={() => {
                     setDateRange(undefined);
-                    setSelectedShiftSeq("All"); // รีเซ็ตกะเมื่อล้างวัน
+                    setSelectedShiftSeq("All"); // รีเซ็ตกะเมื่อกดล้างวัน
                   }}
                   className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
                 >
@@ -225,7 +225,6 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
               )}
             </div>
 
-            {/* 🟢 ตัวเลือกกะ: จะโชว์ต่อเมื่อเลือกวันที่แบบ "วันเดียว" เท่านั้น และดึงกะของวันนั้นมาจริง ๆ */}
             {dateRange?.from && !dateRange.to && (
               <div className="relative w-full sm:w-[130px]">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
