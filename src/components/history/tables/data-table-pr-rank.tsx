@@ -20,7 +20,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Star, CalendarIcon, X } from "lucide-react";
+import { Star, CalendarIcon, X, Clock } from "lucide-react";
 import { useState, useMemo } from "react";
 
 import { format } from "date-fns";
@@ -38,22 +38,78 @@ import { RankedPRItem } from "./column_pr_rank";
 
 interface DataTablePRProps {
   columns: ColumnDef<RankedPRItem, any>[];
-  data: RankedPRItem[];
+  data: any[];
 }
 
 export function DataTablePRRank({ columns, data }: DataTablePRProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-  // หมายเหตุ: หากต้องการกรองวันที่ในฝั่ง Client จริงๆ ข้อมูล 'data' จาก page.tsx
-  // จะต้องส่งวันที่ของแต่ละ order มาด้วย แต่ตอนนี้เราสรุปรวมเป็นรายคนไปแล้ว
-  // การกรองวันที่ในฝั่ง Client ด้วยข้อมูลที่สรุปแล้วจะไม่สามารถทำได้แบบเป๊ะๆ
-  // แนะนำให้ส่ง Filter วันที่ไปกรองที่ Database ใน page.tsx แทนครับ
-  // แต่ผมจะคง UI ส่วน Calendar ไว้ให้เหมือนเดิมครับ
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // 🟢 ใช้ data ที่รับเข้ามาตรงๆ ได้เลย เพราะมันถูกสรุปยอดมาจาก page.tsx แล้ว
+  // State สำหรับกะที่เลือก
+  const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
+
+  // 🟢 1. ขั้นแรก: กรองข้อมูลดิบทั้งหมดด้วย "วันที่เปิดกะ (openedAt)" ก่อน
+  const ordersByDate = useMemo(() => {
+    if (!dateRange?.from) return data;
+
+    const fromDateStr = format(dateRange.from, "yyyy-MM-dd");
+    const toDateStr = dateRange.to
+      ? format(dateRange.to, "yyyy-MM-dd")
+      : fromDateStr;
+
+    return data.filter((item: any) => {
+      if (!item.businessDate) return false;
+
+      const itemDateStr = format(new Date(item.businessDate), "yyyy-MM-dd");
+      return itemDateStr >= fromDateStr && itemDateStr <= toDateStr;
+    });
+  }, [data, dateRange]);
+
+  // 🟢 2. ขั้นที่สอง: ดึง "ลำดับกะ" ออกมาจากข้อมูลที่ผ่านการกรองวันที่ในข้อ 1 มาแล้วเท่านั้น!
+  // วิธีนี้จะทำให้ Dropdown แสดงเฉพาะกะที่มีออเดอร์ในวันนั้นจริงๆ วันอื่นจะไม่โผล่มาปนครับ
+  const availableShifts = useMemo(() => {
+    const seqSet = new Set<number>();
+
+    ordersByDate.forEach((item) => {
+      if (item.shiftSequence) {
+        seqSet.add(item.shiftSequence);
+      }
+    });
+
+    return Array.from(seqSet).sort((a, b) => a - b);
+  }, [ordersByDate]);
+
+  // 🟢 3. ขั้นที่สาม: เอาข้อมูลจากข้อ 1 (ที่ตรงวันแล้ว) มากรองด้วย "กะที่เลือก" อีกชั้นหนึ่ง
+  const finalOrders = useMemo(() => {
+    if (selectedShiftSeq === "All") return ordersByDate;
+    return ordersByDate.filter(
+      (item: any) => String(item.shiftSequence) === selectedShiftSeq,
+    );
+  }, [ordersByDate, selectedShiftSeq]);
+
+  // 🟢 4. ขั้นสุดท้าย: นำข้อมูลที่กรองครบทั้งวันและกะมา รวมยอด (Group By) แสดงในตาราง
+  const rankedPR = useMemo(() => {
+    const prMap = new Map();
+    finalOrders.forEach((ent: any) => {
+      const key = ent.id;
+      if (!prMap.has(key)) {
+        prMap.set(key, {
+          id: key,
+          name: ent.name,
+          image: ent.image,
+          quantity: 0,
+          price_sum: 0,
+        });
+      }
+      prMap.get(key).quantity += ent.quantity;
+      prMap.get(key).price_sum += ent.price_sum;
+    });
+    return Array.from(prMap.values()).sort((a, b) => b.quantity - a.quantity);
+  }, [finalOrders]);
+
   const table = useReactTable({
-    data: data,
+    data: rankedPR,
     columns: columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -80,50 +136,80 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
-          {/* Calendar UI */}
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !dateRange && "text-zinc-500",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      `${format(dateRange.from, "dd MMM yy", { locale: th })} - ${format(dateRange.to, "dd MMM yy", { locale: th })}`
+        <div className="flex flex-col lg:flex-row items-center gap-2 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            {/* Calendar UI */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full sm:w-[240px] justify-start text-left font-normal",
+                      !dateRange && "text-zinc-500",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        `${format(dateRange.from, "dd MMM yy", { locale: th })} - ${format(dateRange.to, "dd MMM yy", { locale: th })}`
+                      ) : (
+                        format(dateRange.from, "dd MMM yy", { locale: th })
+                      )
                     ) : (
-                      format(dateRange.from, "dd MMM yy", { locale: th })
-                    )
-                  ) : (
-                    <span>ช่วงวันที่...</span>
-                  )}
+                      <span>เลือกวันที่...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      setDateRange(range);
+                      setSelectedShiftSeq("All"); // เคลียร์ตัวเลือกกะทุกครั้งเมื่อเปลี่ยนวัน
+                    }}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+              {dateRange?.from && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setDateRange(undefined);
+                    setSelectedShiftSeq("All");
+                  }}
+                  className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
+
+            {/* 🟢 ตัวเลือกกะ: จะโชว์ก็ต่อเมื่อเลือก "วันที่" แล้วเท่านั้น และจะดึงกะที่มีของวันนั้นมาโชว์จริงๆ */}
             {dateRange?.from && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDateRange(undefined)}
-                className="h-9 w-9 text-zinc-400 hover:text-red-500"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="relative w-full sm:w-[130px]">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <select
+                  value={selectedShiftSeq}
+                  onChange={(e) => setSelectedShiftSeq(e.target.value)}
+                  disabled={availableShifts.length === 0}
+                  className="h-10 w-full appearance-none rounded-md border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:opacity-50 disabled:bg-zinc-100 dark:disabled:bg-zinc-900"
+                >
+                  <option value="All">
+                    {availableShifts.length === 0 ? "ไม่มีกะ" : "รวมทุกกะ"}
+                  </option>
+                  {availableShifts.map((seq) => (
+                    <option key={seq} value={String(seq)}>
+                      กะที่ {seq}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
 
