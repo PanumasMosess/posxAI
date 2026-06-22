@@ -45,6 +45,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [categoryFilter, setCategoryFilter] = useState<string>("All");
 
   const filteredOrders = useMemo(() => {
     if (!dateRange?.from && !dateRange?.to) return data;
@@ -94,6 +95,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
             name: food.name,
             image: food.image,
             quantity: 0,
+            categoryName: food.categoryName || "ไม่มีหมวดหมู่",
           });
         }
         foodMap.get(key).quantity += food.quantity || 1;
@@ -102,8 +104,31 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return Array.from(foodMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [filteredOrders]);
 
+  // 🟢 1. ดึงรายชื่อหมวดหมู่ทั้งหมด แต่ตัด "Entertainer" ออกไป
+  const categories = useMemo(() => {
+    const cats = new Set(
+      rankedFood
+        .map((f: any) => f.categoryName)
+        .filter((cat) => cat && cat !== "Entertainer"), // 👈 ดักเอา Entertainer ออกตรงนี้
+    );
+    return ["All", ...Array.from(cats)];
+  }, [rankedFood]);
+
+  // 🟢 2. กรองข้อมูลไม่ให้แสดงรายการอาหารที่เป็นของ Entertainer ในตารางอาหารนี้
+  const finalRankedFood = useMemo(() => {
+    // กรองเอาตารางหลักที่ไม่ใช่ Entertainer ไว้ก่อนเสมอ
+    const foodWithoutEntertainer = rankedFood.filter(
+      (f: any) => f.categoryName !== "Entertainer",
+    );
+
+    if (categoryFilter === "All") return foodWithoutEntertainer;
+    return foodWithoutEntertainer.filter(
+      (f: any) => f.categoryName === categoryFilter,
+    );
+  }, [rankedFood, categoryFilter]);
+
   const table = useReactTable({
-    data: rankedFood,
+    data: finalRankedFood,
     columns: columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -131,13 +156,25 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
-          <div className="flex items-center gap-2">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-10 w-full sm:w-[150px] rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+          >
+            {categories.map((cat: any) => (
+              <option key={cat} value={cat}>
+                {cat === "All" ? "ทุกหมวดหมู่" : cat}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-[240px] justify-start text-left font-normal",
+                    "w-full sm:w-[240px] justify-start text-left font-normal",
                     !dateRange && "text-zinc-500",
                   )}
                 >
@@ -169,7 +206,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setDateRange(undefined)}
-                className="h-9 w-9 text-zinc-400 hover:text-red-500"
+                className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
               >
                 <X className="h-4 w-4" />
               </Button>
