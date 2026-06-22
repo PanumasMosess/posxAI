@@ -20,7 +20,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { UtensilsCrossed, CalendarIcon, X } from "lucide-react";
+import { UtensilsCrossed, CalendarIcon, X, Clock } from "lucide-react"; 
 import { useState, useMemo } from "react";
 
 import { format } from "date-fns";
@@ -47,46 +47,57 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
 
-  const filteredOrders = useMemo(() => {
-    if (!dateRange?.from && !dateRange?.to) return data;
+  const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
+
+  const ordersByDate = useMemo(() => {
+    if (!dateRange?.from) return data;
+
+    const fromDateStr = format(dateRange.from, "yyyy-MM-dd");
+    const toDateStr = dateRange.to
+      ? format(dateRange.to, "yyyy-MM-dd")
+      : fromDateStr;
 
     return data.filter((item: any) => {
       const shiftData = item.paymentInfo?.shift || {};
       const businessDateRaw =
+        shiftData.openedAt ||
         shiftData.createdAt ||
         shiftData.startTime ||
         item.updatedAt ||
         item.createdAt;
+
       if (!businessDateRaw) return false;
 
-      const itemDate = new Date(businessDateRaw);
-      itemDate.setHours(0, 0, 0, 0);
-
-      let isAfterStart = true;
-      let isBeforeEnd = true;
-
-      if (dateRange.from) {
-        const start = new Date(dateRange.from);
-        start.setHours(0, 0, 0, 0);
-        isAfterStart = itemDate >= start;
-      }
-      if (dateRange.to) {
-        const end = new Date(dateRange.to);
-        end.setHours(0, 0, 0, 0);
-        isBeforeEnd = itemDate <= end;
-      }
-      if (dateRange.from && !dateRange.to) {
-        return (
-          itemDate.getTime() === new Date(dateRange.from).setHours(0, 0, 0, 0)
-        );
-      }
-      return isAfterStart && isBeforeEnd;
+      const itemDateStr = format(new Date(businessDateRaw), "yyyy-MM-dd");
+      return itemDateStr >= fromDateStr && itemDateStr <= toDateStr;
     });
   }, [data, dateRange]);
 
+  const availableShifts = useMemo(() => {
+    const seqSet = new Set<number>();
+
+    ordersByDate.forEach((item: any) => {
+      const seq = item.paymentInfo?.shift?.shiftSequence;
+      if (seq) {
+        seqSet.add(seq);
+      }
+    });
+
+    return Array.from(seqSet).sort((a, b) => a - b);
+  }, [ordersByDate]);
+
+  const finalOrdersByShift = useMemo(() => {
+    if (selectedShiftSeq === "All") return ordersByDate;
+    return ordersByDate.filter((item: any) => {
+      return (
+        String(item.paymentInfo?.shift?.shiftSequence) === selectedShiftSeq
+      );
+    });
+  }, [ordersByDate, selectedShiftSeq]);
+
   const rankedFood = useMemo(() => {
     const foodMap = new Map();
-    filteredOrders.forEach((order: any) => {
+    finalOrdersByShift.forEach((order: any) => {
       (order.foodList || []).forEach((food: any) => {
         const key = `food_${food.name}`;
         if (!foodMap.has(key)) {
@@ -102,21 +113,18 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
       });
     });
     return Array.from(foodMap.values()).sort((a, b) => b.quantity - a.quantity);
-  }, [filteredOrders]);
+  }, [finalOrdersByShift]);
 
-  // 🟢 1. ดึงรายชื่อหมวดหมู่ทั้งหมด แต่ตัด "Entertainer" ออกไป
   const categories = useMemo(() => {
     const cats = new Set(
       rankedFood
         .map((f: any) => f.categoryName)
-        .filter((cat) => cat && cat !== "Entertainer"), // 👈 ดักเอา Entertainer ออกตรงนี้
+        .filter((cat) => cat && cat !== "Entertainer"),
     );
     return ["All", ...Array.from(cats)];
   }, [rankedFood]);
 
-  // 🟢 2. กรองข้อมูลไม่ให้แสดงรายการอาหารที่เป็นของ Entertainer ในตารางอาหารนี้
   const finalRankedFood = useMemo(() => {
-    // กรองเอาตารางหลักที่ไม่ใช่ Entertainer ไว้ก่อนเสมอ
     const foodWithoutEntertainer = rankedFood.filter(
       (f: any) => f.categoryName !== "Entertainer",
     );
@@ -155,61 +163,92 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-10 w-full sm:w-[150px] rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-          >
-            {categories.map((cat: any) => (
-              <option key={cat} value={cat}>
-                {cat === "All" ? "ทุกหมวดหมู่" : cat}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col lg:flex-row items-center gap-2 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-10 w-full sm:w-[150px] rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+            >
+              {categories.map((cat: any) => (
+                <option key={cat} value={cat}>
+                  {cat === "All" ? "ทุกหมวดหมู่" : cat}
+                </option>
+              ))}
+            </select>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full sm:w-[240px] justify-start text-left font-normal",
-                    !dateRange && "text-zinc-500",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      `${format(dateRange.from, "dd MMM yy", { locale: th })} - ${format(dateRange.to, "dd MMM yy", { locale: th })}`
+            {/* Calendar UI */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full sm:w-[240px] justify-start text-left font-normal",
+                      !dateRange && "text-zinc-500",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        `${format(dateRange.from, "dd MMM yy", { locale: th })} - ${format(dateRange.to, "dd MMM yy", { locale: th })}`
+                      ) : (
+                        format(dateRange.from, "dd MMM yy", { locale: th })
+                      )
                     ) : (
-                      format(dateRange.from, "dd MMM yy", { locale: th })
-                    )
-                  ) : (
-                    <span>ช่วงวันที่...</span>
-                  )}
+                      <span>ช่วงวันที่...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      setDateRange(range);
+                      setSelectedShiftSeq("All"); // 🟢 รีเซ็ตกะเมื่อกดเปลี่ยนวัน
+                    }}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+              {dateRange?.from && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setDateRange(undefined);
+                    setSelectedShiftSeq("All"); // 🟢 รีเซ็ตกะเมื่อกดล้างวัน
+                  }}
+                  className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
-            {dateRange?.from && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDateRange(undefined)}
-                className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              )}
+            </div>
+
+            {/* 🟢 ตัวเลือกกะ (จะแสดงต่อท้ายวันที่ เมื่อเลือกวันที่แบบ "วันเดียว" เท่านั้น และดึงกะของวันนั้นจริงๆ) */}
+            {dateRange?.from && !dateRange.to && (
+              <div className="relative w-full sm:w-[130px]">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <select
+                  value={selectedShiftSeq}
+                  onChange={(e) => setSelectedShiftSeq(e.target.value)}
+                  disabled={availableShifts.length === 0}
+                  className="h-10 w-full appearance-none rounded-md border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:opacity-50 disabled:bg-zinc-100 dark:disabled:bg-zinc-900"
+                >
+                  <option value="All">
+                    {availableShifts.length === 0 ? "ไม่มีกะ" : "รวมทุกกะ"}
+                  </option>
+                  {availableShifts.map((seq) => (
+                    <option key={seq} value={String(seq)}>
+                      กะที่ {seq}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
           <Input
