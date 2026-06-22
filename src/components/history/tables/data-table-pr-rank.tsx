@@ -46,10 +46,9 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // State สำหรับกะที่เลือก
   const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
 
-  // 🟢 1. ขั้นแรก: กรองข้อมูลดิบทั้งหมดด้วย "วันที่เปิดกะ (openedAt)" ก่อน
+
   const ordersByDate = useMemo(() => {
     if (!dateRange?.from) return data;
 
@@ -66,8 +65,6 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
     });
   }, [data, dateRange]);
 
-  // 🟢 2. ขั้นที่สอง: ดึง "ลำดับกะ" ออกมาจากข้อมูลที่ผ่านการกรองวันที่ในข้อ 1 มาแล้วเท่านั้น!
-  // วิธีนี้จะทำให้ Dropdown แสดงเฉพาะกะที่มีออเดอร์ในวันนั้นจริงๆ วันอื่นจะไม่โผล่มาปนครับ
   const availableShifts = useMemo(() => {
     const seqSet = new Set<number>();
 
@@ -80,7 +77,6 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
     return Array.from(seqSet).sort((a, b) => a - b);
   }, [ordersByDate]);
 
-  // 🟢 3. ขั้นที่สาม: เอาข้อมูลจากข้อ 1 (ที่ตรงวันแล้ว) มากรองด้วย "กะที่เลือก" อีกชั้นหนึ่ง
   const finalOrders = useMemo(() => {
     if (selectedShiftSeq === "All") return ordersByDate;
     return ordersByDate.filter(
@@ -88,7 +84,6 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
     );
   }, [ordersByDate, selectedShiftSeq]);
 
-  // 🟢 4. ขั้นสุดท้าย: นำข้อมูลที่กรองครบทั้งวันและกะมา รวมยอด (Group By) แสดงในตาราง
   const rankedPR = useMemo(() => {
     const prMap = new Map();
     finalOrders.forEach((ent: any) => {
@@ -169,7 +164,7 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
                     selected={dateRange}
                     onSelect={(range) => {
                       setDateRange(range);
-                      setSelectedShiftSeq("All"); // เคลียร์ตัวเลือกกะทุกครั้งเมื่อเปลี่ยนวัน
+                      setSelectedShiftSeq("All");
                     }}
                     numberOfMonths={2}
                   />
@@ -189,8 +184,6 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
                 </Button>
               )}
             </div>
-
-            {/* 🟢 ตัวเลือกกะ: จะโชว์ก็ต่อเมื่อเลือก "วันที่" แล้วเท่านั้น และจะดึงกะที่มีของวันนั้นมาโชว์จริงๆ */}
             {dateRange?.from && (
               <div className="relative w-full sm:w-[130px]">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
