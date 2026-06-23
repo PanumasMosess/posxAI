@@ -20,10 +20,10 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Star, CalendarIcon, X, Clock } from "lucide-react";
+import { Star, CalendarIcon, X, Clock, Printer } from "lucide-react";
 import { useState, useMemo } from "react";
 
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { th } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
@@ -35,33 +35,38 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { RankedPRItem } from "./column_pr_rank";
+import { printPRRank } from "@/lib/printers/qz-pr-rank"; 
 
 interface DataTablePRProps {
   columns: ColumnDef<RankedPRItem, any>[];
   data: any[];
+  printerName: string;
 }
 
-export function DataTablePRRank({ columns, data }: DataTablePRProps) {
+export function DataTablePRRank({
+  columns,
+  data,
+  printerName,
+}: DataTablePRProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
 
-
   const ordersByDate = useMemo(() => {
     if (!dateRange?.from) return data;
 
-    const fromDateStr = format(dateRange.from, "yyyy-MM-dd");
-    const toDateStr = dateRange.to
-      ? format(dateRange.to, "yyyy-MM-dd")
-      : fromDateStr;
+    const filterStart = startOfDay(dateRange.from).getTime();
+    const filterEnd = dateRange.to
+      ? endOfDay(dateRange.to).getTime()
+      : endOfDay(dateRange.from).getTime();
 
     return data.filter((item: any) => {
       if (!item.businessDate) return false;
 
-      const itemDateStr = format(new Date(item.businessDate), "yyyy-MM-dd");
-      return itemDateStr >= fromDateStr && itemDateStr <= toDateStr;
+      const itemTime = new Date(item.businessDate).getTime();
+      return itemTime >= filterStart && itemTime <= filterEnd;
     });
   }, [data, dateRange]);
 
@@ -69,7 +74,7 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
     const seqSet = new Set<number>();
 
     ordersByDate.forEach((item) => {
-      if (item.shiftSequence) {
+      if (item.shiftSequence !== null && item.shiftSequence !== undefined) {
         seqSet.add(item.shiftSequence);
       }
     });
@@ -95,10 +100,11 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
           image: ent.image,
           quantity: 0,
           price_sum: 0,
+          currencyLabel: ent.currencyLabel || "LAK", 
         });
       }
       prMap.get(key).quantity += ent.quantity;
-      prMap.get(key).price_sum += ent.price_sum;
+      prMap.get(key).price_sum += ent.price_sum || 0; 
     });
     return Array.from(prMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [finalOrders]);
@@ -115,6 +121,25 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
     state: { sorting, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
   });
+
+  const handlePrint = async () => {
+    if (!printerName) {
+      alert("กรุณาเลือกเครื่องปริ้นก่อนทำรายการ");
+      return;
+    }
+
+    try {
+      await printPRRank({
+        printerName,
+        dateRange,
+        selectedShiftSeq,
+        rankedPR,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("ไม่สามารถปริ้นได้ โปรดตรวจสอบการเชื่อมต่อ QZ Tray");
+    }
+  };
 
   return (
     <div className="rounded-2xl border bg-white dark:bg-zinc-950 p-4 shadow-sm flex flex-col gap-4">
@@ -184,6 +209,8 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
                 </Button>
               )}
             </div>
+
+            {/* เลือกกะ */}
             {dateRange?.from && (
               <div className="relative w-full sm:w-[130px]">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -212,6 +239,15 @@ export function DataTablePRRank({ columns, data }: DataTablePRProps) {
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="w-full sm:w-[200px]"
           />
+
+          <Button
+            onClick={handlePrint}
+            disabled={!dateRange?.from || rankedPR.length === 0 || !printerName}
+            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            พิมพ์สรุป
+          </Button>
         </div>
       </div>
 

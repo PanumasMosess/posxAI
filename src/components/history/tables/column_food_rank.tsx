@@ -9,6 +9,8 @@ export type RankedItem = {
   image: string | null;
   type: string;
   quantity: number;
+  price?: number;
+  currencyLabel?: string;
 };
 
 export const column_food_rank = (): ColumnDef<RankedItem>[] => [
@@ -62,11 +64,28 @@ export const column_food_rank = (): ColumnDef<RankedItem>[] => [
   {
     id: "quantity",
     accessorKey: "quantity",
-    header: () => <div className="text-right pr-4">ยอดขายรวม (ครั้ง)</div>,
+    header: () => <div className="text-right">จำนวน (ครั้ง)</div>,
     cell: ({ row }) => (
-      <div className="text-right pr-4 font-black text-xl text-emerald-600 dark:text-emerald-400">
+      <div className="text-right font-black text-xl text-emerald-600 dark:text-emerald-400">
         {row.original.quantity.toLocaleString()}
       </div>
     ),
+  },
+  {
+    id: "price",
+    accessorKey: "price",
+    header: () => <div className="text-right pr-4">ยอดขายรวม</div>,
+    cell: ({ row }) => {
+      const price = row.original.price || 0;
+      const currency = row.original.currencyLabel || "LAK";
+      return (
+        <div className="text-right pr-4 font-bold text-lg text-blue-600 dark:text-blue-400">
+          {price.toLocaleString()}{" "}
+          <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">
+            {currency}
+          </span>
+        </div>
+      );
+    },
   },
 ];

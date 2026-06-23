@@ -116,7 +116,7 @@ const page = async () => {
           status: order.status,
           foodList: [],
           entertainerList: [],
-          currencyLabel: order.menu?.unitPrice?.label || "",
+          currencyLabel: order.menu?.unitPrice?.label || "LAK",
           employeeName: order.employeeId
             ? employeeMap.get(String(order.employeeId)) || "ไม่ทราบชื่อพนักงาน"
             : "สั่งผ่านระบบ",
@@ -139,6 +139,8 @@ const page = async () => {
         ? employeeMap.get(String(order.menu.mcEmployeeId)) || null
         : null;
 
+      const itemCurrency = order.menu?.unitPrice?.label || "LAK";
+
       const itemData = {
         name: order.menu?.menuName || "ไม่ทราบชื่อ",
         image: order.menu?.img || null,
@@ -146,6 +148,7 @@ const page = async () => {
         quantity: order.quantity,
         categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
         price: order.price_sum || 0,
+        currencyLabel: itemCurrency, 
       };
 
       const qty = order.quantity || 0;
@@ -161,7 +164,8 @@ const page = async () => {
           name: employeeMap.get(entId) || "ไม่ทราบชื่อ",
           image: order.menu?.img || null,
           quantity: qty,
-          price_sum: price,
+          price_sum: price, 
+          currencyLabel: itemCurrency, 
           businessDate:
             payment.shift?.openedAt ||
             payment.shift?.createdAt ||

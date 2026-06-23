@@ -20,7 +20,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { UtensilsCrossed, CalendarIcon, X, Clock } from "lucide-react";
+import { UtensilsCrossed, CalendarIcon, X, Clock, Printer } from "lucide-react";
 import { useState, useMemo } from "react";
 
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -35,22 +35,25 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { RankedItem } from "./column_food_rank";
+import { printFoodRank } from "@/lib/printers/qz-food-rank";
 
 interface DataTableFoodProps {
   columns: ColumnDef<RankedItem, any>[];
   data: any[];
+  printerName: string; 
 }
 
-export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
+export function DataTableFoodRank({
+  columns,
+  data,
+  printerName,
+}: DataTableFoodProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
-
-  // State สำหรับกะที่เลือก
   const [selectedShiftSeq, setSelectedShiftSeq] = useState<string>("All");
 
-  // 🟢 1. แยกข้อมูลอาหาร (Flatten) ออกมาจากก้อน payment group
   const rawFoods = useMemo(() => {
     const foods: any[] = [];
     data.forEach((group: any) => {
@@ -65,6 +68,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
             quantity: food.quantity || 1,
             categoryName: food.categoryName || "ไม่มีหมวดหมู่",
             price: food.price || 0,
+            currencyLabel: food.currencyLabel || group.currencyLabel || "LAK", 
             businessDate: bDate,
             shiftSequence: sSeq,
           });
@@ -74,11 +78,8 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return foods;
   }, [data]);
 
-  // 🟢 2. กรองข้อมูลจาก "อาหารเดี่ยว" ด้วยวันที่
-  // (ใช้วิธีเปรียบเทียบแบบ Time Value เพื่อตัดปัญหา Timezone เพี้ยน 100%)
   const ordersByDate = useMemo(() => {
     if (!dateRange?.from) return rawFoods;
-
     const filterStart = startOfDay(dateRange.from).getTime();
     const filterEnd = dateRange.to
       ? endOfDay(dateRange.to).getTime()
@@ -91,28 +92,23 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     });
   }, [rawFoods, dateRange]);
 
-  // 🟢 3. ดึงลำดับกะ (shiftSequence) เฉพาะของวันที่เลือกมาสร้างเป็น Dropdown
   const availableShifts = useMemo(() => {
     const seqSet = new Set<number>();
-
     ordersByDate.forEach((item: any) => {
       if (item.shiftSequence !== null && item.shiftSequence !== undefined) {
         seqSet.add(item.shiftSequence);
       }
     });
-
     return Array.from(seqSet).sort((a, b) => a - b);
   }, [ordersByDate]);
 
-  // 🟢 4. กรองข้อมูลรอบสุดท้ายด้วยหมายเลขกะที่เลือก
   const finalOrdersByShift = useMemo(() => {
     if (selectedShiftSeq === "All") return ordersByDate;
-    return ordersByDate.filter((item: any) => {
-      return String(item.shiftSequence) === selectedShiftSeq;
-    });
+    return ordersByDate.filter(
+      (item: any) => String(item.shiftSequence) === selectedShiftSeq,
+    );
   }, [ordersByDate, selectedShiftSeq]);
 
-  // 🟢 5. นำอาหารที่กรองวัน/กะเสร็จแล้ว มารวมยอด (Group By)
   const rankedFood = useMemo(() => {
     const foodMap = new Map();
     finalOrdersByShift.forEach((food: any) => {
@@ -123,15 +119,17 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
           name: food.name,
           image: food.image,
           quantity: 0,
+          price: 0,
+          currencyLabel: food.currencyLabel || "LAK",
           categoryName: food.categoryName,
         });
       }
       foodMap.get(key).quantity += food.quantity;
+      foodMap.get(key).price += food.price; 
     });
     return Array.from(foodMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [finalOrdersByShift]);
 
-  // 🟢 6. ดึงรายชื่อหมวดหมู่ทั้งหมด (ยกเว้น Entertainer)
   const categories = useMemo(() => {
     const cats = new Set(
       rankedFood
@@ -141,12 +139,10 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     return ["All", ...Array.from(cats)];
   }, [rankedFood]);
 
-  // 🟢 7. กรองหมวดหมู่อาหารขั้นสุดท้ายก่อนลงตาราง
   const finalRankedFood = useMemo(() => {
     const foodWithoutEntertainer = rankedFood.filter(
       (f: any) => f.categoryName !== "Entertainer",
     );
-
     if (categoryFilter === "All") return foodWithoutEntertainer;
     return foodWithoutEntertainer.filter(
       (f: any) => f.categoryName === categoryFilter,
@@ -165,6 +161,25 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
     state: { sorting, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
   });
+
+  const handlePrint = async () => {
+    if (!printerName) {
+      alert("กรุณาเลือกเครื่องปริ้นก่อนทำรายการ");
+      return;
+    }
+
+    try {
+      await printFoodRank({
+        printerName,
+        dateRange,
+        selectedShiftSeq,
+        finalRankedFood,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("ไม่สามารถปริ้นได้ โปรดตรวจสอบการเชื่อมต่อ QZ Tray");
+    }
+  };
 
   return (
     <div className="rounded-2xl border bg-white dark:bg-zinc-950 p-4 shadow-sm flex flex-col gap-4">
@@ -226,7 +241,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                     selected={dateRange}
                     onSelect={(range) => {
                       setDateRange(range);
-                      setSelectedShiftSeq("All"); // เคลียร์ตัวเลือกกะเมื่อเปลี่ยนวัน
+                      setSelectedShiftSeq("All");
                     }}
                     numberOfMonths={2}
                   />
@@ -238,7 +253,7 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
                   size="icon"
                   onClick={() => {
                     setDateRange(undefined);
-                    setSelectedShiftSeq("All"); // เคลียร์ตัวเลือกกะเมื่อลบวันที่
+                    setSelectedShiftSeq("All");
                   }}
                   className="h-9 w-9 shrink-0 text-zinc-400 hover:text-red-500"
                 >
@@ -247,16 +262,19 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
               )}
             </div>
 
-            {/* 🟢 ตัวเลือกกะ: โชว์เมื่อมีกะให้เลือกในวันนั้นๆ */}
-            {availableShifts.length > 0 && (
+            {/* เลือกกะ */}
+            {dateRange?.from && (
               <div className="relative w-full sm:w-[130px]">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <select
                   value={selectedShiftSeq}
                   onChange={(e) => setSelectedShiftSeq(e.target.value)}
+                  disabled={availableShifts.length === 0}
                   className="h-10 w-full appearance-none rounded-md border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 disabled:opacity-50 disabled:bg-zinc-100 dark:disabled:bg-zinc-900"
                 >
-                  <option value="All">รวมทุกกะ</option>
+                  <option value="All">
+                    {availableShifts.length === 0 ? "ไม่มีกะ" : "รวมทุกกะ"}
+                  </option>
                   {availableShifts.map((seq) => (
                     <option key={seq} value={String(seq)}>
                       กะที่ {seq}
@@ -266,12 +284,24 @@ export function DataTableFoodRank({ columns, data }: DataTableFoodProps) {
               </div>
             )}
           </div>
+
           <Input
             placeholder="ค้นหาเมนู..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="w-full sm:w-[200px]"
           />
+
+          <Button
+            onClick={handlePrint}
+            disabled={
+              !dateRange?.from || finalRankedFood.length === 0 || !printerName
+            }
+            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            พิมพ์สรุป
+          </Button>
         </div>
       </div>
 
