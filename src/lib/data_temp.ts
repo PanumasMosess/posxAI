@@ -126,7 +126,7 @@ const menuList = [
         url: "/history/payment",
       },
       {
-        title: "สถิติอันดับ",
+        title: "สถิติอันดับ/รายงาน",
         url: "/history/order_rank",
       },
       {

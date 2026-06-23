@@ -8,6 +8,8 @@ export type RankedPRItem = {
   name: string;
   image: string | null;
   quantity: number;
+  price_sum?: number; 
+  currencyLabel?: string; 
 };
 
 export const column_pr_rank = (): ColumnDef<RankedPRItem>[] => [
@@ -49,11 +51,28 @@ export const column_pr_rank = (): ColumnDef<RankedPRItem>[] => [
   {
     id: "quantity",
     accessorKey: "quantity",
-    header: () => <div className="text-right pr-4">ยอดเรียกรวม (รอบ/ดื่ม)</div>,
+    header: () => <div className="text-right">จำนวนดื่ม (ครั้ง)</div>,
     cell: ({ row }) => (
-      <div className="text-right pr-4 font-black text-xl text-emerald-600 dark:text-emerald-400">
+      <div className="text-right font-black text-xl text-emerald-600 dark:text-emerald-400">
         {row.original.quantity.toLocaleString()}
       </div>
     ),
+  },
+  {
+    id: "price_sum",
+    accessorKey: "price_sum",
+    header: () => <div className="text-right pr-4">ยอดรวม</div>,
+    cell: ({ row }) => {
+      const price = row.original.price_sum || 0;
+      const currency = row.original.currencyLabel || "LAK";
+      return (
+        <div className="text-right pr-4 font-bold text-lg text-pink-600 dark:text-pink-400">
+          {price.toLocaleString()}{" "}
+          <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">
+            {currency}
+          </span>
+        </div>
+      );
+    },
   },
 ];
