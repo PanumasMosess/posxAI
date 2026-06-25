@@ -7,8 +7,8 @@ import prisma from "@/lib/prisma";
 // ==========================================
 
 export const createAccount = async (data: { 
-  accountName: string; 
-  initialBalance: number; 
+  accountName: string;
+  initialBalance: number;
   organizationId: number;
   createdById: number;
 }) => {
@@ -217,4 +217,24 @@ export const updateCategoryName = async (id: number, name: string) => {
     await prisma.account_category.update({ where: { id }, data: { name } });
     return { success: true };
   } catch (err) { return { success: false }; }
+};
+
+export const setAccPosPayment = async (id: number, organizationId: number) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.account.updateMany({
+        where: { organizationId },
+        data: { accPosPayment: false },
+      });
+
+      await tx.account.update({
+        where: { id },
+        data: { accPosPayment: true },
+      });
+    });
+
+    return { success: true, message: "เปลี่ยนช่องทางรับเงินหน้าร้านสำเร็จ" };
+  } catch (err) {
+    return { success: false, message: "เกิดข้อผิดพลาดในการเปลี่ยนช่องทางรับเงิน" };
+  }
 };

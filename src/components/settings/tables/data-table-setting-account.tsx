@@ -9,14 +9,13 @@ import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel,
   getSortedRowModel, SortingState, useReactTable,
 } from "@tanstack/react-table";
-// เพิ่ม PlusCircle, MinusCircle
 import { Wallet, Plus, Search, Save, ArrowRightLeft, PlusCircle, MinusCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
 // เรียกใช้ Action
-import { createAccount, adjustAccountBalance, transferMoney } from "@/lib/actions/actionAccounting";
+import { createAccount, adjustAccountBalance, transferMoney, setAccPosPayment } from "@/lib/actions/actionAccounting";
 import column_setting_account from "./column_setting_account";
 
 interface DataTableProps {
@@ -48,7 +47,7 @@ export function Data_table_setting_account({
   const [transferAmount, setTransferAmount] = useState("");
   const [transferNote, setTransferNote] = useState("");
 
-  // 🔥 Modal เพิ่ม/ลดเงิน (ใช้ร่วมกันเพื่อลดความซ้ำซ้อน)
+  // Modal เพิ่ม/ลดเงิน
   const [openAdjust, setOpenAdjust] = useState(false);
   const [adjustType, setAdjustType] = useState<"IN" | "OUT">("IN");
   const [adjustAmount, setAdjustAmount] = useState("");
@@ -62,7 +61,6 @@ export function Data_table_setting_account({
     setOpenTransfer(true);
   };
 
-  // 🔥 ฟังก์ชันเปิด Modal เพิ่มเงิน
   const handleOpenAddMoney = (account: any) => {
     setSelectedAccount(account);
     setAdjustType("IN");
@@ -71,7 +69,6 @@ export function Data_table_setting_account({
     setOpenAdjust(true);
   };
 
-  // 🔥 ฟังก์ชันเปิด Modal ลดเงิน
   const handleOpenDeductMoney = (account: any) => {
     setSelectedAccount(account);
     setAdjustType("OUT");
@@ -97,7 +94,6 @@ export function Data_table_setting_account({
     }
   };
 
-  // 🔥 ฟังก์ชัน Submit การเพิ่ม/ลดเงิน
   const handleAdjustSubmit = async () => {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount) || amount <= 0) return toast.error("กรุณาระบุจำนวนเงินที่มากกว่า 0");
@@ -105,13 +101,12 @@ export function Data_table_setting_account({
 
     setIsLoading(true);
 
-    // 🔥 แปลงค่าจาก IN/OUT เป็น ADD/REDUCE ให้ตรงกับที่ Backend ต้องการ
     const mode = adjustType === "IN" ? "ADD" : "REDUCE";
 
     const res = await adjustAccountBalance(
       selectedAccount.id,
       amount,
-      mode, // ส่ง "ADD" หรือ "REDUCE" ไปที่ Action
+      mode, 
       adjustNote || (adjustType === "IN" ? "เพิ่มเงินในบัญชี" : "ลดเงินในบัญชี"),
       userId,
       organizationId
@@ -127,16 +122,31 @@ export function Data_table_setting_account({
     setIsLoading(false);
   };
 
-  // สร้าง Columns โดยส่ง Props ใหม่เข้าไปด้วย
+  // 🔥 1. ย้ายฟังก์ชันนี้ขึ้นมาอยู่เหนือตัวแปร columns
+  const handleSetAccPosPayment = async (accountId: number) => {
+    setIsLoading(true);
+    const res = await setAccPosPayment(accountId, organizationId);
+    if (res.success) {
+      toast.success("เปลี่ยนช่องทางรับเงินหน้าร้านเรียบร้อยแล้ว");
+      router.refresh();
+    } else {
+      toast.error(res.message);
+    }
+    setIsLoading(false);
+  };
+
+  // 🔥 2. สร้าง Columns หลังจากที่ฟังก์ชันทั้งหมดถูกประกาศแล้ว
   const columns = useMemo(() => column_setting_account(
     onUpdateStatus,
     onUpdateName,
     handleInlineUpdateBalance,
     handleOpenTransfer,
-    handleOpenAddMoney,    // ส่งต่อ Handler
-    handleOpenDeductMoney  // ส่งต่อ Handler
-  ), [onUpdateStatus, onUpdateName]);
+    handleOpenAddMoney,    
+    handleOpenDeductMoney, 
+    handleSetAccPosPayment
+  ), [onUpdateStatus, onUpdateName, organizationId, data]);
 
+  // 3. กำหนดค่าลง Table
   const table = useReactTable({
     data, columns,
     getCoreRowModel: getCoreRowModel(),
@@ -148,7 +158,7 @@ export function Data_table_setting_account({
     state: { sorting, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
   });
-
+  
   const handleAddAccount = async () => {
     if (!newAccountName.trim()) return toast.error("กรุณากรอกชื่อบัญชี");
     const initBalance = parseFloat(newAccountBalance) || 0;
@@ -197,7 +207,7 @@ export function Data_table_setting_account({
           </div>
           <div className="flex flex-col">
             <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">จัดการบัญชีการเงิน</h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">คลิกที่ "ยอดเงินคงเหลือ" เพื่อแก้ไขตัวเลขโดยตรง</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">คลิกที่ ยอดเงินคงเหลือ เพื่อแก้ไขตัวเลขโดยตรง</p>
           </div>
         </div>
 
@@ -241,7 +251,6 @@ export function Data_table_setting_account({
       {/* MODAL: เพิ่มบัญชีใหม่ */}
       {/* ============================================================== */}
       <Sheet open={openAdd} onOpenChange={setOpenAdd}>
-        {/* เนื้อหาเดิม... */}
         <SheetContent className="w-[400px] sm:w-[540px] flex flex-col">
           <SheetHeader className="px-6 pt-6 pb-4"><SheetTitle>เพิ่มบัญชีใหม่</SheetTitle></SheetHeader>
           <div className="flex-1 px-6 py-4 space-y-4">
@@ -267,7 +276,6 @@ export function Data_table_setting_account({
       {/* MODAL: โอนเงินระหว่างบัญชี */}
       {/* ============================================================== */}
       <Sheet open={openTransfer} onOpenChange={setOpenTransfer}>
-        {/* เนื้อหาเดิม... */}
         <SheetContent className="w-[400px] sm:w-[540px] flex flex-col">
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
             <SheetTitle className="flex items-center gap-2">
@@ -287,7 +295,6 @@ export function Data_table_setting_account({
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium">เลือกบัญชีปลายทาง (โอนเข้า)</label>
               <select
-                // 👇 เปลี่ยน className ตรงนี้ครับ
                 className="flex h-10 w-full rounded-md border border-zinc-200 bg-white text-zinc-900 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
                 value={targetAccountId} onChange={(e) => setTargetAccountId(e.target.value)} disabled={isLoading}
               >
