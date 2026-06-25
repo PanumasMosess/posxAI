@@ -126,7 +126,7 @@ export const updateStatusTable = async (idTable: number, status: string) => {
 export const createPaymentOrder = async (data: any) => {
   try {
     await prisma.$transaction(async (tx) => {
-      // 1. สร้างประวัติการชำระเงิน (Payment Order) -> เก็บไว้ปกติเพื่อให้บิลจบได้
+      // 1. สร้างประวัติการชำระเงิน (Payment Order)
       await tx.paymentorder.create({
         data: {
           cashReceived: data.cashReceived,
@@ -158,23 +158,37 @@ export const createPaymentOrder = async (data: any) => {
         });
       }
 
-      // 🔴 เปิดคอมเมนต์ครอบปิดส่วนนี้ทั้งหมดชั่วคราว เพื่อไม่ให้บันทึกลงสมุดบัญชีร้าน
-      /*
-      if (["CASH", "QR"].includes(data.paymentMethod) && data.accountId) {
-        // 2.0 ดึงข้อมูลบัญชีปัจจุบันขึ้นมาก่อน เพื่อเอายอดเงินมาบวก
-        const account = await tx.account.findUnique({
-          where: { id: data.accountId },
+      // 🟢 2. บันทึกรายรับเข้า "บัญชีหน้าร้าน" ที่เลือกไว้ในตั้งค่า (ไม่ต้องรอรับ id จากหน้าบ้าน)
+      if (["CASH", "QR"].includes(data.paymentMethod)) {
+        
+        // ค้นหาบัญชีที่ตั้งค่าเป็นบัญชีรับเงินหน้าร้าน (accPosPayment: true)
+        let posAccount = await tx.account.findFirst({
+          where: { 
+            organizationId: data.organizationId, 
+            status: "ACTIVE",
+            accPosPayment: true 
+          },
         });
 
-        if (!account) throw new Error("ไม่พบข้อมูลบัญชีที่ระบุ");
+        // Safety Net: ถ้าเจ้าของร้านลืมตั้งค่าบัญชีหน้าร้าน ให้ดึงบัญชีใบแรกมารองรับเงินกันระบบ Error
+        if (!posAccount) {
+          posAccount = await tx.account.findFirst({
+            where: { organizationId: data.organizationId, status: "ACTIVE" },
+            orderBy: { id: "asc" }
+          });
+        }
+
+        if (!posAccount) {
+          throw new Error("ไม่พบบัญชีสำหรับรับเงินหน้าร้าน กรุณาเพิ่มบัญชีการเงินก่อนครับ");
+        }
 
         // คำนวณยอดเงินคงเหลือใหม่
-        const newBalance = Number(account.balance) + Number(data.totalAmount);
+        const newBalance = Number(posAccount.balance) + Number(data.totalAmount);
 
-        // 2.1 บันทึก Log ธุรกรรม
+        // บันทึก Log ธุรกรรม
         await tx.account_transaction.create({
           data: {
-            accountId: data.accountId,
+            accountId: posAccount.id,
             organizationId: data.organizationId,
             categoryId: null,
             type: "SALES",
@@ -186,15 +200,14 @@ export const createPaymentOrder = async (data: any) => {
           },
         });
 
-        // 2.2 อัปเดตยอดเงินคงเหลือในสมุดบัญชีนั้น
+        // อัปเดตยอดเงินคงเหลือในสมุดบัญชีนั้น
         await tx.account.update({
-          where: { id: data.accountId },
+          where: { id: posAccount.id },
           data: { balance: newBalance },
         });
       }
-      */
 
-      // 3. จัดการเรื่องเครดิต MEMBER (ส่วนนี้ปล่อยทำงานปกติ หรือถ้ายังไม่เปิดให้เซ็นก็ปล่อยไว้ได้ครับเพราะมีโค้ดหน้าบ้านดักอยู่แล้ว)
+      // 3. จัดการเรื่องเครดิต MEMBER
       if (data.paymentMethod === "MEMBER") {
         if (!data.memberPhone) {
           throw new Error("ไม่พบเบอร์โทรศัพท์สมาชิก");

@@ -11,7 +11,7 @@ export const getAccountingReportData = async (filters: {
     const start = new Date(`${filters.startDate}T00:00:00.000Z`);
     const end = new Date(`${filters.endDate}T23:59:59.999Z`);
 
-    // 1. ดึงข้อมูลธุรกรรมทั้งหมดในช่วงเวลา
+    // 1. ดึงข้อมูลธุรกรรมทั้งหมดในช่วงเวลา (สำหรับกน้ากราฟและยอด Summary หลัก)
     const txLogs = await prisma.account_transaction.findMany({
       where: {
         organizationId: filters.organizationId,
@@ -27,22 +27,19 @@ export const getAccountingReportData = async (filters: {
     let totalARPayment = 0;
 
     // 3. เตรียมตัวแปรสำหรับกราฟ
-const dailyDataMap = new Map<string, { date: string; income: number; expense: number }>();
+    const dailyDataMap = new Map<string, { date: string; income: number; expense: number }>();
     const expenseCategoryMap = new Map<string, number>();
 
     txLogs.forEach((tx) => {
-      // 🟢 แก้ไขตรงนี้: ใช้ Math.abs() เพื่อแปลงตัวเลขทุกตัวให้เป็นบวกเสมอ
       const rawAmount = Number(tx.amount);
       const amount = Math.abs(rawAmount); 
 
       const dateKey = tx.createdAt.toISOString().split("T")[0]; // YYYY-MM-DD
 
-      // สร้างช่องวันที่รอก่อนถ้ายังไม่มี
       if (!dailyDataMap.has(dateKey)) {
         dailyDataMap.set(dateKey, { date: dateKey, income: 0, expense: 0 });
       }
 
-      // แยกประเภท
       if (["SALES", "INCOME", "AR_PAYMENT"].includes(tx.type)) {
         totalIncome += amount;
         dailyDataMap.get(dateKey)!.income += amount;
@@ -69,27 +66,48 @@ const dailyDataMap = new Map<string, { date: string; income: number; expense: nu
       select: { accountName: true, balance: true },
     });
 
-    // 5. 💰 คำนวณ "ยอดหนี้ค้างรับรวม (Outstanding AR)"
-    // ตรงนี้ผมใส่ตัวอย่างไว้ให้ คุณต้องไปดึงจาก Table ที่คุณใช้เก็บข้อมูลลูกหนี้/บิลที่ค้างชำระครับ
-    // ตัวอย่างการดึง (สมมติว่าคุณมี table ชื่อ receipt ที่เก็บยอดบิล และมี status = 'UNPAID')
-    /*
-    const outstandingArResult = await prisma.receipt.aggregate({
-      where: { 
-        organizationId: filters.organizationId, 
-        paymentStatus: 'UNPAID' // หรือสถานะที่คุณตั้งไว้
+    // 🟢 5. 💰 คำนวณ "ยอดหนี้ค้างรับรวมปัจจุบัน (Outstanding AR)" จากตารางธุรกรรมสมาชิกจริง
+    // ดึงประวัติ CREDIT ทั้งหมดของสาขานี้มาคำนวณแยกรายบุคคลแบบมีประสิทธิภาพ
+    const memberTxs = await prisma.membertransaction.findMany({
+      where: {
+        organizationId: filters.organizationId,
+        walletType: "CREDIT",
+        type: { in: ["SPEND", "TOPUP"] }
       },
-      _sum: { totalAmount: true }
+      select: {
+        memberId: true,
+        type: true,
+        amount: true
+      }
     });
-    const totalOutstandingAR = Number(outstandingArResult._sum.totalAmount) || 0;
-    */
-   
-    // ชั่วคราว: กำหนดค่า 0 ไปก่อนจนกว่าคุณจะ Query ฝั่งบิลค้างชำระมาใส่
-    const totalOutstandingAR = 0; 
+
+    // ใช้ Map เพื่อจับกลุ่มคำนวณยอดสุทธิสุทธิแยกรายบุคคล
+    const debtorMap = new Map<number, number>();
+
+    memberTxs.forEach((tx) => {
+      const currentDebt = debtorMap.get(tx.memberId) || 0;
+      const amountValue = Number(tx.amount);
+
+      if (tx.type === "SPEND") {
+        // ยอดเซ็นยืมหน้าร้าน (มีค่าเป็นลบในระบบ จึงใช้ Math.abs บวกรวมเป็นยอดหนี้)
+        debtorMap.set(tx.memberId, currentDebt + Math.abs(amountValue));
+      } else if (tx.type === "TOPUP") {
+        // ยอดที่นำเงินสดมารายงานชำระหนี้คืนร้าน (ลดยอดหนี้ลง)
+        debtorMap.set(tx.memberId, currentDebt - amountValue);
+      }
+    });
+
+    // รวมยอดเฉพาะสมาชิกที่ยังคงมียอดหนี้ค้างจ่าย (ยอดหนี้สุทธิ > 0)
+    let totalOutstandingAR = 0;
+    debtorMap.forEach((finalDebt) => {
+      if (finalDebt > 0) {
+        totalOutstandingAR += finalDebt;
+      }
+    });
 
     return {
       success: true,
       data: {
-        // ส่งยอดหนี้ค้างรับกลับไปให้ Dashboard ด้วย
         summary: { totalIncome, totalExpense, netProfit, totalARPayment, totalOutstandingAR },
         dailyChartData,
         expenseCategoryData,
@@ -97,6 +115,7 @@ const dailyDataMap = new Map<string, { date: string; income: number; expense: nu
       },
     };
   } catch (err: any) {
+    console.error("Accounting Report Error: ", err);
     return { success: false, message: err.message };
   }
 };
