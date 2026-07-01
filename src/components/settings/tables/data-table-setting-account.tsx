@@ -288,7 +288,7 @@ export function Data_table_setting_account({
               <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
                 <div className="text-sm text-orange-600/80">โอนเงินออกจากบัญชี</div>
                 <div className="text-lg font-bold text-orange-700">{selectedAccount.accountName}</div>
-                <div className="mt-2 text-sm text-orange-600/80">ยอดเงินที่สามารถโอนได้: <span className="font-bold">฿{parseFloat(selectedAccount.balance).toLocaleString("th-TH")}</span></div>
+                <div className="mt-2 text-sm text-orange-600/80">ยอดเงินที่สามารถโอนได้: <span className="font-bold">{parseFloat(selectedAccount.balance).toLocaleString("th-TH")}</span></div>
               </div>
             )}
 
@@ -347,7 +347,7 @@ export function Data_table_setting_account({
                   {selectedAccount.accountName}
                 </div>
                 <div className={`mt-2 text-sm ${adjustType === "IN" ? "text-emerald-600/80" : "text-red-600/80"}`}>
-                  ยอดเงินปัจจุบัน: <span className="font-bold">฿{parseFloat(selectedAccount.balance).toLocaleString("th-TH")}</span>
+                  ยอดเงินปัจจุบัน: <span className="font-bold">{parseFloat(selectedAccount.balance).toLocaleString("th-TH")}</span>
                 </div>
               </div>
             )}

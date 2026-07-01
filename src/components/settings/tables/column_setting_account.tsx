@@ -6,7 +6,6 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil, ArrowRightLeft, Plus, Minus, CheckCircle2, Store } from "lucide-react";
 import { useState, useEffect } from "react";
 
-// EditableCell (สำหรับชื่อบัญชี)
 const EditableCell = ({ getValue, row, onUpdate }: any) => {
   const initialValue = getValue();
   const [value, setValue] = useState(initialValue);
@@ -89,7 +88,7 @@ const EditableBalanceCell = ({ getValue, row, onUpdateBalance }: any) => {
       title="คลิกเพื่อแก้ไขยอดเงินสุทธิ"
     >
       <span className="font-black text-emerald-400 text-[15px] group-hover:text-emerald-300">
-        ฿{initialValue.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {initialValue.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </span>
       <Pencil className="w-3.5 h-3.5 text-emerald-600 opacity-0 group-hover:opacity-100 group-hover:text-emerald-400 transition-all" />
     </div>

@@ -196,7 +196,8 @@ export const createPaymentOrder = async (data: any) => {
             note: `รับชำระค่าอาหาร (บิล: ${data.orderId}) - ${data.paymentMethod}`,
             createdById: data.createdById,
             title: `รายรับค่าอาหาร บิล ${data.orderId}`, 
-            accountBalance: newBalance, 
+            accountBalance: newBalance,
+            date: new Date(),
           },
         });
 
@@ -247,6 +248,7 @@ export const createPaymentOrder = async (data: any) => {
             balanceAfter: updatedMember.creditBalance,
             note: `ชำระค่าอาหาร (บิล: ${data.orderId})`,
             createdById: data.createdById,
+            date: new Date(),
           },
         });
       }

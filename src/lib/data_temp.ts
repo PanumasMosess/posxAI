@@ -26,6 +26,7 @@ import {
   FileText,
   History,
   CreditCard,
+  LineChart,
 } from "lucide-react";
 
 const menuList = [
@@ -108,6 +109,11 @@ const menuList = [
         title: "รายการเดินบัญชี",
         url: "/accounting/history",
         icon: History,
+      },
+      {
+        title: "สรุปกำไร-ขาดทุน",
+        url: "/accounting/profit_loss",
+        icon: LineChart, 
       },
       { title: "รายงานสรุปบัญชี", url: "/accounting/report", icon: BarChart3 },
     ],
