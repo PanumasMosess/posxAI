@@ -88,7 +88,7 @@ export default function AccountingReportPage({ organizationId, initialStartDate,
           account: tx.accountName || tx.account || "ไม่ระบุบัญชี",
           amount: Math.abs(tx.amount || 0),
           isSummary: false
-        })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        })).sort((a: { date: string | Date }, b: { date: string | Date }) => new Date(b.date).getTime() - new Date(a.date).getTime());
       }
     }
 
