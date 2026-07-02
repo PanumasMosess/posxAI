@@ -10,8 +10,10 @@ export const recordTransaction = async (data: {
   note: string;
   userId: number;
   organizationId: number;
+  date: string;
 }) => {
   try {
+    if (data.amount <= 0) throw new Error("จำนวนเงินต้องมากกว่า 0");
     await prisma.$transaction(async (tx) => {
       const account = await tx.account.findUnique({
         where: { id: data.accountId },
@@ -61,6 +63,7 @@ export const recordTransaction = async (data: {
           title: category.name,
           note: data.note,
           createdById: data.userId,
+          date: data.date ? new Date(data.date) : null,
         },
       });
     });

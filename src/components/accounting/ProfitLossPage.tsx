@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "react-toastify";
-import { History, Search, RefreshCw, ChevronDown, CheckSquare, Square, TrendingUp, TrendingDown, Sigma, Printer, Download } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, CheckSquare, Square, TrendingUp, TrendingDown, Sigma, Printer, Download, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getFilteredTransactions } from "@/lib/actions/actionAccountingHistory";
+import { getProfitLossTransactions } from "@/lib/actions/actionProfitLoss";
 import { Data_table_setting_txlog } from "../settings/tables/data-table-setting-txlog";
 import column_setting_txlog from "../settings/tables/column_setting_txlog";
 
-export default function AccountingHistoryPage({
+export default function ProfitLossPage({
   accounts,
   defaultTxLogs,
   organizationId,
@@ -25,7 +25,7 @@ export default function AccountingHistoryPage({
   const [endDate, setEndDate] = useState(initialEndDate);
   const [txLogs, setTxLogs] = useState(defaultTxLogs);
   const [loading, setLoading] = useState(false);
-  const colTxLogs = column_setting_txlog();
+  const colTxLogs = column_setting_txlog(true);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,30 +39,17 @@ export default function AccountingHistoryPage({
 
   const transactionTypeGroups = [
     {
-      group: "ยอดเงินเข้า", items: [
+      group: "ยอดเงินเข้า (รายรับ)", items: [
         { id: "SALES", name: "ยอดขาย (SALES)" },
-        { id: "INCOME", name: "รายรับ (INCOME)" },
+        { id: "INCOME", name: "รายรับอื่นๆ (INCOME)" },
         { id: "AR_PAYMENT", name: "รับชำระหนี้ (AR_PAYMENT)" },
       ]
     },
     {
-      group: "ยอดเงินออก", items: [
-        { id: "EXPENSE", name: "รายจ่าย (EXPENSE)" },
+      group: "ยอดเงินออก (รายจ่าย)", items: [
+        { id: "EXPENSE", name: "ค่าใช้จ่าย (EXPENSE)" },
       ]
     },
-    {
-      group: "การโอนเงิน", items: [
-        { id: "TRANSFER_IN", name: "รับโอน (TRANSFER_IN)" },
-        { id: "TRANSFER_OUT", name: "โอนออก (TRANSFER_OUT)" },
-      ]
-    },
-    {
-      group: "การปรับแก้ระบบ", items: [
-        { id: "ADJUSTMENT_UP", name: "ปรับยอดเพิ่ม (ADJUSTMENT_UP)" },
-        { id: "ADJUSTMENT_DOWN", name: "ปรับยอดลด (ADJUSTMENT_DOWN)" },
-        { id: "OVERRIDE_BALANCE", name: "แก้ไขยอดสุทธิ (OVERRIDE_BALANCE)" },
-      ]
-    }
   ];
 
   const toggleTypeSelection = (id: string) => {
@@ -75,7 +62,7 @@ export default function AccountingHistoryPage({
     e.preventDefault();
     setLoading(true);
 
-    const res = await getFilteredTransactions({
+    const res = await getProfitLossTransactions({
       accountId: selectedAccountId,
       types: selectedTypes,
       startDate: startDate,
@@ -102,73 +89,96 @@ export default function AccountingHistoryPage({
     setTxLogs(defaultTxLogs);
   };
 
-const summary = useMemo(() => {
+  const summary = useMemo(() => {
     let income = 0;
     let expense = 0;
 
     txLogs.forEach((log: any) => {
-      const rawAmount = Number(log.amount) || 0;
-      const amt = Math.abs(rawAmount);
-      if (["SALES", "INCOME", "AR_PAYMENT", "TRANSFER_IN", "ADJUSTMENT_UP"].includes(log.type)) {
+      const amt = Math.abs(Number(log.amount) || 0);
+
+      if (["SALES", "INCOME", "AR_PAYMENT"].includes(log.type)) {
         income += amt;
       }
-      else if (["EXPENSE", "TRANSFER_OUT", "ADJUSTMENT_DOWN"].includes(log.type)) {
+      else if (["EXPENSE"].includes(log.type)) {
         expense += amt;
-      }
-      else if (log.type === "OVERRIDE_BALANCE") {
-        if (rawAmount > 0) {
-          income += amt;
-        } else if (rawAmount < 0) {
-          expense += amt;
-        }
       }
     });
 
     return { income, expense, net: income - expense };
   }, [txLogs]);
+
+  const sortedTxLogs = useMemo(() => {
+    if (!txLogs) return [];
+
+    const allowedTypes = ["SALES", "INCOME", "AR_PAYMENT", "EXPENSE"];
+    const filtered = txLogs.filter((log: any) => allowedTypes.includes(log.type));
+
+    return [...filtered].sort((a: any, b: any) => {
+      const dateA = new Date(a.date || a.createdAt).getTime();
+      const dateB = new Date(b.date || b.createdAt).getTime();
+      return dateB - dateA;
+    });
+  }, [txLogs]);
+
+  const getActualDateStr = (log: any) => {
+    const targetDate = log.date ? new Date(log.date) : new Date(log.createdAt);
+    return targetDate.toLocaleDateString("th-TH");
+  };
+
+  let tableSubtitle = "ตรวจสอบรายละเอียดรายรับ-รายจ่าย และผลกำไรขาดทุนแยกตามรายการธุรกรรม";
+  if (startDate && endDate) {
+    tableSubtitle = `รายการกำไร - ขาดทุน ตั้งแต่วันที่ ${new Date(startDate).toLocaleDateString("th-TH")} ถึง ${new Date(endDate).toLocaleDateString("th-TH")}`;
+  } else if (startDate) {
+    tableSubtitle = `รายการกำไร - ขาดทุน ตั้งแต่วันที่ ${new Date(startDate).toLocaleDateString("th-TH")} เป็นต้นไป`;
+  } else if (endDate) {
+    tableSubtitle = `รายการกำไร - ขาดทุน ถึงวันที่ ${new Date(endDate).toLocaleDateString("th-TH")}`;
+  }
+
   const handleExportCSV = () => {
-    if (txLogs.length === 0) {
+    if (sortedTxLogs.length === 0) {
       toast.warning("ไม่มีข้อมูลสำหรับส่งออก");
       return;
     }
-    const headers = ["วันที่/เวลา", "ชื่อรายการ", "ประเภท", "จำนวนเงิน", "ยอดคงเหลือหลังทำรายการ", "หมายเหตุ"];
-    const csvData = txLogs.map((log: any) => {
-      const date = new Date(log.createdAt).toLocaleString("th-TH");
+    const headers = ["วันที่เกิดรายการ", "วันที่บันทึกลงระบบ", "ชื่อรายการ", "ประเภท", "จำนวนเงิน", "หมายเหตุ"];
+    const csvData = sortedTxLogs.map((log: any) => {
+      const actualDate = getActualDateStr(log);
+      const systemDate = new Date(log.createdAt).toLocaleString("th-TH");
       const title = log.title || "-";
       const type = log.type || "-";
       const amount = log.amount || 0;
-      const balance = log.accountBalance || 0;
       const note = log.note || "-";
 
       return [
-        `"${date}"`,
+        `"${actualDate}"`,
+        `"${systemDate}"`,
         `"${title}"`,
         `"${type}"`,
         `"${amount}"`,
-        `"${balance}"`,
         `"${note}"`
       ].join(",");
     });
 
     const csvString = [headers.join(","), ...csvData].join("\n");
-    const bom = "\uFEFF"; 
+    const bom = "\uFEFF";
     const blob = new Blob([bom + csvString], { type: "text/csv;charset=utf-8;" });
 
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `Statement_${startDate}_ถึง_${endDate}.csv`);
+    link.setAttribute("download", `สรุปรายรับรายจ่าย_${startDate}_ถึง_${endDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success("ดาวน์โหลดไฟล์ CSV สำเร็จ");
   };
+
   const handleExportPDF = () => {
-    if (txLogs.length === 0) {
+    if (sortedTxLogs.length === 0) {
       toast.warning("ไม่มีข้อมูลสำหรับส่งออก");
       return;
     }
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast.error("กรุณาอนุญาตให้ Pop-up ทำงานเพื่อพิมพ์ PDF");
@@ -180,56 +190,15 @@ const summary = useMemo(() => {
       <html>
         <head>
           <meta charset="utf-8">
-          <title>Statement_${startDate}_ถึง_${endDate}</title>
+          <title>สรุปรายรับรายจ่าย_${startDate}_ถึง_${endDate}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
-            
-            /* ตั้งค่าพื้นฐานและสีพื้นหลังเหมือนเราดูในโปรแกรมอ่าน PDF */
-            body { 
-              font-family: 'Sarabun', sans-serif; 
-              color: #18181b; 
-              margin: 0; 
-              padding: 0;
-              background-color: #f4f4f5; 
-            }
-            
-            /* แถบเมนูด้านบน */
-            .action-bar {
-              background: #18181b;
-              padding: 15px 20px;
-              display: flex;
-              justify-content: flex-end;
-              gap: 10px;
-              position: sticky;
-              top: 0;
-              z-index: 100;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
-            .btn {
-              padding: 8px 16px;
-              border-radius: 6px;
-              border: none;
-              font-family: 'Sarabun', sans-serif;
-              font-weight: 600;
-              cursor: pointer;
-              font-size: 14px;
-              transition: background-color 0.2s;
-            }
+            body { font-family: 'Sarabun', sans-serif; color: #18181b; margin: 0; padding: 0; background-color: #f4f4f5; }
+            .action-bar { background: #18181b; padding: 15px 20px; display: flex; justify-content: flex-end; gap: 10px; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+            .btn { padding: 8px 16px; border-radius: 6px; border: none; font-family: 'Sarabun', sans-serif; font-weight: 600; cursor: pointer; font-size: 14px; transition: background-color 0.2s; }
             .btn-primary { background: #10b981; color: white; }
-            .btn-primary:hover { background: #059669; }
             .btn-secondary { background: #3f3f46; color: white; }
-            .btn-secondary:hover { background: #27272a; }
-
-            /* กรอบกระดาษ A4 จำลอง */
-            .page-container {
-              background: white;
-              max-width: 210mm;
-              margin: 30px auto;
-              padding: 40px;
-              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-              border-radius: 4px;
-            }
-            
+            .page-container { background: white; max-width: 210mm; margin: 30px auto; padding: 40px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 4px; }
             .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #e4e4e7; padding-bottom: 15px; }
             .header h2 { margin: 0 0 5px 0; font-size: 24px; color: #18181b; }
             .header p { margin: 0; font-size: 14px; color: #52525b; }
@@ -237,81 +206,59 @@ const summary = useMemo(() => {
             th, td { border: 1px solid #d4d4d8; padding: 10px 8px; text-align: left; }
             th { background-color: #f4f4f5; font-weight: bold; color: #18181b; }
             .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .summary-box {
-              display: flex;
-              justify-content: flex-end;
-              gap: 20px;
-              margin-top: 20px;
-              font-size: 14px;
-            }
-            .summary-item {
-              background-color: #f4f4f5;
-              padding: 10px 15px;
-              border-radius: 6px;
-              border: 1px solid #d4d4d8;
-              font-weight: bold;
-            }
+            .summary-box { display: flex; justify-content: flex-end; gap: 20px; margin-top: 20px; font-size: 14px; }
+            .summary-item { background-color: #f4f4f5; padding: 10px 15px; border-radius: 6px; border: 1px solid #d4d4d8; font-weight: bold; }
             .text-green { color: #16a34a; }
             .text-red { color: #dc2626; }
             .text-blue { color: #4f46e5; }
-            
-            /* 🔴 กฎพิเศษสำหรับตอนกด "พิมพ์ (Print)" 🔴 */
             @media print {
               @page { size: A4; margin: 15mm; }
               body { background-color: white; }
               .page-container { margin: 0; padding: 0; box-shadow: none; max-width: 100%; }
-              .action-bar { display: none !important; } /* ซ่อนแถบเมนูเวลากระดาษปริ้นออกมา */
+              .action-bar { display: none !important; }
             }
           </style>
         </head>
         <body>
-          
           <div class="action-bar no-print">
             <button class="btn btn-secondary" onclick="window.close()">ยกเลิก / ปิดหน้าต่าง</button>
             <button class="btn btn-primary" onclick="window.print()">🖨️ สั่งพิมพ์ / บันทึกเป็น PDF</button>
           </div>
-
           <div class="page-container">
             <div class="header">
-              <h2>รายงานรายการเดินบัญชี (Statement)</h2>
-              <p><strong>ช่วงเวลา:</strong> ${new Date(startDate).toLocaleDateString("th-TH")} ถึง ${new Date(endDate).toLocaleDateString("th-TH")}</p>
+              <h2>รายงานสรุปรายรับ-รายจ่าย (Profit & Loss)</h2>
+              <p><strong>รอบวันที่:</strong> ${new Date(startDate).toLocaleDateString("th-TH")} ถึง ${new Date(endDate).toLocaleDateString("th-TH")}</p>
             </div>
-            
             <table>
               <thead>
                 <tr>
-                  <th>วันที่/เวลา</th>
+                  <th>วันที่จ่ายจริง</th>
                   <th>ชื่อรายการ</th>
                   <th>ประเภท</th>
                   <th class="text-right">จำนวนเงิน</th>
-                  <th class="text-right">ยอดคงเหลือ</th>
                   <th>หมายเหตุ</th>
                 </tr>
               </thead>
               <tbody>
-                ${txLogs.map((log: any) => `
+                ${sortedTxLogs.map((log: any) => `
                   <tr>
-                    <td>${new Date(log.createdAt).toLocaleString("th-TH")}</td>
+                    <td>${getActualDateStr(log)}<br/><span style="font-size:10px; color:#a1a1aa;">(บันทึก: ${new Date(log.createdAt).toLocaleDateString("th-TH")})</span></td>
                     <td>${log.title || "-"}</td>
                     <td>${log.type || "-"}</td>
                     <td class="text-right ${["EXPENSE", "TRANSFER_OUT", "ADJUSTMENT_DOWN"].includes(log.type) ? "text-red" : "text-green"}">
-                      ${Number(log.amount).toLocaleString("th-TH", {minimumFractionDigits: 2})}
+                      ${Number(log.amount).toLocaleString("th-TH", { minimumFractionDigits: 2 })}
                     </td>
-                    <td class="text-right">${Number(log.accountBalance).toLocaleString("th-TH", {minimumFractionDigits: 2})}</td>
                     <td>${log.note || "-"}</td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
-
             <div class="summary-box">
-              <div class="summary-item">รวมเงินเข้า: <span class="text-green">${summary.income.toLocaleString("th-TH", {minimumFractionDigits: 2})} </span></div>
-              <div class="summary-item">รวมเงินออก: <span class="text-red">${summary.expense.toLocaleString("th-TH", {minimumFractionDigits: 2})} </span></div>
-              <div class="summary-item">ยอดสุทธิ: <span class="text-blue">${summary.net.toLocaleString("th-TH", {minimumFractionDigits: 2})} </span></div>
+              <div class="summary-item">รวมรายรับ: <span class="text-green">${summary.income.toLocaleString("th-TH", { minimumFractionDigits: 2 })} </span></div>
+              <div class="summary-item">รวมรายจ่าย: <span class="text-red">${summary.expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })} </span></div>
+              <div class="summary-item">กำไร/ขาดทุนสุทธิ: <span class="${summary.net >= 0 ? 'text-blue' : 'text-red'}">${summary.net >= 0 ? "" : "-"}${Math.abs(summary.net).toLocaleString("th-TH", { minimumFractionDigits: 2 })} </span></div>
             </div>
           </div>
-
         </body>
       </html>
     `;
@@ -325,11 +272,11 @@ const summary = useMemo(() => {
       <div className="w-full rounded-2xl border border-white/20 dark:border-zinc-700/50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl shadow-sm relative z-10">
         <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/50">
-            <History className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <LineChart className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">รายการเดินบัญชี (Statement)</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">ตรวจสอบประวัติธุรกรรมและยอดเงินไหลเข้า-ออกโดยละเอียด</p>
+            <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">สรุปรายรับ-รายจ่าย (ตามวันที่เกิดรายการจริง)</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">ดูผลประกอบการ กำไร-ขาดทุน อิงตามวันที่จ่ายจริงบนบิลค่าน้ำ ค่าไฟ หรือเอกสารอื่นๆ</p>
           </div>
         </div>
 
@@ -338,7 +285,7 @@ const summary = useMemo(() => {
             <div className="space-y-2">
               <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">เลือกบัญชี</label>
               <select
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 dark:bg-zinc-950 dark:border-zinc-800"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 dark:bg-zinc-950 dark:border-zinc-800 cursor-pointer"
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
                 disabled={loading}
@@ -410,14 +357,14 @@ const summary = useMemo(() => {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">ตั้งแต่วันที่</label>
+              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">ตั้งแต่วันที่ (จ่ายจริง)</label>
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 disabled={loading}
-                className="h-10 cursor-pointer"
+                className="h-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
               />
             </div>
             <div className="space-y-2">
@@ -428,7 +375,7 @@ const summary = useMemo(() => {
                 onChange={(e) => setEndDate(e.target.value)}
                 onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 disabled={loading}
-                className="h-10 cursor-pointer"
+                className="h-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
               />
             </div>
             <div className="flex gap-2">
@@ -442,11 +389,12 @@ const summary = useMemo(() => {
           </div>
         </form>
       </div>
-      {txLogs.length > 0 && (
+
+      {sortedTxLogs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">รวมเงินเข้า (Inflow)</p>
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">รวมรายรับ</p>
               <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
                 {summary.income.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
               </p>
@@ -457,7 +405,7 @@ const summary = useMemo(() => {
           </div>
           <div className="rounded-xl border border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">รวมเงินออก (Outflow)</p>
+              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">รวมรายจ่าย</p>
               <p className="text-2xl font-black text-rose-700 dark:text-rose-300">
                 {summary.expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
               </p>
@@ -466,10 +414,9 @@ const summary = useMemo(() => {
               <TrendingDown className="h-6 w-6 text-rose-600 dark:text-rose-400" />
             </div>
           </div>
-
           <div className="rounded-xl border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">ยอดสุทธิ (Net)</p>
+              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">กำไร / ขาดทุนสุทธิ</p>
               <p className={`text-2xl font-black ${summary.net >= 0 ? "text-indigo-700 dark:text-indigo-300" : "text-rose-600 dark:text-rose-400"}`}>
                 {summary.net >= 0 ? "" : "-"}{Math.abs(summary.net).toLocaleString("th-TH", { minimumFractionDigits: 2 })}
               </p>
@@ -480,41 +427,33 @@ const summary = useMemo(() => {
           </div>
         </div>
       )}
+
       <div className="w-full rounded-2xl border border-white/20 dark:border-zinc-700/50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl shadow-sm overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/50">
           <div>
-            <h3 className="font-bold text-zinc-800 dark:text-zinc-100">รายการธุรกรรมที่ค้นพบ</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">พบข้อมูลทั้งหมด {txLogs.length} รายการ ตามเงื่อนไขที่คุณเลือก</p>
+            <h3 className="font-bold text-zinc-800 dark:text-zinc-100">รายการธุรกิจ</h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">เรียงลำดับตามวันที่เกิดรายการจริงก่อน</p>
           </div>
+
           <div className="flex gap-2">
-            <Button 
-              onClick={handleExportCSV} 
-              disabled={txLogs.length === 0}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm h-9 px-4 rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Download className="w-4 h-4" />
-              ส่งออก CSV
+            <Button onClick={handleExportCSV} disabled={sortedTxLogs.length === 0} className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm h-9 px-4 rounded-lg flex items-center gap-2 transition-all">
+              <Download className="w-4 h-4" /> ส่งออก CSV
             </Button>
-            <Button 
-              onClick={handleExportPDF} 
-              disabled={txLogs.length === 0}
-              className="bg-zinc-800 hover:bg-zinc-700 text-white shadow-sm h-9 px-4 rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Printer className="w-4 h-4" />
-              พิมพ์รายงาน / PDF
+            <Button onClick={handleExportPDF} disabled={sortedTxLogs.length === 0} className="bg-zinc-800 hover:bg-zinc-700 text-white shadow-sm h-9 px-4 rounded-lg flex items-center gap-2 transition-all">
+              <Printer className="w-4 h-4" /> พิมพ์รายงาน / PDF
             </Button>
           </div>
         </div>
-        <div className="p-4">
+
+        <div className="p-4 flex-1">
           <Data_table_setting_txlog
             columns={colTxLogs}
-            data={txLogs}
-            title="ประวัติธุรกรรมและรายการเดินบัญชี"
-            subtitle="ตรวจสอบประวัติการทำธุรกรรมเงินเข้า-ออกระบบทั้งหมด"
+            data={sortedTxLogs}
+            title="ตารางแสดงรายการกำไร - ขาดทุน"
+            subtitle={tableSubtitle}
           />
         </div>
       </div>
-
     </div>
   );
 }

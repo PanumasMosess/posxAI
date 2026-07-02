@@ -36,6 +36,7 @@ export const createAccount = async (data: {
             title: "ยอดยกมาตั้งต้น",
             note: "กำหนดเงินตั้งต้นตอนสร้างบัญชี",
             createdById: data.createdById,
+            date: new Date(),
           },
         });
       }
@@ -125,6 +126,7 @@ export const adjustAccountBalance = async (
           title: mode === "OVERRIDE" ? "ปรับแก้ไขยอดเงินในบัญชี" : mode === "ADD" ? "เพิ่มเงินในบัญชี" : "ลดเงินในบัญชี",
           note,
           createdById,
+          date: new Date(),
         },
       });
     });
@@ -170,6 +172,7 @@ export const transferMoney = async (
         data: {
           organizationId, accountId: fromAccountId, type: "TRANSFER_OUT", amount, accountBalance: fromNewBalance,
           title: `โอนเงินไป ${toAcc.accountName}`, note, createdById,
+          date: new Date(),
         },
       });
 
@@ -178,6 +181,7 @@ export const transferMoney = async (
         data: {
           organizationId, accountId: toAccountId, type: "TRANSFER_IN", amount, accountBalance: toNewBalance,
           title: `รับเงินโอนจาก ${fromAcc.accountName}`, note, createdById, transferPairId: txOut.id,
+          date: new Date(),
         },
       });
 

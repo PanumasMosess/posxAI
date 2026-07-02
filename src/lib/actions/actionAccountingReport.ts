@@ -8,33 +8,53 @@ export const getAccountingReportData = async (filters: {
   organizationId: number;
 }) => {
   try {
-    const start = new Date(`${filters.startDate}T00:00:00.000Z`);
-    const end = new Date(`${filters.endDate}T23:59:59.999Z`);
+    const start = new Date(`${filters.startDate}T00:00:00+07:00`);
+    const end = new Date(`${filters.endDate}T23:59:59+07:00`);
 
-    // 1. ดึงข้อมูลธุรกรรมทั้งหมดในช่วงเวลา (สำหรับกน้ากราฟและยอด Summary หลัก)
     const txLogs = await prisma.account_transaction.findMany({
       where: {
         organizationId: filters.organizationId,
-        createdAt: { gte: start, lte: end },
+        OR: [
+          { date: { gte: start, lte: end } },
+          { date: null, createdAt: { gte: start, lte: end } } // Fallback สำหรับบิลเก่าที่ไม่มี date
+        ]
       },
-      include: { category: { select: { name: true } } },
-      orderBy: { createdAt: "asc" },
+      include: { 
+        category: { select: { name: true } },
+        account: { select: { accountName: true } }
+      },
+      orderBy: [
+        { date: "asc" },
+        { createdAt: "asc" }
+      ],
     });
 
-    // 2. ตัวแปรเก็บสรุปยอดรวม (Summary Cards)
     let totalIncome = 0;
     let totalExpense = 0;
     let totalARPayment = 0;
 
-    // 3. เตรียมตัวแปรสำหรับกราฟ
     const dailyDataMap = new Map<string, { date: string; income: number; expense: number }>();
     const expenseCategoryMap = new Map<string, number>();
+    const rawTransactions: any[] = [];
 
     txLogs.forEach((tx) => {
       const rawAmount = Number(tx.amount);
       const amount = Math.abs(rawAmount); 
 
-      const dateKey = tx.createdAt.toISOString().split("T")[0]; // YYYY-MM-DD
+      const actualDate = tx.date || tx.createdAt;
+      const localDate = new Date(actualDate.getTime() + 7 * 60 * 60 * 1000);
+      const dateKey = localDate.toISOString().split("T")[0];
+      const catName = tx.category?.name || "ไม่ระบุหมวดหมู่";
+      
+      rawTransactions.push({
+        id: tx.id,
+        date: actualDate.toISOString(),
+        type: tx.type,
+        categoryName: catName,
+        title: tx.title || tx.note || catName || "ไม่มีบันทึกย่อ",
+        accountName: tx.account?.accountName || "ไม่ระบุบัญชี",
+        amount: amount
+      });
 
       if (!dailyDataMap.has(dateKey)) {
         dailyDataMap.set(dateKey, { date: dateKey, income: 0, expense: 0 });
@@ -52,7 +72,6 @@ export const getAccountingReportData = async (filters: {
         totalExpense += amount;
         dailyDataMap.get(dateKey)!.expense += amount;
 
-        const catName = tx.category?.name || "ไม่ระบุหมวดหมู่";
         expenseCategoryMap.set(catName, (expenseCategoryMap.get(catName) || 0) + amount);
       }
     });
@@ -66,8 +85,6 @@ export const getAccountingReportData = async (filters: {
       select: { accountName: true, balance: true },
     });
 
-    // 🟢 5. 💰 คำนวณ "ยอดหนี้ค้างรับรวมปัจจุบัน (Outstanding AR)" จากตารางธุรกรรมสมาชิกจริง
-    // ดึงประวัติ CREDIT ทั้งหมดของสาขานี้มาคำนวณแยกรายบุคคลแบบมีประสิทธิภาพ
     const memberTxs = await prisma.membertransaction.findMany({
       where: {
         organizationId: filters.organizationId,
@@ -81,7 +98,6 @@ export const getAccountingReportData = async (filters: {
       }
     });
 
-    // ใช้ Map เพื่อจับกลุ่มคำนวณยอดสุทธิสุทธิแยกรายบุคคล
     const debtorMap = new Map<number, number>();
 
     memberTxs.forEach((tx) => {
@@ -89,15 +105,12 @@ export const getAccountingReportData = async (filters: {
       const amountValue = Number(tx.amount);
 
       if (tx.type === "SPEND") {
-        // ยอดเซ็นยืมหน้าร้าน (มีค่าเป็นลบในระบบ จึงใช้ Math.abs บวกรวมเป็นยอดหนี้)
         debtorMap.set(tx.memberId, currentDebt + Math.abs(amountValue));
       } else if (tx.type === "TOPUP") {
-        // ยอดที่นำเงินสดมารายงานชำระหนี้คืนร้าน (ลดยอดหนี้ลง)
         debtorMap.set(tx.memberId, currentDebt - amountValue);
       }
     });
 
-    // รวมยอดเฉพาะสมาชิกที่ยังคงมียอดหนี้ค้างจ่าย (ยอดหนี้สุทธิ > 0)
     let totalOutstandingAR = 0;
     debtorMap.forEach((finalDebt) => {
       if (finalDebt > 0) {
@@ -112,6 +125,7 @@ export const getAccountingReportData = async (filters: {
         dailyChartData,
         expenseCategoryData,
         accounts,
+        transactions: rawTransactions
       },
     };
   } catch (err: any) {

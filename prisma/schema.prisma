@@ -514,6 +514,7 @@ model membertransaction {
   referenceTxId  Int?            // ระบุว่าจ่ายให้ transaction(SPEND) ID ไหน
   paymentGroupId String?         // ใช้จับกลุ่มสลิป/การรับเงินในรอบเดียวกัน
 
+  date           DateTime?
   memberId Int
   member   member @relation(fields: [memberId], references: [id])
 
@@ -695,6 +696,8 @@ model account_transaction {
   createdById    Int // พนักงานผู้ทำรายการ
 
   transferPairId Int? // กรณีโอนเงิน: ผูก ID ของรายการโอนฝั่งตรงข้าม
+
+  date      DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

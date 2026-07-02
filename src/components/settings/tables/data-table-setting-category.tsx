@@ -71,7 +71,7 @@ export function Data_table_setting_category<TData, TValue>({
           </div>
           <div className="flex flex-col">
             <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">หมวดหมู่รายรับ-รายจ่าย</h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">จัดการหมวดหมู่สำหรับลงบันทึกบัญชี</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">แสดงรายการหมวดหมู่รายรับและรายจ่ายทั้งหมดในระบบ</p>
           </div>
         </div>
 
