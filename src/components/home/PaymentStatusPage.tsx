@@ -70,6 +70,7 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "../payments/PaymentMethodsPanel";
+import SplitTenderPanel from "../payments/SplitTenderPanel";
 import { useUser } from "../providers/UserContext";
 import { checkActiveShift } from "@/lib/actions/actionShift";
 import { OpenShiftModal } from "../forms/OpenShiftModal";
@@ -84,9 +85,10 @@ const PaymentStatusPage = ({
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const [accounts, setAccounts] = useState<any[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
+  const [selectedAccountId, setSelectedAccountId] = useState<
+    number | undefined
+  >(undefined);
 
-  // State สำหรับเก็บรายการอาหารที่ถูกเลือกเพื่อชำระเงิน
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   const [paymentMethod, setPaymentMethod] = useState<
@@ -94,6 +96,10 @@ const PaymentStatusPage = ({
   >("CASH");
   const [qrType, setQrType] = useState<"THAI" | "LAO">("LAO");
   const [cashReceived, setCashReceived] = useState("0");
+
+  const [isSplitTender, setIsSplitTender] = useState(false);
+  const [splitTenders, setSplitTenders] = useState<any[]>([]);
+
   const [discount, setDiscount] = useState("0");
   const [memberPhone, setMemberPhone] = useState("");
   const [memberData, setMemberData] = useState<any>(null);
@@ -114,7 +120,6 @@ const PaymentStatusPage = ({
       const res = await getActiveAccounts(organizationId);
       if (res.success && res.data) {
         setAccounts(res.data);
-        // เลือกลำดับแรกให้เป็น Default อัตโนมัติ (เพื่อความไวของพนักงาน)
         if (res.data.length > 0) setSelectedAccountId(res.data[0].id);
       }
     };
@@ -123,28 +128,25 @@ const PaymentStatusPage = ({
 
   useEffect(() => {
     const savedPrinter = localStorage.getItem("receipt_preferred_printer");
-    if (savedPrinter) {
-      setSelectedPrinter(savedPrinter);
-    }
+    if (savedPrinter) setSelectedPrinter(savedPrinter);
     const savedAutoPrint =
       localStorage.getItem("receipt_auto_print") === "true";
     setIsAutoPrint(savedAutoPrint);
   }, []);
 
-  // เมื่อเลือกบิลใหม่ ให้ Default เป็นการ "เลือกทุกรายการ" เพื่อจ่ายทั้งหมด
   useEffect(() => {
     setCashReceived("0");
     setDiscount("0");
     setMemberPhone("");
     setMemberData(null);
+    setIsSplitTender(false);
     if (selectedOrder) {
       setSelectedItemIds(selectedOrder.items.map((i: any) => i.id));
     } else {
       setSelectedItemIds([]);
     }
-  }, [selectedOrder, paymentMethod]);
+  }, [selectedOrder]);
 
-  // คำนวณยอดเงินเฉพาะรายการที่ "ถูกเลือก (ติ๊กถูก)" เท่านั้น
   const originalTotal = useMemo(() => {
     if (!selectedOrder) return 0;
     return selectedOrder.items
@@ -158,7 +160,20 @@ const PaymentStatusPage = ({
   const change = parseFloat(cashReceived || "0") - finalTotal;
   const isCashSufficient = change >= 0;
 
-  // ฟังก์ชันสำหรับสลับการเลือกรายการอาหาร
+  useEffect(() => {
+    if (isSplitTender) {
+      setSplitTenders([
+        { id: Date.now().toString(), method: "CASH", amount: 0 },
+      ]);
+    }
+  }, [finalTotal, isSplitTender]);
+
+  const totalSplitAmount = useMemo(() => {
+    return splitTenders.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [splitTenders]);
+
+  const splitRemaining = finalTotal - totalSplitAmount;
+
   const toggleItemSelection = (itemId: string) => {
     setSelectedItemIds((prev) =>
       prev.includes(itemId)
@@ -179,14 +194,10 @@ const PaymentStatusPage = ({
   };
 
   const handleCheckMember = async () => {
-    if (memberPhone.length < 9) {
-      toast.warn("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง");
-      return;
-    }
-
+    if (memberPhone.length < 9)
+      return toast.warn("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง");
     setIsLoadingMember(true);
     const result = await getMemberByPhone(memberPhone, organizationId);
-
     if (result && result.success) {
       setMemberData(result.data);
       toast.success("พบข้อมูลสมาชิก");
@@ -198,27 +209,34 @@ const PaymentStatusPage = ({
   };
 
   const handleNumpadClick = (value: string) => {
-    if (value === "C") {
-      setCashReceived("0");
-    } else if (value === "BACKSPACE") {
+    if (value === "C") setCashReceived("0");
+    else if (value === "BACKSPACE")
       setCashReceived((prev) => (prev.length > 1 ? prev.slice(0, -1) : "0"));
-    } else if (value === ".") {
-      if (!cashReceived.includes(".")) {
-        setCashReceived((prev) => prev + ".");
-      }
-    } else {
-      setCashReceived((prev) => (prev === "0" ? value : prev + value));
-    }
+    else if (value === ".") {
+      if (!cashReceived.includes(".")) setCashReceived((prev) => prev + ".");
+    } else setCashReceived((prev) => (prev === "0" ? value : prev + value));
   };
 
-  const handleQuickAmount = (amount: number) => {
+  const handleQuickAmount = (amount: number) =>
     setCashReceived((prev) => String((Number(prev) || 0) + amount));
+  const handleExactAmount = () => {
+    if (selectedOrder) setCashReceived(finalTotal.toString());
   };
 
-  const handleExactAmount = () => {
-    if (selectedOrder) {
-      setCashReceived(finalTotal.toString());
-    }
+  const updateSplitTender = (id: string, field: string, value: any) => {
+    setSplitTenders((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
+    );
+  };
+  const removeSplitTender = (id: string) => {
+    setSplitTenders((prev) => prev.filter((t) => t.id !== id));
+  };
+  const addSplitTender = () => {
+    const remain = Math.max(0, splitRemaining);
+    setSplitTenders((prev) => [
+      ...prev,
+      { id: Date.now().toString(), method: "QR", amount: remain },
+    ]);
   };
 
   const initQZSecurity = () => {
@@ -230,7 +248,6 @@ const PaymentStatusPage = ({
         })
         .catch(reject);
     });
-
     qz.security.setSignaturePromise((toSign: string) => {
       return function (resolve: any, reject: any) {
         signDataWithS3Key(toSign, organizationId.toString())
@@ -245,12 +262,8 @@ const PaymentStatusPage = ({
 
   const groupedOrders = useMemo(() => {
     const groups: { [key: string]: any } = {};
-
     initialItems.forEach((order: any) => {
-      if (order.status !== "COMPLETED") {
-        return;
-      }
-
+      if (order.status !== "COMPLETED") return;
       const key =
         order.table?.tableName || order.tableId || `ORDER-${order.id}`;
 
@@ -271,7 +284,6 @@ const PaymentStatusPage = ({
           allOrderIds: [],
         };
       }
-
       groups[key].allOrderIds.push(order.id);
 
       if (order.orderitems && Array.isArray(order.orderitems)) {
@@ -279,16 +291,12 @@ const PaymentStatusPage = ({
           if (groups[key].items.length === 0 && item.menu?.unitPrice?.label) {
             groups[key].currency = item.menu.unitPrice.label;
           }
-
           let modifiersTotal = 0;
-
           const modifiersText = item.selectedModifiers
             ?.map((m: any) => {
               const price = m.price || 0;
               modifiersTotal += price;
-              if (price > 0) {
-                return `${m.modifierItem?.name} (+${price})`;
-              }
+              if (price > 0) return `${m.modifierItem?.name} (+${price})`;
               return m.modifierItem?.name;
             })
             .join(", ");
@@ -296,7 +304,6 @@ const PaymentStatusPage = ({
           const displayName = modifiersText
             ? `${item.menu?.menuName} (${modifiersText})`
             : item.menu?.menuName;
-
           const basePrice = item.menu?.price_sale || 0;
           const finalUnitPrice = basePrice + modifiersTotal;
           const totalPriceForItem = finalUnitPrice * item.quantity;
@@ -315,7 +322,6 @@ const PaymentStatusPage = ({
         });
       }
     });
-
     return Object.values(groups);
   }, [initialItems, organizationId]);
 
@@ -330,7 +336,6 @@ const PaymentStatusPage = ({
     setIsLoadingPrinters(true);
     try {
       initQZSecurity();
-
       if (!qz.websocket.isActive()) {
         try {
           await qz.websocket.connect();
@@ -341,10 +346,8 @@ const PaymentStatusPage = ({
           await qz.websocket.connect();
         }
       }
-
       const printers = await qz.printers.find();
       setPrinterList(printers);
-
       if (!selectedPrinter && printers.length > 0) {
         try {
           const def = await qz.printers.getDefault();
@@ -394,10 +397,12 @@ const PaymentStatusPage = ({
         subTotal: originalTotal,
         discount: discountAmount,
         currency: orderData.currency,
-        paymentMethod: paymentMethod,
+        paymentMethod: isSplitTender ? "แบ่งจ่ายหลายช่องทาง" : paymentMethod,
         cashReceived:
-          paymentMethod === "CASH" ? parseFloat(cashReceived) : undefined,
-        change: paymentMethod === "CASH" ? change : undefined,
+          !isSplitTender && paymentMethod === "CASH"
+            ? parseFloat(cashReceived)
+            : undefined,
+        change: !isSplitTender && paymentMethod === "CASH" ? change : undefined,
         shopName: organizationName,
         staffName: employeeName,
       };
@@ -407,12 +412,8 @@ const PaymentStatusPage = ({
         selectedPrinter,
         organizationId,
       );
-
-      if (result.success) {
-        toast.success("พิมพ์ใบเสร็จเรียบร้อย");
-      } else {
-        toast.error("พิมพ์ไม่สำเร็จ: " + result.message);
-      }
+      if (result.success) toast.success("พิมพ์ใบเสร็จเรียบร้อย");
+      else toast.error("พิมพ์ไม่สำเร็จ: " + result.message);
     } catch (error) {
       console.error(error);
       toast.error("เกิดข้อผิดพลาดในการพิมพ์");
@@ -423,29 +424,22 @@ const PaymentStatusPage = ({
 
   const handlePayment = async () => {
     if (!selectedOrder) return;
-    if (selectedItemIds.length === 0) {
-      toast.warn("กรุณาเลือกรายการที่ต้องการชำระเงิน");
-      return;
-    }
+    if (selectedItemIds.length === 0)
+      return toast.warn("กรุณาเลือกรายการที่ต้องการชำระเงิน");
 
-    if (paymentMethod === "CASH" && !isCashSufficient) {
-      toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
-      return;
-    }
-
-    // if (["CASH", "QR"].includes(paymentMethod) && !selectedAccountId) {
-    //   toast.error("กรุณาเลือก บัญชีรับเงิน ก่อนทำรายการครับ");
-    //   return;
-    // }
-
-    if (paymentMethod === "MEMBER") {
-      if (!memberData) {
-        toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
-        return;
-      }
-      if (memberData.creditBalance < finalTotal) {
-        toast.error("เครดิตร้านค้าของสมาชิกไม่เพียงพอ");
-        return;
+    if (isSplitTender) {
+      if (splitRemaining !== 0)
+        return toast.error(
+          `ยอดแบ่งจ่ายไม่ครบ! ขาดอีก ${splitRemaining.toLocaleString()}`,
+        );
+    } else {
+      if (paymentMethod === "CASH" && !isCashSufficient)
+        return toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
+      if (paymentMethod === "MEMBER") {
+        if (!memberData)
+          return toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการ");
+        if (memberData.creditBalance < finalTotal)
+          return toast.error("เครดิตร้านค้าของสมาชิกไม่เพียงพอ");
       }
     }
 
@@ -459,37 +453,71 @@ const PaymentStatusPage = ({
       return;
     }
 
-    // 🟢 ดึงเฉพาะ Order ID ของรายการที่คุณ "ติ๊กเลือก" เท่านั้น
     const paidOrderIds = selectedOrder.items
       .filter((i: any) => selectedItemIds.includes(i.id))
       .map((i: any) => i.orderId);
 
-    const paymentPayload = {
-      orderId: selectedOrder.runningCode,
-      table: selectedOrder.table,
-      tableId: selectedOrder.tableId,
-      paymentMethod: paymentMethod,
-      accountId: selectedAccountId,
-      totalAmount: finalTotal,
-      discount: discountAmount,
-      createdById: employeeId,
-      organizationId: organizationId,
-      cashReceived:
-        paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
-      change: paymentMethod === "CASH" ? change : 0,
-      memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
-      shiftId: activeShift.id,
-      // 🟢 ส่ง Array ของ Order ID ไปให้หลังบ้านเปลี่ยนสถานะ
-      paidOrderIds: Array.from(new Set(paidOrderIds)),
-    };
+    const uniquePaidOrderIds = Array.from(new Set(paidOrderIds));
+    let isAllSuccess = true;
 
-    const create_status = await createPaymentOrder(paymentPayload);
+    if (isSplitTender) {
+      for (let i = 0; i < splitTenders.length; i++) {
+        const tender = splitTenders[i];
 
-    if (create_status.success) {
+        const payload = {
+          orderId: selectedOrder.runningCode,
+          table: selectedOrder.table,
+          tableId: selectedOrder.tableId,
+          paymentMethod: tender.method,
+          accountId: selectedAccountId,
+          totalAmount: Number(tender.amount),
+          discount: i === 0 ? discountAmount : 0,
+          createdById: employeeId,
+          organizationId: organizationId,
+          cashReceived: Number(tender.amount),
+          change: 0,
+          memberPhone: tender.method === "MEMBER" ? memberPhone : undefined,
+          shiftId: activeShift.id,
+          paidOrderIds: uniquePaidOrderIds,
+        };
+
+        const res = await createPaymentOrder(payload);
+        if (!res.success) {
+          isAllSuccess = false;
+          toast.error(`บันทึกยอด ${tender.method} ล้มเหลว: ${res.message}`);
+          break;
+        }
+      }
+    } else {
+      const payload = {
+        orderId: selectedOrder.runningCode,
+        table: selectedOrder.table,
+        tableId: selectedOrder.tableId,
+        paymentMethod: paymentMethod,
+        accountId: selectedAccountId,
+        totalAmount: finalTotal,
+        discount: discountAmount,
+        createdById: employeeId,
+        organizationId: organizationId,
+        cashReceived:
+          paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
+        change: paymentMethod === "CASH" ? change : 0,
+        memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
+        shiftId: activeShift.id,
+        paidOrderIds: uniquePaidOrderIds,
+      };
+
+      const res = await createPaymentOrder(payload);
+      if (!res.success) {
+        isAllSuccess = false;
+        toast.error(res.message || "ไม่สามารถบันทึกข้อมูลการรับเงินได้");
+      }
+    }
+
+    if (isAllSuccess) {
       try {
         const isPayingAllItems =
           selectedItemIds.length === selectedOrder.items.length;
-
         if (isPayingAllItems) {
           await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
           toast.success("ชำระเงินครบถ้วน เคลียร์โต๊ะเรียบร้อย!");
@@ -499,23 +527,18 @@ const PaymentStatusPage = ({
           );
         }
 
-        if (isAutoPrint) {
-          handlePrintReceipt(selectedOrder);
-        }
+        if (isAutoPrint) handlePrintReceipt(selectedOrder);
 
         setSelectedOrder(null);
         setSelectedItemIds([]);
         setCashReceived("0");
         setDiscount("0");
+        setIsSplitTender(false);
         router.refresh();
       } catch (updateError) {
         console.error("เกิดข้อผิดพลาดตอนอัปเดตสถานะ:", updateError);
         toast.error("บันทึกเงินสำเร็จ แต่อัปเดตสถานะโต๊ะล้มเหลว");
       }
-    } else {
-      toast.error(
-        create_status.message || "ไม่สามารถบันทึกข้อมูลการรับเงินได้",
-      );
     }
 
     setIsProcessing(false);
@@ -528,9 +551,7 @@ const PaymentStatusPage = ({
       for (const orderId of selectedOrder.allOrderIds) {
         await updateStatusOrder(orderId, "CANCELLED");
       }
-
       await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
-
       toast.success("ยกเลิกบิลเรียบร้อยแล้ว");
       setSelectedOrder(null);
       router.refresh();
@@ -641,9 +662,7 @@ const PaymentStatusPage = ({
                         disabled={isLoadingPrinters}
                       >
                         <RefreshCcw
-                          className={`h-4 w-4 ${
-                            isLoadingPrinters ? "animate-spin" : ""
-                          }`}
+                          className={`h-4 w-4 ${isLoadingPrinters ? "animate-spin" : ""}`}
                         />
                       </Button>
                     </div>
@@ -707,14 +726,11 @@ const PaymentStatusPage = ({
                             </h3>
                           </div>
                           <Badge
-                            className={`
-                            font-mono font-medium
-                            ${
+                            className={`font-mono font-medium ${
                               isSelected
                                 ? "bg-zinc-800 text-zinc-300 dark:bg-zinc-200 dark:text-zinc-700"
                                 : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                            }
-                          `}
+                            }`}
                           >
                             <Clock className="h-3 w-3 mr-1" />
                             {order.time}
@@ -724,21 +740,14 @@ const PaymentStatusPage = ({
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <div
-                              className={`
-                              h-8 w-8 rounded-full flex items-center justify-center
-                              ${
+                              className={`h-8 w-8 rounded-full flex items-center justify-center ${
                                 isSelected
                                   ? "bg-zinc-800 dark:bg-zinc-200"
                                   : "bg-blue-50 dark:bg-blue-900/20"
-                              }
-                            `}
+                              }`}
                             >
                               <Utensils
-                                className={`h-4 w-4 ${
-                                  isSelected
-                                    ? "text-white dark:text-black"
-                                    : "text-blue-500"
-                                }`}
+                                className={`h-4 w-4 ${isSelected ? "text-white dark:text-black" : "text-blue-500"}`}
                               />
                             </div>
                             <span
@@ -760,9 +769,7 @@ const PaymentStatusPage = ({
                           />
                           <div className="flex justify-between items-end">
                             <span
-                              className={`text-xs ${
-                                isSelected ? "text-zinc-400" : "text-zinc-400"
-                              }`}
+                              className={`text-xs ${isSelected ? "text-zinc-400" : "text-zinc-400"}`}
                             >
                               ยอดสุทธิ
                             </span>
@@ -771,9 +778,7 @@ const PaymentStatusPage = ({
                                 {order.total.toLocaleString()}
                               </span>
                               <span
-                                className={`text-xs ml-1 ${
-                                  isSelected ? "text-zinc-500" : "text-zinc-400"
-                                }`}
+                                className={`text-xs ml-1 ${isSelected ? "text-zinc-500" : "text-zinc-400"}`}
                               >
                                 {order.currency}
                               </span>
@@ -793,6 +798,7 @@ const PaymentStatusPage = ({
         </main>
       </div>
 
+      {/* RIGHT: Payment Sidebar */}
       <AnimatePresence mode="wait">
         {selectedOrder && (
           <motion.div
@@ -801,11 +807,7 @@ const PaymentStatusPage = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="
-              fixed inset-y-0 right-0 z-50 w-full sm:w-[500px]
-              bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl
-              flex flex-col
-            "
+            className="fixed inset-y-0 right-0 z-50 w-full sm:w-[500px] bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col"
           >
             <div className="h-16 px-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
               <div className="flex items-center gap-3">
@@ -845,9 +847,34 @@ const PaymentStatusPage = ({
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <div className="p-5 space-y-5 pb-10">
-                <div className="text-center relative pt-2 pb-4">
-                  <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-900 rounded-3xl -z-10 transform -skew-y-2" />
+              <div className="space-y-5 pb-10">
+                {/* Toggle Mode: จ่ายช่องทางเดียว / แบ่งจ่ายหลายช่องทาง */}
+                <div className="px-5 pt-5">
+                  <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl">
+                    <button
+                      className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${
+                        !isSplitTender
+                          ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white"
+                          : "text-zinc-500 hover:text-zinc-700"
+                      }`}
+                      onClick={() => setIsSplitTender(false)}
+                    >
+                      จ่ายช่องทางเดียว
+                    </button>
+                    <button
+                      className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${
+                        isSplitTender
+                          ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white"
+                          : "text-zinc-500 hover:text-zinc-700"
+                      }`}
+                      onClick={() => setIsSplitTender(true)}
+                    >
+                      แบ่งจ่ายหลายช่องทาง
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-center relative px-5">
                   <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-1">
                     ยอดที่เลือกชำระ (Total)
                   </p>
@@ -868,33 +895,48 @@ const PaymentStatusPage = ({
                   </div>
                 </div>
 
-                <PaymentMethodsPanel
-                  paymentMethod={paymentMethod}
-                  setPaymentMethod={setPaymentMethod}
-                  qrType={qrType}
-                  setQrType={setQrType}
-                  finalTotal={finalTotal}
-                  change={change}
-                  cashReceived={cashReceived}
-                  setCashReceived={setCashReceived}
-                  discount={discount}
-                  setDiscount={setDiscount}
-                  memberPhone={memberPhone}
-                  setMemberPhone={setMemberPhone}
-                  currency={selectedOrder.currency}
-                  handleNumpadClick={handleNumpadClick}
-                  handleExactAmount={handleExactAmount}
-                  handleQuickAmount={handleQuickAmount}
-                  memberData={memberData}
-                  setMemberData={setMemberData}
-                  isLoadingMember={isLoadingMember}
-                  handleCheckMember={handleCheckMember}
-                  accounts={accounts}
-                  selectedAccountId={selectedAccountId}
-                  setSelectedAccountId={setSelectedAccountId}
-                />
+                {/* 🟢 เรียกใช้ UI ตาม Mode */}
+                {!isSplitTender ? (
+                  <div className="px-5">
+                    <PaymentMethodsPanel
+                      paymentMethod={paymentMethod}
+                      setPaymentMethod={setPaymentMethod}
+                      qrType={qrType}
+                      setQrType={setQrType}
+                      finalTotal={finalTotal}
+                      change={change}
+                      cashReceived={cashReceived}
+                      setCashReceived={setCashReceived}
+                      discount={discount}
+                      setDiscount={setDiscount}
+                      memberPhone={memberPhone}
+                      setMemberPhone={setMemberPhone}
+                      currency={selectedOrder.currency}
+                      handleNumpadClick={handleNumpadClick}
+                      handleExactAmount={handleExactAmount}
+                      handleQuickAmount={handleQuickAmount}
+                      memberData={memberData}
+                      setMemberData={setMemberData}
+                      isLoadingMember={isLoadingMember}
+                      handleCheckMember={handleCheckMember}
+                      accounts={accounts}
+                      selectedAccountId={selectedAccountId}
+                      setSelectedAccountId={setSelectedAccountId}
+                    />
+                  </div>
+                ) : (
+                  // 🟢 Component แบ่งจ่ายที่แยกไฟล์มาแล้ว
+                  <SplitTenderPanel
+                    splitTenders={splitTenders}
+                    splitRemaining={splitRemaining}
+                    currency={selectedOrder.currency}
+                    updateSplitTender={updateSplitTender}
+                    removeSplitTender={removeSplitTender}
+                    addSplitTender={addSplitTender}
+                  />
+                )}
 
-                <div>
+                <div className="px-5">
                   <div className="flex items-center justify-between mb-2 px-1">
                     <p className="text-[10px] font-bold text-zinc-400 uppercase">
                       เลือกรายการอาหารที่ต้องการจ่าย
@@ -957,11 +999,6 @@ const PaymentStatusPage = ({
                               <p className="text-[10px] text-zinc-400">
                                 x{item.qty}
                               </p>
-                              {item.note && (
-                                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight">
-                                  * {item.note}
-                                </p>
-                              )}
                             </div>
                           </div>
                           <span
@@ -1020,16 +1057,20 @@ const PaymentStatusPage = ({
                       className="flex-1 h-12 text-base font-bold rounded-xl shadow-lg shadow-zinc-900/10"
                       disabled={
                         selectedItemIds.length === 0 ||
-                        (paymentMethod === "CASH" && !isCashSufficient) ||
                         isProcessing ||
-                        (paymentMethod === "MEMBER" &&
+                        (isSplitTender ? splitRemaining !== 0 : false) ||
+                        (!isSplitTender &&
+                          paymentMethod === "CASH" &&
+                          !isCashSufficient) ||
+                        (!isSplitTender &&
+                          paymentMethod === "MEMBER" &&
                           (!memberData ||
                             memberData.creditBalance < finalTotal))
                       }
                     >
                       {isProcessing ? (
                         <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />{" "}
                           กำลังชำระเงิน...
                         </>
                       ) : (
