@@ -1,6 +1,7 @@
 "use client";
 
 import { ReceiptProps } from "@/lib/type";
+import appConfig from "@/lib/data_temp";
 import { forwardRef } from "react";
 
 export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
@@ -24,8 +25,8 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
     const displayShop = shopName || "18 Garage";
     const displayStaff = staffName || "LARNOY";
 
-    const totalBaht = (total / 670).toFixed(2);
-    const totalUSD = (total / 21000).toFixed(2);
+    const totalBaht = (total / appConfig.exchangeRates.THB).toFixed(2);
+    const totalUSD = (total / appConfig.exchangeRates.USD).toFixed(2);
 
     const groupedItems = items.reduce(
       (acc, current) => {
