@@ -113,7 +113,7 @@ const menuList = [
       {
         title: "สรุปกำไร-ขาดทุน",
         url: "/accounting/profit_loss",
-        icon: LineChart, 
+        icon: LineChart,
       },
       { title: "รายงานสรุปบัญชี", url: "/accounting/report", icon: BarChart3 },
     ],
@@ -410,12 +410,18 @@ const positionStatuses = [
   { value: "INACTIVE", label: "ไม่ใช้งาน", color: "bg-gray-400" },
 ];
 
+const exchangeRates = {
+  THB: 670,
+  USD: 21000,
+};
+
 export default {
   menuList,
   settingsMenu,
   tableStatuses,
   tableStatusesHome,
   positionStatuses,
+  exchangeRates,
   statusColor,
   getButtonActionColor,
   getNextStepConfig,
