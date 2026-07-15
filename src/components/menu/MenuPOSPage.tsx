@@ -32,18 +32,18 @@ const MenuPOSPage = ({
   id_user,
   organizationId,
 }: MenuPOSPageClientProps) => {
-  const { employeeId } = useUser();  
-  const [menuItems, setOrderItems] = useState(initialItems);
+  const { employeeId } = useUser();
+  const router = useRouter();
+
+  const [menuItems, setMenuItems] = useState(initialItems);
+  const [displayItems, setDisplayItems] = useState(initialItems);
 
   const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
-
-  const router = useRouter();
 
   const [openSheet, setOpenSheet] = useState(false);
   const [openSheetUpdate, setOpenSheetUpdate] = useState(false);
   const [openSheetDetail, setOpenSheetDetail] = useState(false);
   const [itemDetail, setItemDetail] = useState();
-  const [displayItems, setDisplayItems] = useState(initialItems);
   const [detailMenu, setDetailMenu] = useState<MenuSchema | null>(null);
 
   const [filterCategory, setFilterCategory] = useState<string>("All");
@@ -99,30 +99,8 @@ const MenuPOSPage = ({
   };
 
   useEffect(() => {
-    if (filterCategory === "All") {
-      setDisplayItems(initialItems);
-    } else {
-      const filtered = initialItems.filter(
-        (item) => item.category.categoryName === filterCategory,
-      );
-      setDisplayItems(filtered);
-    }
-  }, [filterCategory, initialItems]);
+    setMenuItems(initialItems);
 
-  useEffect(() => {
-    const lowercasedFilter = searchTerm.toLowerCase();
-    const filteredData = initialItems.filter((item: any) => {
-      return (
-        item.menuCode?.toLowerCase().includes(lowercasedFilter) ||
-        item.menuName?.toLowerCase().includes(lowercasedFilter) ||
-        item.description?.toLowerCase().includes(lowercasedFilter) ||
-        item.category?.categoryName?.toLowerCase().includes(lowercasedFilter)
-      );
-    });
-    setDisplayItems(filteredData);
-  }, [searchTerm, initialItems]);
-
-  useEffect(() => {
     if (detailMenu) {
       const updatedItemData = initialItems.find(
         (item) => item.id === detailMenu.id,
@@ -131,16 +109,37 @@ const MenuPOSPage = ({
         setDetailMenu(updatedItemData);
       }
     }
-    setOrderItems(initialItems);
-    setDisplayItems(initialItems);
-  }, [initialItems]);
+  }, [initialItems]); 
 
   useEffect(() => {
-    setPage(1);
-    const newItems = displayItems.slice(0, itemsPerPage);
-    setCurrentItems(newItems);
-    setHasMore(displayItems.length > itemsPerPage);
-  }, [displayItems]);
+    let filtered = [...menuItems];
+
+    if (filterCategory !== "All") {
+      filtered = filtered.filter(
+        (item) => item.category?.categoryName === filterCategory,
+      );
+    }
+
+    if (searchTerm) {
+      const lowercasedFilter = searchTerm.toLowerCase();
+      filtered = filtered.filter((item: any) => {
+        return (
+          item.menuCode?.toLowerCase().includes(lowercasedFilter) ||
+          item.menuName?.toLowerCase().includes(lowercasedFilter) ||
+          item.description?.toLowerCase().includes(lowercasedFilter) ||
+          item.category?.categoryName?.toLowerCase().includes(lowercasedFilter)
+        );
+      });
+    }
+
+    setDisplayItems(filtered);
+  }, [filterCategory, searchTerm, menuItems]);
+
+  useEffect(() => {
+    const maxItems = page * itemsPerPage;
+    setCurrentItems(displayItems.slice(0, maxItems));
+    setHasMore(displayItems.length > maxItems);
+  }, [displayItems, page]);
 
   const loadMoreItems = () => {
     const nextPage = page + 1;
@@ -249,7 +248,7 @@ const MenuPOSPage = ({
                     const isLoading = loadingItemId === item.id;
                     return (
                       <MenuPOSItemCard
-                        key={item.menuName}
+                        key={item.id || item.menuName}
                         item={item}
                         relatedData={relatedData}
                         stateSheet={setOpenSheetDetail}
