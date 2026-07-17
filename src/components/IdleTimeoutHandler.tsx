@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 import { verifyPositionPin } from "@/lib/auth-helpers";
 import { useUser } from "./providers/UserContext";
+import { useRouter } from "next/navigation";
 
 export default function IdleTimeoutHandler() {
   const { isLocked, setIsLocked, resetTimer } = useIdleTimeout(1800000);
@@ -15,6 +16,7 @@ export default function IdleTimeoutHandler() {
   const { setUser, clearUser } = useUser();
 
   const { data: session } = useSession();
+  const router = useRouter();
 
   const organizationId = (session?.user as any)?.organizationId;
 
@@ -81,6 +83,7 @@ export default function IdleTimeoutHandler() {
         );
 
         // toast.success(`ปลดล็อกสำเร็จ (พนักงาน: ${result.employeeName})`);
+        router.refresh();
       } else {
         setIsError(true);
         setTimeout(() => {
