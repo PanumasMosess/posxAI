@@ -2,7 +2,6 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import OrderRankingDashboard from "@/components/history/OrderRankingDashboard";
 
-export const dynamic = "force-dynamic";
 
 const page = async () => {
   const session = await auth();
