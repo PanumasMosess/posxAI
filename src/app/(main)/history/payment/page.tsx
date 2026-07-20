@@ -1,49 +1,69 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import HistoryPaymentPage from "@/components/history/HistoryPaymentPage";
+import { HistoryPayment } from "@/lib/type";
+
+export const dynamic = "force-dynamic";
 
 const page = async () => {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = session?.user.organizationId ?? 0;
 
-  const itemsData = await prisma.paymentorder.findMany({
-    where: {
-      organizationId: organizationId,
-    },
-    include: {
-      table: true,
-      runningRef: {
-        include: {
-          order: {
-            include: {
-              menu: {
-                include: {
-                  unitPrice: true,
+  const [allEmployees, rawItemsData, allShifts] = await Promise.all([
+    prisma.employeepin.findMany({
+      where: { organizationId: organizationId },
+      select: { id: true, name: true, surname: true },
+    }),
+
+    prisma.paymentorder.findMany({
+      where: {
+        organizationId: organizationId,
+      },
+      take: 1000,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        totalAmount: true,
+        paymentMethod: true,
+        cashReceived: true,
+        change: true,
+        table: { select: { tableName: true } },
+        creator: { select: { id: true, name: true, surname: true } },
+        shift: { select: { id: true, openedAt: true } },
+        runningRef: {
+          select: {
+            runningCode: true,
+            order: {
+              select: {
+                id: true,
+                employeeId: true,
+                quantity: true,
+                menu: {
+                  select: {
+                    id: true,
+                    menuName: true,
+                    img: true,
+                    mcEmployeeId: true,
+                    unitPrice: { select: { label: true } },
+                  },
                 },
               },
             },
           },
         },
       },
-      creator: {
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-        },
-      },
-      shift: true,
-    },
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+    }),
 
-  const allEmployees = await prisma.employeepin.findMany({
-    where: { organizationId: organizationId },
-    select: { id: true, name: true, surname: true },
-  });
+    prisma.shift.findMany({
+      where: { organizationId: organizationId },
+      select: { id: true, openedAt: true },
+      orderBy: { openedAt: "asc" },
+    }),
+  ]);
 
   const employeeMap = new Map();
   for (const emp of allEmployees) {
@@ -51,30 +71,27 @@ const page = async () => {
   }
 
   const shiftSequenceCache = new Map();
+  const shiftsGroupedByDate = new Map();
 
-  for (const payment of itemsData) {
-    if (payment.shift) {
-      const shiftId = payment.shift.id;
-
-      if (!shiftSequenceCache.has(shiftId)) {
-        const startOfDay = new Date(payment.shift.createdAt);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const sequence = await prisma.shift.count({
-          where: {
-            organizationId: organizationId,
-            createdAt: {
-              gte: startOfDay,
-              lte: payment.shift.createdAt,
-            },
-          },
-        });
-
-        shiftSequenceCache.set(shiftId, sequence);
-      }
-
-      (payment.shift as any).shiftSequence = shiftSequenceCache.get(shiftId);
+  for (const s of allShifts) {
+    if (!s.openedAt) continue;
+    const dateStr = new Date(s.openedAt).setHours(0, 0, 0, 0);
+    if (!shiftsGroupedByDate.has(dateStr)) {
+      shiftsGroupedByDate.set(dateStr, []);
     }
+    shiftsGroupedByDate.get(dateStr).push(s);
+  }
+
+  shiftsGroupedByDate.forEach((shiftsInDay) => {
+    shiftsInDay.forEach((s: any, index: number) => {
+      shiftSequenceCache.set(s.id, index + 1);
+    });
+  });
+
+  // 🟢 กำหนด Type ให้ตัวแปรตั้งแต่ตรงนี้เลย เพื่อให้ตอนส่ง Props เป็นแค่ {itemsData} เพียวๆ
+  const itemsData: HistoryPayment[] = rawItemsData.map((payment) => {
+    const shiftId = payment.shift?.id;
+    const sequence = shiftId ? shiftSequenceCache.get(shiftId) : undefined;
 
     let orderTakerName = "สั่งผ่านระบบ";
     const ordersInBill = payment.runningRef?.order || [];
@@ -87,7 +104,6 @@ const page = async () => {
           "ไม่ทราบชื่อพนักงาน";
       }
     }
-    (payment as any).orderTakerName = orderTakerName;
 
     const foodList: any[] = [];
     const entertainerList: any[] = [];
@@ -111,9 +127,7 @@ const page = async () => {
       };
 
       if (isEntertainerItem) {
-        const isDuplicate = entertainerList.some(
-          (ent) => ent.prName === prName,
-        );
+        const isDuplicate = entertainerList.some((ent) => ent.prName === prName);
         if (!isDuplicate) {
           entertainerList.push(itemData);
         }
@@ -122,14 +136,53 @@ const page = async () => {
       }
     }
 
-    (payment as any).foodList = foodList;
-    (payment as any).entertainerList = entertainerList;
-    (payment as any).currencyLabel = currencyLabel || "บาท";
-  }
+    const mappedRunningRef = payment.runningRef
+      ? {
+          runningCode: payment.runningRef.runningCode,
+          order: payment.runningRef.order.map((o) => ({
+            id: (o as any).id || 0,
+            quantity: o.quantity || 1,
+            price_sum: 0,
+            price_pre_unit: 0,
+            status: "COMPLETED",
+            note: null,
+            employeeId: o.employeeId || null,
+            menu: {
+              id: (o.menu as any)?.id || 0,
+              menuName: o.menu?.menuName || "ไม่ทราบชื่อ",
+              img: o.menu?.img || null,
+              mcEmployeeId: o.menu?.mcEmployeeId || null,
+              price_sale: 0,
+              unit: "-",
+              unitPrice: o.menu?.unitPrice || { label: "บาท" },
+            },
+          })),
+        }
+      : null;
+
+    return {
+      ...payment,
+      cashReceived: payment.cashReceived ? Number(payment.cashReceived) : 0,
+      change: payment.change ? Number(payment.change) : 0,
+      shift: payment.shift
+        ? {
+            id: payment.shift.id,
+            createdAt: payment.shift.openedAt,
+            shiftSequence: sequence,
+          }
+        : null,
+      orderTakerName,
+      foodList,
+      entertainerList,
+      currencyLabel: currencyLabel || "บาท",
+      runningRef: mappedRunningRef,
+    };
+  }); 
+
 
   return (
     <HistoryPaymentPage
-      initialItems={itemsData}
+      initialItems={itemsData} 
       userId={userId}
       organizationId={organizationId}
     />

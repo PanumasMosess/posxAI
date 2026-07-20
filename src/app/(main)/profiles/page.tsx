@@ -2,37 +2,45 @@ import { auth } from "@/auth";
 import ProfilleMain from "@/components/profiles/ProfilleMain";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
 
 const page = async () => {
   const session = await auth();
   const organizationId = session?.user.organizationId ?? 0;
 
-  const rawPaymentsData = await prisma.paymentorder.findMany({
-    where: {
-      organizationId: Number(organizationId),
-    },
-    include: {
-      table: true,
-      creator: true,
-      shift: true,
-      runningRef: {
-        include: {
-          order: {
-            where: {
-              status: "PAY_COMPLETED",
-            },
-            include: {
-              orderitems: {
-                include: {
-                  menu: {
-                    include: {
-                      unitPrice: true,
-                      category: true,
-                    },
-                  },
-                  selectedModifiers: {
-                    include: {
-                      modifierItem: true,
+  const [rawPaymentsData, allEmployees] = await Promise.all([
+    prisma.paymentorder.findMany({
+      where: {
+        organizationId: Number(organizationId),
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        totalAmount: true,
+        createdById: true,
+        shift: {
+          select: { openedAt: true },
+        },
+        runningRef: {
+          select: {
+            order: {
+              where: {
+                status: "PAY_COMPLETED",
+              },
+              select: {
+                id: true,
+                employeeId: true,
+                orderitems: {
+                  select: {
+                    price: true,
+                    quantity: true,
+                    menu: {
+                      select: {
+                        mcEmployeeId: true,
+                        unitPrice: {
+                          select: { label: true },
+                        },
+                      },
                     },
                   },
                 },
@@ -41,11 +49,16 @@ const page = async () => {
           },
         },
       },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+
+    prisma.employeepin.findMany({
+      where: { organizationId: Number(organizationId) },
+      select: { id: true, name: true, surname: true },
+    }),
+  ]);
 
   const processedOrderIds = new Set<number>();
   const cleanPaymentsData = rawPaymentsData.map((payment) => {
@@ -53,7 +66,7 @@ const page = async () => {
 
     const uniqueOrders = payment.runningRef.order.filter((order) => {
       if (processedOrderIds.has(order.id)) {
-        return false; 
+        return false;
       }
       processedOrderIds.add(order.id);
       return true;
@@ -61,16 +74,16 @@ const page = async () => {
 
     return {
       ...payment,
+      shift: payment.shift
+        ? {
+            startTime: payment.shift.openedAt,
+          }
+        : null,
       runningRef: {
         ...payment.runningRef,
-        order: uniqueOrders, 
+        order: uniqueOrders,
       },
     };
-  });
-
-  const allEmployees = await prisma.employeepin.findMany({
-    where: { organizationId: Number(organizationId) },
-    select: { id: true, name: true, surname: true },
   });
 
   return (
