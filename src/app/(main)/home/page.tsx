@@ -2,72 +2,78 @@ import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import MainPageComponanceHome from "@/components/home/MainPageComponentsHome";
 
+export const dynamic = "force-dynamic";
+
 const Home = async () => {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = session?.user.organizationId ?? 0;
-  const itemsData = await prisma.table.findMany({
-    where: {
-      organizationId: organizationId,
-      status: {
-        not: "DELETE",
-      },
-    },
-    include: {
-      creator: {
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-        },
-      },
-      order: {
-        where: {
-          status: {
-            notIn: ["CANCELLED", "PAY_COMPLETED"],
-          },
-        },
-        include: {
-          menu: true,
-          orderitems: {
-            include: {
-              menu: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
 
-  const itemsDataOrder = await prisma.order.findMany({
-    where: {
-      organizationId: Number(organizationId),
-    },
-    include: {
-      table: true,
-      orderitems: {
-        include: {
-          menu: {
-            include: {
-              unitPrice: true,
-              category: true,
+  const [itemsData, itemsDataOrder] = await Promise.all([
+  
+    prisma.table.findMany({
+      where: {
+        organizationId: organizationId,
+        status: {
+          not: "DELETE",
+        },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+          },
+        },
+        order: {
+          where: {
+            status: {
+              notIn: ["CANCELLED", "PAY_COMPLETED"],
             },
           },
-          selectedModifiers: {
-            include: {
-              modifierItem: true,
+          include: {
+            menu: true,
+            orderitems: {
+              include: {
+                menu: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: {
-      id: "asc",
-    },
-  });
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+
+    prisma.order.findMany({
+      where: {
+        organizationId: Number(organizationId),
+      },
+      include: {
+        table: true,
+        orderitems: {
+          include: {
+            menu: {
+              include: {
+                unitPrice: true,
+                category: true,
+              },
+            },
+            selectedModifiers: {
+              include: {
+                modifierItem: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        id: "asc",
+      },
+    }),
+  ]);
 
   const relatedData = { orderRunning: itemsDataOrder };
 
