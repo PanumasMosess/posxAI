@@ -38,7 +38,7 @@ export const printPRRank = async ({
             <tr>
               <th style="border-bottom: 1px solid #000; padding: 4px 2px; text-align: center; width: 10%;">#</th>
               <th style="border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; width: 40%;">ชื่อ PR</th>
-              <th style="border-bottom: 1px solid #000; padding: 4px 2px; text-align: center; width: 15%;">จำนวนดื่ม</th>
+              <th style="border-bottom: 1px solid #000; padding: 4px 2px; text-align: center; width: 15%;">จำนวนชั่วโมง</th>
               <th style="border-bottom: 1px solid #000; padding: 4px 2px; text-align: right; width: 35%;">ยอดรวม</th>
             </tr>
           </thead>
@@ -73,7 +73,7 @@ export const printPRRank = async ({
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="2" style="padding: 8px 2px; text-align: right; font-weight: bold; border-top: 1px solid #000; font-size: 13px;">ยอดรวมดื่มทั้งสิ้น :</td>
+              <td colspan="2" style="padding: 8px 2px; text-align: right; font-weight: bold; border-top: 1px solid #000; font-size: 13px;">ยอดรวมชั่วโมงทั้งสิ้น :</td>
               <td style="padding: 8px 2px; text-align: center; font-weight: bold; border-top: 1px solid #000; font-size: 13px;">
                 ${totalQuantity}
               </td>
