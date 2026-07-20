@@ -51,7 +51,7 @@ export const column_pr_rank = (): ColumnDef<RankedPRItem>[] => [
   {
     id: "quantity",
     accessorKey: "quantity",
-    header: () => <div className="text-right">จำนวนดื่ม (ครั้ง)</div>,
+    header: () => <div className="text-right">จำนวน (ชั่วโมง)</div>,
     cell: ({ row }) => (
       <div className="text-right font-black text-xl text-emerald-600 dark:text-emerald-400">
         {row.original.quantity.toLocaleString()}
