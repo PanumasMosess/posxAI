@@ -26,6 +26,12 @@ const page = async () => {
     select: { id: true, name: true, surname: true },
   });
 
+  const allShifts = await prisma.shift.findMany({
+    where: { organizationId: organizationId },
+    select: { id: true, openedAt: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
   const employeeMap = new Map();
   for (const emp of allEmployees) {
     employeeMap.set(String(emp.id), `${emp.name} ${emp.surname}`);
@@ -46,7 +52,6 @@ const page = async () => {
         price_sum: 0,
         quantity: 0,
         status: order.status,
-        // 🟢 แยก Array ออกเป็น 2 ถังในบิลเดียว
         foodList: [],
         entertainerList: [],
         currencyLabel: order.menu?.unitPrice?.label || "",
@@ -67,8 +72,9 @@ const page = async () => {
 
     const itemData = {
       name: order.menu?.menuName || "ไม่ทราบชื่อ",
-      image: order.menu?.img || null, 
+      image: order.menu?.img || null,
       prName: prName,
+      quantity: order.quantity, 
     };
 
     if (isEntertainerItem) {
@@ -94,27 +100,28 @@ const page = async () => {
   });
 
   const shiftSequenceCache = new Map();
+  const shiftsGroupedByDate = new Map();
+
+  for (const s of allShifts) {
+    const refDate = s.openedAt || s.createdAt;
+    if (!refDate) continue;
+    const dateStr = new Date(refDate).setHours(0, 0, 0, 0);
+
+    if (!shiftsGroupedByDate.has(dateStr)) {
+      shiftsGroupedByDate.set(dateStr, []);
+    }
+    shiftsGroupedByDate.get(dateStr).push(s);
+  }
+
+  shiftsGroupedByDate.forEach((shiftsInDay) => {
+    shiftsInDay.forEach((s: any, index: number) => {
+      shiftSequenceCache.set(s.id, index + 1);
+    });
+  });
 
   for (const payment of payments) {
     if (payment.shift) {
       const shiftId = payment.shift.id;
-
-      if (!shiftSequenceCache.has(shiftId)) {
-        const startOfDay = new Date(payment.shift.createdAt);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const sequence = await prisma.shift.count({
-          where: {
-            organizationId: organizationId,
-            createdAt: {
-              gte: startOfDay,
-              lte: payment.shift.createdAt,
-            },
-          },
-        });
-
-        shiftSequenceCache.set(shiftId, sequence);
-      }
       (payment.shift as any).shiftSequence = shiftSequenceCache.get(shiftId);
     }
   }

@@ -2,41 +2,61 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import OrderRankingDashboard from "@/components/history/OrderRankingDashboard";
 
+export const dynamic = "force-dynamic";
 
 const page = async () => {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = session?.user.organizationId ?? 0;
 
-  const paymentsData = await prisma.paymentorder.findMany({
-    where: {
-      organizationId: Number(organizationId),
-    },
-    include: {
-      table: true,
-      creator: true,
-      shift: true,
-      runningRef: {
-        include: {
-          order: {
-            where: {
-              status: "PAY_COMPLETED",
-            },
-            include: {
-              menu: { include: { unitPrice: true, category: true } },
-              table: true,
-              orderitems: {
-                include: {
-                  menu: {
-                    include: {
-                      unitPrice: true,
-                      category: true,
-                    },
-                  },
-                  selectedModifiers: {
-                    include: {
-                      modifierItem: true,
-                    },
+  // 🟢 1. รีดไขมัน + ใช้ Promise.all ดึงพร้อมกันทีเดียว (ไม่ติด N+1 Query)
+  const [allEmployees, allShifts, paymentsData] = await Promise.all([
+    prisma.employeepin.findMany({
+      where: { organizationId: Number(organizationId) },
+      select: { id: true, name: true, surname: true },
+    }),
+
+    // ดึง Shift ทั้งหมดมาคำนวณ Sequence ข้างนอก Loop
+    prisma.shift.findMany({
+      where: { organizationId: Number(organizationId) },
+      select: { id: true, openedAt: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+
+    prisma.paymentorder.findMany({
+      where: {
+        organizationId: Number(organizationId),
+      },
+    
+      select: {
+        id: true,
+        createdAt: true,
+        table: true,
+        shift: {
+          select: { id: true, createdAt: true, openedAt: true },
+        },
+        runningRef: {
+          select: {
+            order: {
+              where: {
+                status: "PAY_COMPLETED",
+              },
+              select: {
+                id: true,
+                order_running_code: true,
+                updatedAt: true,
+                price_sum: true,
+                quantity: true,
+                status: true,
+                employeeId: true,
+                table: true,
+                menu: {
+                  select: {
+                    menuName: true,
+                    img: true,
+                    mcEmployeeId: true,
+                    unitPrice: { select: { label: true } },
+                    category: { select: { categoryName: true } },
                   },
                 },
               },
@@ -44,16 +64,11 @@ const page = async () => {
           },
         },
       },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
-
-  const allEmployees = await prisma.employeepin.findMany({
-    where: { organizationId: Number(organizationId) },
-    select: { id: true, name: true, surname: true },
-  });
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+  ]);
 
   const employeeMap = new Map();
   for (const emp of allEmployees) {
@@ -61,29 +76,23 @@ const page = async () => {
   }
 
   const shiftSequenceCache = new Map();
-  for (const payment of paymentsData) {
-    if (payment.shift) {
-      const shiftId = payment.shift.id;
+  const shiftsGroupedByDate = new Map();
 
-      if (!shiftSequenceCache.has(shiftId)) {
-        const startOfDay = new Date(payment.shift.createdAt);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const sequence = await prisma.shift.count({
-          where: {
-            organizationId: organizationId,
-            createdAt: {
-              gte: startOfDay,
-              lte: payment.shift.createdAt,
-            },
-          },
-        });
-
-        shiftSequenceCache.set(shiftId, sequence);
-      }
-      (payment.shift as any).shiftSequence = shiftSequenceCache.get(shiftId);
+  for (const s of allShifts) {
+    const refDate = s.openedAt || s.createdAt;
+    if (!refDate) continue;
+    const dateStr = new Date(refDate).setHours(0, 0, 0, 0);
+    if (!shiftsGroupedByDate.has(dateStr)) {
+      shiftsGroupedByDate.set(dateStr, []);
     }
+    shiftsGroupedByDate.get(dateStr).push(s);
   }
+
+  shiftsGroupedByDate.forEach((shiftsInDay) => {
+    shiftsInDay.forEach((s: any, index: number) => {
+      shiftSequenceCache.set(s.id, index + 1);
+    });
+  });
 
   const groupedMap = new Map();
   const menuStatsMap = new Map<string, number>();
@@ -98,6 +107,9 @@ const page = async () => {
 
   for (const payment of paymentsData) {
     const orders = payment.runningRef?.order || [];
+    const shiftSeq = payment.shift?.id
+      ? shiftSequenceCache.get(payment.shift.id) || null
+      : null;
 
     for (const order of orders) {
       if (processedOrderIds.has(order.id)) continue;
@@ -127,7 +139,7 @@ const page = async () => {
             payment.shift?.createdAt ||
             payment.createdAt,
           shiftId: payment.shift?.id || null,
-          shiftSequence: (payment.shift as any)?.shiftSequence || null,
+          shiftSequence: shiftSeq,
         });
       }
 
@@ -149,7 +161,7 @@ const page = async () => {
         quantity: order.quantity,
         categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
         price: order.price_sum || 0,
-        currencyLabel: itemCurrency, 
+        currencyLabel: itemCurrency,
       };
 
       const qty = order.quantity || 0;
@@ -165,14 +177,14 @@ const page = async () => {
           name: employeeMap.get(entId) || "ไม่ทราบชื่อ",
           image: order.menu?.img || null,
           quantity: qty,
-          price_sum: price, 
-          currencyLabel: itemCurrency, 
+          price_sum: price,
+          currencyLabel: itemCurrency,
           businessDate:
             payment.shift?.openedAt ||
             payment.shift?.createdAt ||
             payment.createdAt,
           shiftId: payment.shift?.id || null,
-          shiftSequence: (payment.shift as any)?.shiftSequence || null,
+          shiftSequence: shiftSeq,
         });
 
         const currentEnt = entertainerStatsMap.get(entId) || {
