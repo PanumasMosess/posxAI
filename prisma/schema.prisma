@@ -153,6 +153,7 @@ model table {
   cashType       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isReservable Boolean @default(true) // true = เปิดให้จองออนไลน์ได้, false = ปิดรับจอง (Walk-in หรือโต๊ะออนไลน์)
 
   posX            Float   @default(0) // X = แนวนอน
   posY            Float   @default(0) // Y = แนวตั้ง
@@ -511,12 +512,12 @@ model membertransaction {
   balanceAfter   Float // ยอดคงเหลือหลังทำรายการ (ช่วยตรวจสอบความถูกต้องเวลาข้อมูลพัง)
   note           String? // หมายเหตุ (เช่น "แลกแต้มเป็นส่วนลด", "เติมเงิน") 
   createdAt      DateTime        @default(now())
-  referenceTxId  Int?            // ระบุว่าจ่ายให้ transaction(SPEND) ID ไหน
-  paymentGroupId String?         // ใช้จับกลุ่มสลิป/การรับเงินในรอบเดียวกัน
+  referenceTxId  Int? // ระบุว่าจ่ายให้ transaction(SPEND) ID ไหน
+  paymentGroupId String? // ใช้จับกลุ่มสลิป/การรับเงินในรอบเดียวกัน
 
-  date           DateTime?
+  date     DateTime?
   memberId Int
-  member   member @relation(fields: [memberId], references: [id])
+  member   member    @relation(fields: [memberId], references: [id])
 
   orderId Int? // ผูกกับบิลไหน (ถ้ามี)
   order   order? @relation(fields: [orderId], references: [id])
@@ -697,7 +698,7 @@ model account_transaction {
 
   transferPairId Int? // กรณีโอนเงิน: ผูก ID ของรายการโอนฝั่งตรงข้าม
 
-  date      DateTime?
+  date DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
