@@ -29,6 +29,13 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 
+// 🟢 1. สร้าง Global Cache ไว้ข้างนอก Component
+// เพื่อให้ทุกโต๊ะ (ทุก Row) ใช้ Certificate และรายชื่อปริ้นเตอร์ร่วมกัน (ดึงแค่ครั้งเดียว)
+let qzSecurityConfigured = false;
+let globalPrintersCache: string[] | null = null;
+let globalDefaultPrinter: string = "";
+let fetchPrintersPromise: Promise<string[]> | null = null;
+
 interface TableQRActionProps {
   tableId: number;
   tableName: string;
@@ -49,14 +56,14 @@ export const TableQRAction = ({
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
 
-  const isConnecting = useRef(false);
-
   useEffect(() => {
     setMounted(true);
     setOrigin(window.location.origin);
   }, []);
 
   const initQZSecurity = () => {
+    if (qzSecurityConfigured) return; 
+
     qz.security.setCertificatePromise((resolve: any, reject: any) => {
       getCertContentFromS3(`digital-certificate_${organizationId}.txt`)
         .then((res) => {
@@ -76,35 +83,59 @@ export const TableQRAction = ({
           .catch(reject);
       };
     });
+
+    qzSecurityConfigured = true;
   };
 
-const fetchPrinters = async () => {
-   
+  const fetchPrinters = async (forceRefresh = false) => {
     if (isLoadingPrinters) return;
+
+    if (!forceRefresh && globalPrintersCache) {
+      setPrinters(globalPrintersCache);
+      if (!selectedPrinter)
+        setSelectedPrinter(
+          globalDefaultPrinter || globalPrintersCache[0] || "",
+        );
+      return;
+    }
+
+    if (!forceRefresh && fetchPrintersPromise) {
+      setIsLoadingPrinters(true);
+      try {
+        const cachedPrinters = await fetchPrintersPromise;
+        setPrinters(cachedPrinters);
+        if (!selectedPrinter)
+          setSelectedPrinter(globalDefaultPrinter || cachedPrinters[0] || "");
+      } catch (e) {
+      } finally {
+        setIsLoadingPrinters(false);
+      }
+      return;
+    }
+
     setIsLoadingPrinters(true);
 
-    try {
+    fetchPrintersPromise = (async () => {
       initQZSecurity();
 
       if (!qz.websocket.isActive()) {
         try {
           await qz.websocket.connect();
         } catch (err: any) {
-         
-          if (err.message && err.message.includes("Waiting for previous disconnect")) {
-           
-             await new Promise(resolve => setTimeout(resolve, 1000));         
-             if (!qz.websocket.isActive()) {
-                await qz.websocket.connect();
-             }
+          if (
+            err.message &&
+            err.message.includes("Waiting for previous disconnect")
+          ) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            if (!qz.websocket.isActive()) {
+              await qz.websocket.connect();
+            }
           } else {
-             
-             try { 
-               await qz.websocket.disconnect(); 
-             } catch (e) {}
-             
-             await new Promise(resolve => setTimeout(resolve, 500));
-             await qz.websocket.connect();
+            try {
+              await qz.websocket.disconnect();
+            } catch (e) {}
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            await qz.websocket.connect();
           }
         }
       }
@@ -116,37 +147,39 @@ const fetchPrinters = async () => {
         console.warn("Stale connection detected. Reconnecting...", err);
 
         if (qz.websocket.isActive()) {
-          try { await qz.websocket.disconnect(); } catch (e) {}
+          try {
+            await qz.websocket.disconnect();
+          } catch (e) {}
         }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await qz.websocket.connect();
         foundPrinters = await qz.printers.find();
       }
-      
-      setPrinters(foundPrinters);
-      if (!selectedPrinter) {
-        try {
-          const defaultPrinter = await qz.printers.getDefault();
-          setSelectedPrinter(defaultPrinter);
-        } catch (e) {
-          if (foundPrinters.length > 0) setSelectedPrinter(foundPrinters[0]);
-        }
+
+      // เก็บลง Global Cache
+      globalPrintersCache = foundPrinters;
+
+      try {
+        globalDefaultPrinter = await qz.printers.getDefault();
+      } catch (e) {
+        if (foundPrinters.length > 0) globalDefaultPrinter = foundPrinters[0];
       }
+
+      return foundPrinters;
+    })();
+
+    try {
+      const foundPrinters = await fetchPrintersPromise;
+      setPrinters(foundPrinters);
+      if (!selectedPrinter) setSelectedPrinter(globalDefaultPrinter || "");
     } catch (err) {
       console.error("Error fetching printers:", err);
     } finally {
       setIsLoadingPrinters(false);
+      fetchPrintersPromise = null;
     }
   };
 
-  useEffect(() => {
-    if (mounted && organizationId) {
-      const timer = setTimeout(() => {
-        fetchPrinters();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [mounted, organizationId]);
 
   if (!mounted) {
     return (
@@ -187,7 +220,11 @@ const fetchPrinters = async () => {
   };
 
   return (
-    <Dialog>
+    <Dialog
+      onOpenChange={(open) => {
+        if (open) fetchPrinters();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" title="ดู QR Code">
           <QrIcon className="h-4 w-4 text-primary" />
@@ -214,7 +251,6 @@ const fetchPrinters = async () => {
             />
           </div>
 
-          {/* ส่วน Copy Link */}
           <div className="w-full space-y-2">
             <Label htmlFor="link" className="sr-only">
               Link
@@ -269,7 +305,7 @@ const fetchPrinters = async () => {
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 shrink-0 border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                onClick={fetchPrinters}
+                onClick={() => fetchPrinters(true)} // 🟢 ส่ง true ไปเพื่อบังคับรีเฟรชถ้ากดปุ่ม
                 title="ค้นหาเครื่องพิมพ์ใหม่"
                 disabled={isLoadingPrinters}
               >
@@ -284,7 +320,7 @@ const fetchPrinters = async () => {
               variant="outline"
               className="w-full gap-2 border-black/10 hover:bg-zinc-100"
               onClick={handlePrintQR}
-              disabled={isPrinting}
+              disabled={isPrinting || isLoadingPrinters}
             >
               {isPrinting ? (
                 <>
