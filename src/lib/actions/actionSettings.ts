@@ -1196,3 +1196,27 @@ export const updateTableDesign = async (
     };
   }
 };
+
+export async function updateSeatCountTable(id: number, seatCount: number) {
+  try {
+    await prisma.table.update({
+      where: { id },
+      data: { seatCount },
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
+  }
+}
+
+export async function updateReservableTable(id: number, isReservable: boolean) {
+  try {
+    await prisma.table.update({
+      where: { id },
+      data: { isReservable },
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
+  }
+}
