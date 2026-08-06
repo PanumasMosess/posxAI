@@ -174,6 +174,19 @@ const PaymentStatusPage = ({
 
   const splitRemaining = finalTotal - totalSplitAmount;
 
+  // ===== เพิ่ม: เช็คว่ามีการจ่ายด้วย Member ใน Split Tender หรือไม่ =====
+  const hasMemberInSplit = useMemo(() => {
+    return isSplitTender && splitTenders.some((t) => t.method === "MEMBER");
+  }, [isSplitTender, splitTenders]);
+
+  const memberSplitAmount = useMemo(() => {
+    if (!isSplitTender) return 0;
+    return splitTenders
+      .filter((t) => t.method === "MEMBER")
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [isSplitTender, splitTenders]);
+  // ================================================================
+
   const toggleItemSelection = (itemId: string) => {
     setSelectedItemIds((prev) =>
       prev.includes(itemId)
@@ -432,6 +445,15 @@ const PaymentStatusPage = ({
         return toast.error(
           `ยอดแบ่งจ่ายไม่ครบ! ขาดอีก ${splitRemaining.toLocaleString()}`,
         );
+
+      // ===== เพิ่ม: ตรวจสอบ Member Validation ตอนกดแบ่งจ่าย =====
+      if (hasMemberInSplit) {
+        if (!memberData)
+          return toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการแบ่งจ่าย");
+        if (memberData.creditBalance < memberSplitAmount)
+          return toast.error("เครดิตร้านค้าของสมาชิกไม่เพียงพอ");
+      }
+      // =======================================================
     } else {
       if (paymentMethod === "CASH" && !isCashSufficient)
         return toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
@@ -925,15 +947,69 @@ const PaymentStatusPage = ({
                     />
                   </div>
                 ) : (
-                  // 🟢 Component แบ่งจ่ายที่แยกไฟล์มาแล้ว
-                  <SplitTenderPanel
-                    splitTenders={splitTenders}
-                    splitRemaining={splitRemaining}
-                    currency={selectedOrder.currency}
-                    updateSplitTender={updateSplitTender}
-                    removeSplitTender={removeSplitTender}
-                    addSplitTender={addSplitTender}
-                  />
+                  <div className="px-5 space-y-4">
+                    <SplitTenderPanel
+                      splitTenders={splitTenders}
+                      splitRemaining={splitRemaining}
+                      currency={selectedOrder.currency}
+                      updateSplitTender={updateSplitTender}
+                      removeSplitTender={removeSplitTender}
+                      addSplitTender={addSplitTender}
+                    />
+
+                    {/* ===== เพิ่ม: ฟอร์มเช็คสมาชิกเฉพาะตอน แบ่งจ่าย (Split Tender) ===== */}
+                    {hasMemberInSplit && (
+                      <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-900/50 rounded-xl space-y-3">
+                        <Label className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-2">
+                          <Search className="h-4 w-4" />
+                          ระบุสมาชิกสำหรับตัดเครดิต
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="เบอร์โทรศัพท์สมาชิก..."
+                            value={memberPhone}
+                            onChange={(e) => setMemberPhone(e.target.value)}
+                            className="bg-white dark:bg-zinc-950"
+                          />
+                          <Button
+                            variant="secondary"
+                            onClick={handleCheckMember}
+                            disabled={isLoadingMember || memberPhone.length < 9}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-100"
+                          >
+                            {isLoadingMember ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "ค้นหา"
+                            )}
+                          </Button>
+                        </div>
+                        {memberData && (
+                          <div className="p-3 bg-white dark:bg-zinc-900 rounded-lg border border-blue-100 dark:border-zinc-800 flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-bold text-zinc-900 dark:text-white">
+                                {memberData.name}
+                              </p>
+                              <p className="text-xs text-zinc-500">
+                                {memberData.phone}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-zinc-500">
+                                เครดิตคงเหลือ
+                              </p>
+                              <p className="text-sm font-bold text-emerald-600">
+                                ฿
+                                {memberData.creditBalance?.toLocaleString() ||
+                                  0}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* ======================================================== */}
+                  </div>
                 )}
 
                 <div className="px-5">
@@ -1058,10 +1134,18 @@ const PaymentStatusPage = ({
                       disabled={
                         selectedItemIds.length === 0 ||
                         isProcessing ||
-                        (isSplitTender ? splitRemaining !== 0 : false) ||
+                        // ตรวจสอบ Split Tender
+                        (isSplitTender &&
+                          (splitRemaining !== 0 ||
+                            (hasMemberInSplit &&
+                              (!memberData ||
+                                memberData.creditBalance <
+                                  memberSplitAmount)))) ||
+                        // ตรวจสอบจ่ายปกติ เงินสด
                         (!isSplitTender &&
                           paymentMethod === "CASH" &&
                           !isCashSufficient) ||
+                        // ตรวจสอบจ่ายปกติ ตัดสมาชิก
                         (!isSplitTender &&
                           paymentMethod === "MEMBER" &&
                           (!memberData ||
