@@ -249,43 +249,25 @@ export const createOrder = async (items: CartItemPayload[]) => {
 
     let runningCode = "";
 
-    const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
+    // 💡 1. ค้นหาบิลล่าสุดของ "โต๊ะนี้" ที่ยังไม่ได้จ่ายเงิน
+    const lastActiveOrder = await prisma.order.findFirst({
+      where: {
+        tableId: tableId,
+        organizationId: organizationId,
+        status: { notIn: ["PAY_COMPLETED", "CANCELLED"] }, // ยังไม่จ่าย หรือ ยกเลิก
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-    if (!newBillStatuses.includes(currentTable.status)) {
-      const lastOrder = await prisma.order.findFirst({
-        where: {
-          tableId: tableId,
-          organizationId: organizationId,
-          status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (lastOrder && lastOrder.order_running_code) {
-        runningCode = lastOrder.order_running_code;
-      } else {
-        const dateStr = dayjs().format("YYYYMMDD");
-        const countToday = await prisma.orderrunning.count({
-          where: {
-            organizationId: organizationId,
-            createdAt: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0)),
-              lt: new Date(new Date().setHours(23, 59, 59, 999)),
-            },
-          },
-        });
-        const nextSequence = countToday + 1;
-        runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
-          .toString()
-          .padStart(4, "0")}`;
-
-        await prisma.orderrunning.create({
-          data: { runningCode, organizationId },
-        });
-      }
+    if (lastActiveOrder && lastActiveOrder.order_running_code) {
+      // 💡 1.1 ถ้ามีบิลค้างอยู่ ให้ใช้เลข Order เดิมเลย (รวมบิล)
+      runningCode = lastActiveOrder.order_running_code;
     } else {
+      // 💡 1.2 ถ้าไม่มีบิลค้าง (เริ่มสั่งใหม่) ให้สร้างเลข Order ใหม่
       const dateStr = dayjs().format("YYYYMMDD");
-      const countToday = await prisma.orderrunning.count({
+      
+      // 🚨 แก้ปัญหาเลขมั่ว: เลิกใช้ .count() แต่ให้หาเลขบิลล่าสุดของวันนี้ แล้วเอามา +1 แทน
+      const lastRunning = await prisma.orderrunning.findFirst({
         where: {
           organizationId: organizationId,
           createdAt: {
@@ -293,21 +275,32 @@ export const createOrder = async (items: CartItemPayload[]) => {
             lt: new Date(new Date().setHours(23, 59, 59, 999)),
           },
         },
+        orderBy: { id: "desc" }, // ดึงบิลที่เพิ่งสร้างล่าสุด
       });
 
-      const nextSequence = countToday + 1;
+      let nextSequence = 1;
+      if (lastRunning && lastRunning.runningCode) {
+        // แยกรหัสออกมา เช่น Q-1-20231010-0005 ให้ดึงเลข 0005 ออกมา +1
+        const parts = lastRunning.runningCode.split("-");
+        const lastNumber = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(lastNumber)) {
+          nextSequence = lastNumber + 1;
+        }
+      }
+
       runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
         .toString()
         .padStart(4, "0")}`;
 
+      // บันทึกเลข Order ใหม่ที่ถูกใช้ไป
       await prisma.orderrunning.create({
-        data: {
-          runningCode: runningCode,
-          organizationId: organizationId,
-        },
+        data: { runningCode, organizationId },
       });
     }
 
+    // ==========================================
+    // สร้างรายการอาหาร (Order Items)
+    // ==========================================
     const transactionOperations: any[] = items.map((item) => {
       const modifiersList = item.modifiers || [];
       const categoryInfo = menuCategoryMap.get(item.menuId);
@@ -331,7 +324,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
           tableId: item.tableId,
           status: orderStatus,
           organizationId: item.organizationId,
-          order_running_code: runningCode,
+          order_running_code: runningCode, // 👈 ใช้รหัสที่เราคำนวณไว้ด้านบน (จะเก่าหรือใหม่ขึ้นอยู่กับเงื่อนไข)
           note: item.note || null,
           employeeId: item.employeeId || null,
           orderitems: {
@@ -353,6 +346,8 @@ export const createOrder = async (items: CartItemPayload[]) => {
       });
     });
 
+    // 💡 อัปเดตสถานะโต๊ะ ถ้าโต๊ะยังว่างอยู่ ให้เปลี่ยนเป็น BUSY
+    const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
     if (newBillStatuses.includes(currentTable.status)) {
       transactionOperations.push(
         prisma.table.update({
