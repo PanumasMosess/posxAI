@@ -27,6 +27,7 @@ import {
   History,
   CreditCard,
   LineChart,
+  CalendarClock,
 } from "lucide-react";
 
 const menuList = [
@@ -52,6 +53,11 @@ const menuList = [
       {
         title: "หน้าสั่งอาหาร *โดยพนักงาน",
         url: "/orders_?table=0",
+        target: "_blank",
+      },
+      {
+        title: "หน้าจอง Table",
+        url: "/tablebooking?organizationId=1",
         target: "_blank",
       },
       {
@@ -148,6 +154,7 @@ const settingsMenu = {
   icon: Settings,
   subItems: [
     { title: "จัดการโต๊ะ", url: "/settings/tables", icon: Table },
+    { title: "ตั้งค่าระบบจอง", url: "/settings/booking", icon: CalendarClock },
     { title: "จัดการเครื่องปริ้น", url: "/settings/printers", icon: Printer },
     { title: "จัดการบัญชี", url: "/settings/accounting", icon: Wallet },
     { title: "จัดการพนักงาน", url: "/settings/employees", icon: UserCog },
@@ -415,6 +422,61 @@ const exchangeRates = {
   USD: 21000,
 };
 
+const DAYS_OF_WEEK = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const MONTHS = [
+  "มกราคม",
+  "กุมภาพันธ์",
+  "มีนาคม",
+  "เมษายน",
+  "พฤษภาคม",
+  "มิถุนายน",
+  "กรกฎาคม",
+  "สิงหาคม",
+  "กันยายน",
+  "ตุลาคม",
+  "พฤศจิกายน",
+  "ธันวาคม",
+];
+
+const MONTHS_SHOT = [
+  "ม.ค.",
+  "ก.พ.",
+  "มี.ค.",
+  "เม.ย.",
+  "พ.ค.",
+  "มิ.ย.",
+  "ก.ค.",
+  "ส.ค.",
+  "ก.ย.",
+  "ต.ค.",
+  "พ.ย.",
+  "ธ.ค.",
+];
+
+// กำหนดช่วงจำนวนคน และค่าต่ำสุดของแต่ละช่วง
+const GUEST_RANGES = [
+  { min: 1, label: "1-4" },
+  { min: 5, label: "5-8" },
+  { min: 9, label: "9-12" },
+  { min: 13, label: "13-16" },
+];
+
+// 💡 กำหนดช่วงเวลาที่เปิดให้จอง (ปรับเปลี่ยนได้ตามเวลาเปิด-ปิดร้าน)
+const TIME_SLOTS = [
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+];
+
 export default {
   menuList,
   settingsMenu,
@@ -422,6 +484,11 @@ export default {
   tableStatusesHome,
   positionStatuses,
   exchangeRates,
+  DAYS_OF_WEEK,
+  MONTHS,
+  MONTHS_SHOT,
+  TIME_SLOTS,
+  GUEST_RANGES,
   statusColor,
   getButtonActionColor,
   getNextStepConfig,

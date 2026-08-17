@@ -18,9 +18,18 @@ const page = async () => {
     },
   });
 
+  const bookingSettings = await prisma.booking_table_settings.findUnique({
+    where: { organizationId },
+  });
+
   return (
     <div>
-      <SettingTables initialItems={itemsData}  userId={userId} organizationId={organizationId} />
+      <SettingTables
+        initialItems={itemsData}
+        userId={userId}
+        organizationId={organizationId}
+        initialBookingSettings={bookingSettings}
+      />
     </div>
   );
 };

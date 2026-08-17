@@ -153,7 +153,7 @@ model table {
   cashType       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  isReservable Boolean @default(true) // true = เปิดให้จองออนไลน์ได้, false = ปิดรับจอง (Walk-in หรือโต๊ะออนไลน์)
+  isReservable   Boolean  @default(true) // true = เปิดให้จองออนไลน์ได้, false = ปิดรับจอง (Walk-in หรือโต๊ะออนไลน์)
 
   posX            Float   @default(0) // X = แนวนอน
   posY            Float   @default(0) // Y = แนวตั้ง
@@ -171,7 +171,8 @@ model table {
   carts          cart[]
   paymentorders  paymentorder[]
   organizationId Int?
-  organization   organization?  @relation(fields: [organizationId], references: [id])
+  organization   organization?   @relation(fields: [organizationId], references: [id])
+  tableBookings  table_booking[]
 }
 
 model order {
@@ -710,4 +711,66 @@ model account_transaction {
   paymentorder paymentorder?     @relation(fields: [paymentOrderId], references: [id])
   shift        shift?            @relation(fields: [shiftId], references: [id])
   creator      employeepin       @relation(fields: [createdById], references: [id])
+}
+
+// สร้างสถานะของการจอง
+enum booking_status {
+  PENDING // รอยืนยัน
+  CONFIRMED // ยืนยันแล้ว
+  CANCELLED // ยกเลิก
+  COMPLETED // ลูกค้ามาทานเรียบร้อยแล้ว
+}
+
+// เพิ่มสถานะการจ่ายเงิน
+enum PaymentStatus {
+  UNPAID // ยังไม่จ่าย
+  PAID // จ่ายแล้ว
+  REFUNDED // คืนเงินแล้ว (กรณีลูกค้ายกเลิกตามเงื่อนไข)
+}
+
+model table_booking {
+  id             Int @id @default(autoincrement())
+  organizationId Int // สำหรับแยกข้อมูลตามสาขา/ร้าน
+  tableId        Int // โต๊ะที่ถูกจอง
+
+  // ข้อมูลลูกค้า (Customer Info)
+  customerName  String? // ชื่อคนจอง
+  customerPhone String? // เบอร์ติดต่อ
+
+  // ข้อมูลการจอง (Booking Info) - ตรงกับหน้า UI ที่เราเพิ่งทำ
+  guestCount  Int // จำนวนลูกค้าที่มา
+  bookingDate DateTime // วันที่จอง (เช่น 2026-08-04)
+  bookingTime String // เวลาที่จอง (เช่น "18:00")
+
+  status booking_status @default(PENDING)
+  note   String? // หมายเหตุเพิ่มเติม (เช่น ขอเก้าอี้เด็ก)
+
+  paymentUrl           String? // เก็บลิงก์ Payment Gateway ให้ลูกค้ากดเข้าไปจ่าย
+  paymentStatus        PaymentStatus @default(UNPAID)
+  depositAmount        Float? // ยอดเงินมัดจำที่ต้องจ่าย (ใช้ Float หรือ Int ก็ได้ตามระบบเงินของคุณ)
+  paymentTransactionId String? // รหัสอ้างอิงจากระบบจ่ายเงิน (เช่น Stripe, Omise, GBPrime)
+  imageSlipUrl         String? // 🖼️ URL รูปสลิปโอนเงินที่ลูกค้าแนบมา
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ความสัมพันธ์ (Relations)
+  table table @relation(fields: [tableId], references: [id])
+
+  @@index([organizationId, bookingDate]) // ทำ Index เพื่อให้ค้นหาคิวแต่ละวันได้เร็วขึ้น
+}
+
+model booking_table_settings {
+  id             Int @id @default(autoincrement())
+  organizationId Int @unique
+
+  promptpayNumber   String? // เบอร์พร้อมเพย์ (เช่น "0863200504")
+  promptpayName     String? // ชื่อบัญชีรับเงิน (เพื่อโชว์ให้ลูกค้าดู)
+  baseDepositAmount Float   @default(20.00) // ราคาจอง / ยอดมัดจำเริ่มต้น
+  storeLayoutUrl    String? //เก็บ URL รูปแผนผังร้านจาก S3
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
 }
