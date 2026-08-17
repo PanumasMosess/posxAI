@@ -56,8 +56,13 @@ const menuList = [
         target: "_blank",
       },
       {
-        title: "หน้าจอง Table",
+        title: "หน้าจองโต๊ะ",
         url: "/tablebooking?organizationId=1",
+        target: "_blank",
+      },
+       {
+        title: "พนักงานยืนยังจองโต๊ะ",
+        url: "/tablebookingclear?organizationId=1",
         target: "_blank",
       },
       {
