@@ -61,7 +61,7 @@ const menuList = [
         target: "_blank",
       },
        {
-        title: "พนักงานยืนยังจองโต๊ะ",
+        title: "ยืนยันจองโต๊ะ",
         url: "/tablebookingclear?organizationId=1",
         target: "_blank",
       },
