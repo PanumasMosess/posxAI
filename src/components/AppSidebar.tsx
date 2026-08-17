@@ -7,7 +7,7 @@ import {
   FileKey,
   Loader2,
   UploadCloud,
-  ShoppingCart, 
+  ShoppingCart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -65,6 +65,7 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import { useUser } from "./providers/UserContext";
+import SettingBookingConfig from "./settings/SettingBookingConfig";
 
 const items = menuList.menuList;
 const settingList = menuList.settingsMenu;
@@ -76,13 +77,13 @@ const AppSidebar = () => {
   const isCollapsed = state === "collapsed" && !isMobile;
 
   const [isPrinterDialogOpen, setIsPrinterDialogOpen] = useState(false);
+  const [isBookingConfigOpen, setIsBookingConfigOpen] = useState(false);
   const [certFile, setCertFile] = useState<File | null>(null);
   const [keyFile, setKeyFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const { positionName } = useUser();
 
-  // 🟢 ปรับปรุง Logic การกรองเมนู
   const filteredItems = useMemo(() => {
     let result = [];
 
@@ -92,13 +93,12 @@ const AppSidebar = () => {
       result = [...items];
     }
 
-    // ถ้าเป็น Entertainer หรือ พนักงาน ให้เพิ่มเมนู "หน้าสั่งอาหาร" เข้าไป
     if (positionName === "Entertainer" || positionName === "พนักงาน") {
       result.push({
         title: "หน้าสั่งอาหาร *โดยพนักงาน",
         url: "/orders_?table=0",
-        icon: ShoppingCart, // ใส่ไอคอน
-        target: "_blank", // ตั้งให้เปิดแท็บใหม่
+        icon: ShoppingCart,
+        target: "_blank",
       } as any);
     }
 
@@ -150,7 +150,20 @@ const AppSidebar = () => {
         <SidebarMenuButton
           key={subItem.title}
           onClick={() => setIsPrinterDialogOpen(true)}
-          className="w-full justify-start cursor-pointer"
+          className="w-full justify-start cursor-pointer h-9 text-sm"
+        >
+          {subItem.title}
+        </SidebarMenuButton>
+      );
+    }
+
+    // 💡 3. ดักเมนูตั้งค่าระบบจอง ให้เปิด Modal แทน Link
+    if (subItem.title === "ตั้งค่าระบบจอง") {
+      return (
+        <SidebarMenuButton
+          key={subItem.title}
+          onClick={() => setIsBookingConfigOpen(true)}
+          className="w-full justify-start cursor-pointer h-9 text-sm"
         >
           {subItem.title}
         </SidebarMenuButton>
@@ -161,7 +174,7 @@ const AppSidebar = () => {
       <SidebarMenuButton
         key={subItem.title}
         asChild
-        className="w-full justify-start"
+        className="w-full justify-start h-9 text-sm"
       >
         <Link href={subItem.url} target={subItem.target || "_self"}>
           {subItem.title}
@@ -224,7 +237,6 @@ const AppSidebar = () => {
                           tooltip={isCollapsed ? item.title : undefined}
                           className={isCollapsed ? "justify-center" : ""}
                         >
-                          {/* 🟢 รองรับ target="_blank" ใน Link หลัก */}
                           <Link
                             href={item.url}
                             target={item.target || "_self"}
@@ -255,21 +267,9 @@ const AppSidebar = () => {
                             align="start"
                             className="w-48"
                           >
-                            {item.subItems!.map((subItem: any) => (
-                              <SidebarMenuButton
-                                key={subItem.title}
-                                variant="ghost"
-                                className="w-full justify-start"
-                                asChild
-                              >
-                                <Link
-                                  href={subItem.url}
-                                  target={subItem.target || "_self"}
-                                >
-                                  {subItem.title}
-                                </Link>
-                              </SidebarMenuButton>
-                            ))}
+                            {item.subItems!.map((subItem: any) =>
+                              renderSubMenuItem(subItem),
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </SidebarMenuItem>
@@ -294,20 +294,9 @@ const AppSidebar = () => {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="flex flex-col gap-1 pl-9 py-1">
-                            {item.subItems!.map((subItem: any) => (
-                              <SidebarMenuButton
-                                key={subItem.title}
-                                asChild
-                                className="text-sm h-9"
-                              >
-                                <Link
-                                  href={subItem.url}
-                                  target={subItem.target || "_self"}
-                                >
-                                  {subItem.title}
-                                </Link>
-                              </SidebarMenuButton>
-                            ))}
+                            {item.subItems!.map((subItem: any) =>
+                              renderSubMenuItem(subItem),
+                            )}
                           </div>
                         </CollapsibleContent>
                       </SidebarMenuItem>
@@ -377,7 +366,6 @@ const AppSidebar = () => {
                     )}
                   </SidebarMenuButton>
                 </AlertDialogTrigger>
-
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>ยืนยันการออกจากระบบ?</AlertDialogTitle>
@@ -424,9 +412,6 @@ const AppSidebar = () => {
                   accept=".txt,.crt,.pem"
                   onChange={(e) => setCertFile(e.target.files?.[0] || null)}
                 />
-                <p className="text-[10px] text-zinc-500">
-                  ไฟล์สาธารณะสำหรับยืนยันใบรับรอง
-                </p>
               </div>
               <div className="grid w-full max-w-sm items-center gap-1.5 mt-2">
                 <Label htmlFor="key-file" className="flex items-center gap-2">
@@ -439,9 +424,6 @@ const AppSidebar = () => {
                   accept=".txt,.key,.pem"
                   onChange={(e) => setKeyFile(e.target.files?.[0] || null)}
                 />
-                <p className="text-[10px] text-zinc-500">
-                  ไฟล์กุญแจส่วนตัว (เก็บรักษาเป็นความลับ)
-                </p>
               </div>
             </div>
 
@@ -458,6 +440,11 @@ const AppSidebar = () => {
           </form>
         </DialogContent>
       </Dialog>
+      <SettingBookingConfig
+        isOpen={isBookingConfigOpen}
+        onClose={() => setIsBookingConfigOpen(false)}
+        organizationId={Number(session?.user?.organizationId) || 1}
+      />
     </>
   );
 };

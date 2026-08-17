@@ -10,11 +10,13 @@ import {
   updateStatusTable,
 } from "@/lib/actions/actionSettings";
 import { useUser } from "../providers/UserContext";
+import SettingBookingConfig from "./SettingBookingConfig";
 
 const SettingTablesPage = ({
   initialItems,
   userId,
   organizationId,
+  initialBookingSettings, // 💡 รับ Props เพิ่มมาตรงนี้
 }: SettingTableProps) => {
   const router = useRouter();
   const { employeeId } = useUser();
@@ -34,7 +36,7 @@ const SettingTablesPage = ({
   };
 
   const onUpdateSeatCount = async (id: number, seatCount: number) => {
-    const result = await updateSeatCountTable(id, seatCount); 
+    const result = await updateSeatCountTable(id, seatCount);
     if (result.success) {
       router.refresh();
     }
@@ -56,7 +58,7 @@ const SettingTablesPage = ({
   );
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-8">
       <div
         className="
           rounded-2xl 

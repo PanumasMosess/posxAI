@@ -454,6 +454,11 @@ export interface SettingTableProps {
   initialItems: SettingTable[];
   userId: number;
   organizationId: number;
+  initialBookingSettings?: {
+    promptpayNumber: string | null;
+    promptpayName: string | null;
+    baseDepositAmount: number;
+  } | null;
 }
 export interface ReceiptProps {
   orderId: string;
@@ -1047,4 +1052,68 @@ export interface PrintSummaryProps {
     QR: number;
     MEMBER: number;
   };
+}
+
+export interface BookingData {
+  guestCount: number;
+  bookingDate: Date | null;
+  selectedTableId: number | null;
+  customerName: string;
+  customerPhone: string;
+  slipPreview: string | null;
+  depositAmount?: number;
+  bookingId?: number;
+  promptpayNumber?: string;
+  promptpayName?: string;
+}
+
+export interface PropsDataTableBooking {
+  initialTables: any[];
+  initialBookings: any[];
+  organizationId: number;
+}
+
+export interface PropsStep2TableLayout {
+  data: BookingData;
+  tables: any[];
+  updateData: (newData: Partial<BookingData>) => void;
+  onNext: () => void;
+  onPrev: () => void;
+  organizationId: number;
+}
+
+export interface PropsStep1GuestDate {
+  data: BookingData;
+  updateData: (data: Partial<BookingData>) => void;
+  onNext: () => void;
+  tables: any[];
+  initialBookings: any[];
+  organizationId: number;
+}
+
+export interface PropsStep3Contact {
+  data: BookingData;
+  tables: any[];
+  updateData: (data: Partial<BookingData>) => void;
+  onNext: () => void;
+  onPrev: () => void;
+  organizationId: number;
+}
+
+export interface PropsStep4Payment {
+  data: BookingData;
+  updateData: (data: Partial<BookingData>) => void;
+  onPrev: () => void;
+  onSubmit: () => void;
+  organizationId: number;
+}
+
+export interface SettingBookingConfigProps {
+  organizationId: number;
+  initialData?: {
+    promptpayNumber: string | null;
+    promptpayName: string | null;
+    baseDepositAmount: number;
+    storeLayoutUrl?: string | null;
+  } | null;
 }
