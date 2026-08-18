@@ -38,6 +38,10 @@ const page = async () => {
           select: {
             runningCode: true,
             order: {
+              // 💡 เพิ่มการกรอง: ดึงเฉพาะรายการที่จ่ายเงินแล้ว (ตัดอันที่ CANCELLED ทิ้ง)
+              where: {
+                status: { in: ["PAY_COMPLETED", "COMPLETED"] } 
+              },
               select: {
                 id: true,
                 employeeId: true,
@@ -88,7 +92,6 @@ const page = async () => {
     });
   });
 
-  // 🟢 กำหนด Type ให้ตัวแปรตั้งแต่ตรงนี้เลย เพื่อให้ตอนส่ง Props เป็นแค่ {itemsData} เพียวๆ
   const itemsData: HistoryPayment[] = rawItemsData.map((payment) => {
     const shiftId = payment.shift?.id;
     const sequence = shiftId ? shiftSequenceCache.get(shiftId) : undefined;
@@ -105,8 +108,9 @@ const page = async () => {
       }
     }
 
-    const foodList: any[] = [];
-    const entertainerList: any[] = [];
+    // 💡 ปรับใหม่: ใช้ Map เพื่อรวม (Group) รายการที่เหมือนกันเข้าด้วยกัน
+    const foodMap = new Map();
+    const entertainerMap = new Map();
     let currencyLabel = "";
 
     for (const order of ordersInBill) {
@@ -115,26 +119,46 @@ const page = async () => {
       }
 
       const isEntertainerItem = !!order.menu?.mcEmployeeId;
-      const prName = isEntertainerItem
-        ? employeeMap.get(String(order.menu.mcEmployeeId)) || null
-        : null;
-
-      const itemData = {
-        name: order.menu?.menuName || "ไม่ทราบชื่อ",
-        image: order.menu?.img || null,
-        prName: prName,
-        quantity: order.quantity || 1,
-      };
+      const orderQty = order.quantity || 1;
 
       if (isEntertainerItem) {
-        const isDuplicate = entertainerList.some((ent) => ent.prName === prName);
-        if (!isDuplicate) {
-          entertainerList.push(itemData);
+        // --- 🟢 ลอจิกของ PR (Entertainer) ---
+        const empId = String(order.menu.mcEmployeeId);
+        const prName = employeeMap.get(empId) || "PR ไม่ทราบชื่อ";
+
+        // ถ้าน้องคนนี้มีชื่อในบิลแล้ว ให้เอาจำนวนมา + เพิ่ม
+        if (entertainerMap.has(empId)) {
+          entertainerMap.get(empId).quantity += orderQty;
+        } else {
+          // ถ้ายังไม่มี ให้สร้างใหม่
+          entertainerMap.set(empId, {
+            name: order.menu?.menuName || "ไม่ทราบชื่อ",
+            image: order.menu?.img || null,
+            prName: prName,
+            quantity: orderQty,
+          });
         }
       } else {
-        foodList.push(itemData);
+        // --- 🟢 ลอจิกของ อาหาร (Food) ---
+        const menuId = String(order.menu?.id || order.id); // ใช้ menuId เป็นตัวอ้างอิง
+
+        // ถ้าเมนูนี้เคยมีในบิลแล้ว (เช่น สั่งเบียร์ 3 รอบ) ให้บวกจำนวนรวมกัน
+        if (foodMap.has(menuId)) {
+          foodMap.get(menuId).quantity += orderQty;
+        } else {
+          foodMap.set(menuId, {
+            name: order.menu?.menuName || "ไม่ทราบชื่อ",
+            image: order.menu?.img || null,
+            prName: null,
+            quantity: orderQty,
+          });
+        }
       }
     }
+
+    // แปลง Map กลับเป็น Array เพื่อส่งให้หน้าบ้าน
+    const foodList = Array.from(foodMap.values());
+    const entertainerList = Array.from(entertainerMap.values());
 
     const mappedRunningRef = payment.runningRef
       ? {
@@ -177,12 +201,11 @@ const page = async () => {
       currencyLabel: currencyLabel || "บาท",
       runningRef: mappedRunningRef,
     };
-  }); 
-
+  });
 
   return (
     <HistoryPaymentPage
-      initialItems={itemsData} 
+      initialItems={itemsData}
       userId={userId}
       organizationId={organizationId}
     />
