@@ -18,12 +18,8 @@ import {
   getBookingByPhoneAction,
   staffCheckInCustomerAction,
 } from "@/lib/actions/actionTableBooking";
-
-// 💡 สร้าง Type มารับ Props
-interface PropsStaffCheckIn {
-  organizationId: number;
-  initialOccupiedTables: any[];
-}
+import { PropsStaffCheckIn } from "@/lib/type";
+import dateList from "@/lib/data_temp"; 
 
 export default function StaffCheckInPage({
   organizationId,
@@ -36,9 +32,6 @@ export default function StaffCheckInPage({
   const [isLoading, setIsLoading] = useState(false);
   const [bookingData, setBookingData] = useState<any>(null);
 
-  // ==========================================
-  // แท็บ 1: ค้นหาและรับลูกค้าเข้าโต๊ะ
-  // ==========================================
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone) return toast.warning("กรุณากรอกเบอร์โทรศัพท์");
@@ -70,16 +63,14 @@ export default function StaffCheckInPage({
       toast.success(res.message);
       setBookingData(null);
       setPhone("");
-      router.refresh(); 
+      router.refresh();
     } else {
       toast.error(res.message);
     }
     setIsLoading(false);
   };
 
-  // ==========================================
-  // แท็บ 2: เคลียร์โต๊ะที่ลูกค้ากลับแล้ว
-  // ==========================================
+
   const handleClearTable = async (tableId: number, tableName: string) => {
     if (!confirm(`คุณต้องการเคลียร์ ${tableName} ให้เป็นโต๊ะว่างใช่หรือไม่?`))
       return;
@@ -95,6 +86,18 @@ export default function StaffCheckInPage({
     }
     setIsLoading(false);
   };
+
+  let displayGuestCount = bookingData?.guestCount || "-";
+  if (bookingData?.guestCount && dateList.GUEST_RANGES) {
+    const count = bookingData.guestCount;
+    let activeIndex = 0;
+    if (count >= 13) activeIndex = 3;
+    else if (count >= 9) activeIndex = 2;
+    else if (count >= 5) activeIndex = 1;
+    else activeIndex = 0;
+
+    displayGuestCount = dateList.GUEST_RANGES[activeIndex]?.label || count;
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 text-zinc-100 font-sans">
@@ -126,9 +129,7 @@ export default function StaffCheckInPage({
         </div>
 
         <div className="p-6 md:p-8">
-          {/* ========================================== */}
-          {/* แท็บรับลูกค้า */}
-          {/* ========================================== */}
+
           {activeTab === "CHECKIN" && (
             <div className="animate-fade-in">
               <div className="text-center mb-6">
@@ -143,7 +144,11 @@ export default function StaffCheckInPage({
                   <input
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    maxLength={10} 
+                    onChange={(e) => {
+                      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
+                      setPhone(onlyNums);
+                    }}
                     placeholder="กรอกเบอร์โทรศัพท์..."
                     className="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-3 pl-11 rounded-xl focus:outline-none focus:border-amber-500"
                   />
@@ -152,7 +157,7 @@ export default function StaffCheckInPage({
 
                 <button
                   type="submit"
-                  disabled={isLoading || !phone}
+                  disabled={isLoading || phone.length < 9}
                   className="w-full bg-zinc-800 text-amber-400 hover:bg-zinc-700 border border-zinc-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isLoading && !bookingData ? (
@@ -193,7 +198,7 @@ export default function StaffCheckInPage({
                         <div>
                           <p className="text-xs text-zinc-500">จำนวน</p>
                           <p className="text-sm font-semibold text-zinc-200">
-                            {bookingData.guestCount} ท่าน
+                            {displayGuestCount} ท่าน
                           </p>
                         </div>
                       </div>
@@ -217,9 +222,6 @@ export default function StaffCheckInPage({
             </div>
           )}
 
-          {/* ========================================== */}
-          {/* แท็บเคลียร์โต๊ะ */}
-          {/* ========================================== */}
           {activeTab === "CLEAR" && (
             <div className="animate-fade-in">
               <div className="text-center mb-6 flex justify-between items-center">
