@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 import { PropsUrl } from "@/lib/type";
 import { Building2 } from "lucide-react";
 
-
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
@@ -13,7 +12,8 @@ const page = async (props: PropsUrl) => {
   const searchParams = await props.searchParams;
   const urlOrgId = searchParams.organizationId;
   const sessionOrgId = session?.user.organizationId;
-  const organizationId = urlOrgId ? parseInt(urlOrgId) : sessionOrgId;
+  const parsedUrlOrgId = urlOrgId ? parseInt(String(urlOrgId), 10) : 0;
+  const organizationId = parsedUrlOrgId || sessionOrgId;
 
   if (!organizationId) {
     return (

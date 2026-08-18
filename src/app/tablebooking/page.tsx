@@ -12,7 +12,8 @@ const page = async (props: PropsUrl) => {
   const searchParams = await props.searchParams;
   const urlOrgId = searchParams.organizationId;
   const sessionOrgId = session?.user.organizationId;
-  const organizationId = urlOrgId ? parseInt(urlOrgId) : sessionOrgId;
+  const parsedUrlOrgId = urlOrgId ? parseInt(String(urlOrgId), 10) : 0;
+  const organizationId = parsedUrlOrgId || sessionOrgId;
 
   if (!organizationId) {
     return (

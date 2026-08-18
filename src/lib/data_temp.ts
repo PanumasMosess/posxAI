@@ -57,12 +57,12 @@ const menuList = [
       },
       {
         title: "หน้าจองโต๊ะ",
-        url: "/tablebooking?organizationId=1",
+        url: "/tablebooking?organizationId=0",
         target: "_blank",
       },
        {
         title: "ยืนยันจองโต๊ะ",
-        url: "/tablebookingclear?organizationId=1",
+        url: "/tablebookingclear?organizationId=0",
         target: "_blank",
       },
       {
