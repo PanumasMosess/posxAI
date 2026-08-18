@@ -9,6 +9,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
+import dateList from "@/lib/data_temp"; // 💡 อย่าลืม import dateList นะครับ
 
 export default function Step2TableLayout({
   data,
@@ -49,15 +50,14 @@ export default function Step2TableLayout({
       );
 
       if (res.success) {
-        onNext(); 
+        onNext();
       } else {
-
         toast.error(res.message || "โต๊ะนี้ไม่ว่างแล้ว กรุณาเลือกโต๊ะใหม่", {
           position: "top-center",
           theme: "dark",
         });
-        updateData({ selectedTableId: null }); 
-        router.refresh(); 
+        updateData({ selectedTableId: null });
+        router.refresh();
       }
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการตรวจสอบ กรุณาลองใหม่");
@@ -70,6 +70,26 @@ export default function Step2TableLayout({
     ? new Date(data.bookingDate).toDateString() === new Date().toDateString()
     : false;
 
+  // ==========================================
+  // 💡 ปรับลอจิกการหา Label ช่วงจำนวนคน ให้ตรงกับ Step 1 และ 3
+  // ==========================================
+  let activeIndex = dateList.GUEST_RANGES?.findIndex(
+    (r) => r.min === data.guestCount,
+  );
+
+  if (activeIndex === -1 && dateList.GUEST_RANGES) {
+    if (data.guestCount >= 13) activeIndex = 3;
+    else if (data.guestCount >= 9) activeIndex = 2;
+    else if (data.guestCount >= 5) activeIndex = 1;
+    else activeIndex = 0;
+  }
+
+  const displayGuestCount =
+    activeIndex !== -1 && dateList.GUEST_RANGES
+      ? dateList.GUEST_RANGES[activeIndex].label
+      : data.guestCount;
+  // ==========================================
+
   return (
     <div className="space-y-6 relative">
       <div className="text-center">
@@ -78,7 +98,8 @@ export default function Step2TableLayout({
           เลื่อนเพื่อดูโต๊ะทั้งหมดสำหรับโซนต่างๆ
         </p>
         <div className="mt-3 text-sm font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 inline-block px-4 py-1.5 rounded-full">
-          ค้นหาสำหรับ: {data.guestCount} ท่าน
+          {/* 💡 แสดงผลเป็นช่วงจำนวนคน */}
+          ค้นหาสำหรับ: {displayGuestCount} ท่าน
         </div>
       </div>
 
@@ -113,7 +134,7 @@ export default function Step2TableLayout({
               // 1. เช็คว่าติดจองล่วงหน้าในระบบ (เวลาทับซ้อน)
               const isBookedInSystem = (table as any).isBookedForDate;
 
-              // 2. 💡 เช็คสถานะหน้าร้าน (เอาเงื่อนไข 2 ชม. ออกแล้ว บล็อกแบบ 100%)
+              // 2. เช็คสถานะหน้าร้าน (เอาเงื่อนไข 2 ชม. ออกแล้ว บล็อกแบบ 100%)
               let isBusyRealtime = false;
               let realtimeBadge = null;
 

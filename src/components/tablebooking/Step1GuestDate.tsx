@@ -35,14 +35,13 @@ export default function Step1GuestDate({
   // ==========================================
   const handleDateSelect = (day: number) => {
     const newDate = new Date(year, month, day);
-    // ถ้าเคยเลือกเวลาไว้แล้ว ให้ดึงเวลาเดิมมาใส่ด้วย
     if (data.bookingDate && data.bookingDate.getHours() !== 0) {
       newDate.setHours(
         data.bookingDate.getHours(),
         data.bookingDate.getMinutes(),
       );
     } else {
-      newDate.setHours(0, 0, 0, 0); // 00:00 แปลว่ายังไม่ได้เลือกเวลา
+      newDate.setHours(0, 0, 0, 0);
     }
     updateData({ bookingDate: newDate });
   };
@@ -52,13 +51,11 @@ export default function Step1GuestDate({
   // ==========================================
   const handleTimeSelect = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(":").map(Number);
-    // ถ้ายังไม่ได้เลือกวัน ให้ใช้วันนี้เป็นค่าเริ่มต้น
     const newDate = data.bookingDate ? new Date(data.bookingDate) : new Date();
     newDate.setHours(hours, minutes, 0, 0);
     updateData({ bookingDate: newDate });
   };
 
-  // ตรวจสอบวันที่เลือก
   const isSelectedDate = (day: number) => {
     if (!data.bookingDate) return false;
     return (
@@ -68,33 +65,33 @@ export default function Step1GuestDate({
     );
   };
 
-  // 💡 ตรวจสอบเวลาที่ถูกเลือก
   const selectedTime =
     data.bookingDate && data.bookingDate.getHours() !== 0
       ? `${String(data.bookingDate.getHours()).padStart(2, "0")}:${String(data.bookingDate.getMinutes()).padStart(2, "0")}`
       : null;
 
   // ==========================================
-  // Logic หาว่าตอนนี้เลือกช่วงลูกค้าไหนอยู่
+  // 💡 ปรับ Logic: หาช่วงลูกค้าจากจำนวนคนปัจจุบัน (รองรับการใช้ค่า max)
   // ==========================================
-  let activeIndex = dateList.GUEST_RANGES.findIndex(
-    (r) => r.min === data.guestCount,
-  );
-  if (activeIndex === -1) {
-    if (data.guestCount >= 13) activeIndex = 3;
-    else if (data.guestCount >= 9) activeIndex = 2;
-    else if (data.guestCount >= 5) activeIndex = 1;
-    else activeIndex = 0;
-  }
+  let activeIndex = 0;
+  if (data.guestCount >= 13) activeIndex = 3;
+  else if (data.guestCount >= 9) activeIndex = 2;
+  else if (data.guestCount >= 5) activeIndex = 1;
+  else activeIndex = 0;
 
   const currentRangeMin = dateList.GUEST_RANGES[activeIndex].min;
   const currentRangeMax = dateList.GUEST_RANGES[activeIndex + 1]
     ? dateList.GUEST_RANGES[activeIndex + 1].min - 1
     : 16;
 
-  const handleGuestRangeSelect = (min: number) => {
+  // 💡 ปรับฟังก์ชันให้คำนวณและเก็บค่า "จำนวนคนมากที่สุด" (Max) ลง State
+  const handleGuestRangeSelect = (index: number) => {
+    const maxGuest = dateList.GUEST_RANGES[index + 1]
+      ? dateList.GUEST_RANGES[index + 1].min - 1
+      : 16;
+
     updateData({
-      guestCount: min,
+      guestCount: maxGuest, // 👈 เก็บค่า Max เช่น 4, 8, 12, 16 ลงใน data ทันที
       bookingDate: null,
       selectedTableId: null,
     });
@@ -108,10 +105,9 @@ export default function Step1GuestDate({
       .filter((booking) => {
         const isSameDate =
           new Date(booking.bookingDate).toDateString() === checkDateStr;
-        
-        // 💡 แก้ตรงนี้! ให้เช็คเฉพาะ PENDING หรือ CONFIRMED เท่านั้น (ตรงกับ Step 2 เป๊ะ)
-        const isActiveBooking = ["PENDING", "CONFIRMED"].includes(booking.status);
-        
+        const isActiveBooking = ["PENDING", "CONFIRMED"].includes(
+          booking.status,
+        );
         return isSameDate && isActiveBooking;
       })
       .map((booking) => booking.tableId);
@@ -119,15 +115,14 @@ export default function Step1GuestDate({
     const availableTables = tables.filter((table) => {
       const isNotBookedInSystem = !bookedTableIds.includes(table.id);
       let isRealtimeAvailable = true;
-      
-      // 💡 บล็อกสถานะหน้าร้านกรณีดูของ "วันนี้"
+
       if (isCheckToday) {
         const busyStatuses = ["OCCUPIED", "RESERVED", "WAIT_BOOKING"];
         if (busyStatuses.includes(table.status)) {
           isRealtimeAvailable = false;
         }
       }
-      
+
       const capacity = (table as any).seatCount || (table as any).capacity || 0;
       const isCapacityMatch =
         capacity >= currentRangeMin && capacity <= currentRangeMax;
@@ -144,7 +139,6 @@ export default function Step1GuestDate({
     return availableTables.length > 0;
   };
 
-  // 💡 เช็คว่ากดปุ่มถัดไปได้ไหม (ต้องมี Date และ Hour ห้ามเป็น 0)
   const canProceed =
     data.bookingDate !== null && data.bookingDate.getHours() !== 0;
 
@@ -161,7 +155,7 @@ export default function Step1GuestDate({
             return (
               <button
                 key={range.min}
-                onClick={() => handleGuestRangeSelect(range.min)}
+                onClick={() => handleGuestRangeSelect(index)} // 💡 ส่ง index ไปเพื่อหาค่า max
                 className={`py-3 rounded-xl border transition-all text-center ${
                   isSelected
                     ? "bg-amber-500 border-amber-500 text-zinc-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]"
@@ -238,7 +232,7 @@ export default function Step1GuestDate({
         </div>
       </div>
 
-      {/* 💡 3. เลือกเวลา (Time Slots) */}
+      {/* 3. เลือกเวลา (Time Slots) */}
       {data.bookingDate && (
         <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950/50 shadow-inner animate-fade-in">
           <label className="block text-base font-semibold text-zinc-100 mb-3 text-center">
