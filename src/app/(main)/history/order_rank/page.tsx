@@ -9,14 +9,13 @@ const page = async () => {
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = session?.user.organizationId ?? 0;
 
-  // 🟢 1. รีดไขมัน + ใช้ Promise.all ดึงพร้อมกันทีเดียว (ไม่ติด N+1 Query)
+  // 🟢 1. รีดไขมัน + ใช้ Promise.all ดึงพร้อมกันทีเดียว
   const [allEmployees, allShifts, paymentsData] = await Promise.all([
     prisma.employeepin.findMany({
       where: { organizationId: Number(organizationId) },
       select: { id: true, name: true, surname: true },
     }),
 
-    // ดึง Shift ทั้งหมดมาคำนวณ Sequence ข้างนอก Loop
     prisma.shift.findMany({
       where: { organizationId: Number(organizationId) },
       select: { id: true, openedAt: true, createdAt: true },
@@ -27,7 +26,6 @@ const page = async () => {
       where: {
         organizationId: Number(organizationId),
       },
-    
       select: {
         id: true,
         createdAt: true,
@@ -39,6 +37,7 @@ const page = async () => {
           select: {
             order: {
               where: {
+                // 💡 กลับมาใช้ PAY_COMPLETED ค่าเดียว ตามที่คุณต้องการครับ
                 status: "PAY_COMPLETED",
               },
               select: {
@@ -52,6 +51,7 @@ const page = async () => {
                 table: true,
                 menu: {
                   select: {
+                    id: true, // ดึง id ของเมนูมาด้วย เพื่อใช้จัดกลุ่ม
                     menuName: true,
                     img: true,
                     mcEmployeeId: true,
@@ -112,6 +112,7 @@ const page = async () => {
       : null;
 
     for (const order of orders) {
+      // ป้องกันการคำนวณออเดอร์เดิมซ้ำ (ในกรณีที่บิลถูกแบ่งจ่าย Split Tender)
       if (processedOrderIds.has(order.id)) continue;
       processedOrderIds.add(order.id);
 
@@ -153,25 +154,33 @@ const page = async () => {
         : null;
 
       const itemCurrency = order.menu?.unitPrice?.label || "LAK";
-
-      const itemData = {
-        name: order.menu?.menuName || "ไม่ทราบชื่อ",
-        image: order.menu?.img || null,
-        prName: prName,
-        quantity: order.quantity,
-        categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
-        price: order.price_sum || 0,
-        currencyLabel: itemCurrency,
-      };
-
       const qty = order.quantity || 0;
       const price = order.price_sum || 0;
 
       if (isEntertainerItem) {
-        group.entertainerList.push(itemData);
-
         const entId = String(order.menu.mcEmployeeId);
 
+        // 💡 ยุบรวม PR คนเดียวกันในบิลเดียวกัน (บวกยอด quantity ให้)
+        const existingEnt = group.entertainerList.find(
+          (e: any) => e.id === entId,
+        );
+        if (existingEnt) {
+          existingEnt.quantity += qty;
+          existingEnt.price += price;
+        } else {
+          group.entertainerList.push({
+            id: entId,
+            name: order.menu?.menuName || "ไม่ทราบชื่อ",
+            image: order.menu?.img || null,
+            prName: prName,
+            quantity: qty,
+            categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
+            price: price,
+            currencyLabel: itemCurrency,
+          });
+        }
+
+        // เก็บข้อมูลดิบ PR สำหรับ Ranking
         prRawData.push({
           id: entId,
           name: employeeMap.get(entId) || "ไม่ทราบชื่อ",
@@ -187,6 +196,7 @@ const page = async () => {
           shiftSequence: shiftSeq,
         });
 
+        // อัปเดตสถิติยอดรวม PR
         const currentEnt = entertainerStatsMap.get(entId) || {
           count: 0,
           price_sum: 0,
@@ -198,7 +208,26 @@ const page = async () => {
           image: currentEnt.image || order.menu?.img || null,
         });
       } else {
-        group.foodList.push(itemData);
+        // 💡 ยุบรวมอาหารประเภทเดียวกันในบิลเดียวกัน
+        const menuId = String(order.menu?.id || order.id);
+        const existingFood = group.foodList.find((f: any) => f.id === menuId);
+        if (existingFood) {
+          existingFood.quantity += qty;
+          existingFood.price += price;
+        } else {
+          group.foodList.push({
+            id: menuId,
+            name: order.menu?.menuName || "ไม่ทราบชื่อ",
+            image: order.menu?.img || null,
+            prName: null,
+            quantity: qty,
+            categoryName: order.menu?.category?.categoryName || "ไม่มีหมวดหมู่",
+            price: price,
+            currencyLabel: itemCurrency,
+          });
+        }
+
+        // อัปเดตสถิติยอดรวมอาหาร
         const menuName = order.menu?.menuName || "ไม่ทราบชื่อ";
         menuStatsMap.set(menuName, (menuStatsMap.get(menuName) || 0) + qty);
       }
