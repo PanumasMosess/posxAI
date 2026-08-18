@@ -1117,3 +1117,8 @@ export interface SettingBookingConfigProps {
     storeLayoutUrl?: string | null;
   } | null;
 }
+
+export interface PropsStaffCheckIn {
+  organizationId: number;
+  initialOccupiedTables: any[];
+}
