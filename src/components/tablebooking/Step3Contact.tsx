@@ -46,11 +46,25 @@ export default function Step3Contact({
   const selectedTable = tables.find((t) => t.id === data.selectedTableId);
   const displayTableName = selectedTable ? selectedTable.tableName : "-";
 
-  // ค้นหา Label ของช่วงจำนวนคน (เช่น "1-4", "5-8") จาก dateList
-  const guestRange = dateList.GUEST_RANGES?.find(
+  // ==========================================
+  // 💡 ปรับลอจิกการหา Label ช่วงจำนวนคน ให้แม่นยำขึ้น
+  // ==========================================
+  let activeIndex = dateList.GUEST_RANGES?.findIndex(
     (r) => r.min === data.guestCount,
   );
-  const displayGuestCount = guestRange ? guestRange.label : data.guestCount;
+
+  if (activeIndex === -1 && dateList.GUEST_RANGES) {
+    if (data.guestCount >= 13) activeIndex = 3;
+    else if (data.guestCount >= 9) activeIndex = 2;
+    else if (data.guestCount >= 5) activeIndex = 1;
+    else activeIndex = 0;
+  }
+
+  const displayGuestCount =
+    activeIndex !== -1 && dateList.GUEST_RANGES
+      ? dateList.GUEST_RANGES[activeIndex].label
+      : data.guestCount;
+  // ==========================================
 
   const isFormValid =
     data.customerName.trim() !== "" && data.customerPhone.trim().length >= 9;
@@ -66,12 +80,9 @@ export default function Step3Contact({
         throw new Error("ข้อมูลการจองไม่ครบถ้วน");
       }
 
-      // 💡 2. คำนวณหาค่า "คนที่มากที่สุด" ใน Range ที่เลือก
+      // 2. คำนวณหาค่า "คนที่มากที่สุด" ใน Range ที่เลือก
       let maxGuestInRange = data.guestCount; // ค่าเริ่มต้นเผื่อหาไม่เจอ
       if (dateList.GUEST_RANGES) {
-        const activeIndex = dateList.GUEST_RANGES.findIndex(
-          (r) => r.min === data.guestCount,
-        );
         if (activeIndex !== -1) {
           // ถ้ามีช่วงถัดไป ให้เอาค่า min ของช่วงถัดไปลบ 1
           // ถ้าเป็นช่วงสุดท้าย (เช่น 13-16) ให้ใช้ 16 เป็นค่าสูงสุด
