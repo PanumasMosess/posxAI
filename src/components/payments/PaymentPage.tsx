@@ -67,7 +67,7 @@ import {
   signDataWithS3Key,
 } from "@/lib/actions/actionIndex";
 import PaymentMethodsPanel from "./PaymentMethodsPanel";
-import SplitTenderPanel from "./SplitTenderPanel"; // 🟢 ดึง Component แบ่งจ่ายมาใช้
+import SplitTenderPanel from "./SplitTenderPanel";
 import { useUser } from "../providers/UserContext";
 import { checkActiveShift } from "@/lib/actions/actionShift";
 import { OpenShiftModal } from "../forms/OpenShiftModal";
@@ -97,7 +97,6 @@ const PaymentPage = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 🟢 State โหมดแบ่งจ่าย (Split Tender)
   const [isSplitTender, setIsSplitTender] = useState(false);
   const [splitTenders, setSplitTenders] = useState<any[]>([]);
 
@@ -134,7 +133,6 @@ const PaymentPage = ({
     setIsAutoPrint(savedAutoPrint);
   }, []);
 
-  // 🟢 เมื่อเลือกบิลใหม่ ให้ Default เป็นการ "เลือกทุกรายการ" เพื่อจ่ายทั้งหมด
   useEffect(() => {
     setCashReceived("0");
     setDiscount("0");
@@ -146,9 +144,8 @@ const PaymentPage = ({
     } else {
       setSelectedItemIds([]);
     }
-  }, [selectedOrder]); // ลบ paymentMethod ออกจาก deps เพื่อไม่ให้รีเซ็ตตอนสลับการจ่ายแบบปกติ
+  }, [selectedOrder]);
 
-  // 🟢 คำนวณยอดเงินเฉพาะรายการที่ "ถูกเลือก (ติ๊กถูก)" เท่านั้น
   const originalTotal = useMemo(() => {
     if (!selectedOrder) return 0;
     return selectedOrder.items
@@ -162,7 +159,6 @@ const PaymentPage = ({
   const change = parseFloat(cashReceived || "0") - finalTotal;
   const isCashSufficient = change >= 0;
 
-  // 🟢 รีเซ็ตรายการแบ่งจ่ายเมื่อสลับโหมด ให้ยอดตั้งต้นเป็น 0
   useEffect(() => {
     if (isSplitTender) {
       setSplitTenders([
@@ -177,7 +173,6 @@ const PaymentPage = ({
 
   const splitRemaining = finalTotal - totalSplitAmount;
 
-  // 🟢 ฟังก์ชันสำหรับสลับการเลือกรายการอาหาร
   const toggleItemSelection = (itemId: string) => {
     setSelectedItemIds((prev) =>
       prev.includes(itemId)
@@ -240,7 +235,6 @@ const PaymentPage = ({
     }
   };
 
-  // 🟢 Functions สำหรับจัดการ แบ่งจ่ายหลายช่องทาง
   const updateSplitTender = (id: string, field: string, value: any) => {
     setSplitTenders((prev) =>
       prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
@@ -385,7 +379,7 @@ const PaymentPage = ({
             price: totalPriceForItem,
             note: order.note || null,
             price_package: item.menu?.price_package || 0,
-            orderId: order.id, // 🟢 เก็บ orderId สำหรับระบบแยกจ่าย
+            orderId: order.id,
           });
         });
       }
@@ -412,7 +406,6 @@ const PaymentPage = ({
     setIsProcessing(true);
     try {
       initQZSecurity();
-      // 🟢 พิมพ์เฉพาะรายการที่ถูกเลือกจ่ายเงิน
       const itemsToPrint = orderData.items.filter((i: any) =>
         selectedItemIds.includes(i.id),
       );
@@ -460,6 +453,9 @@ const PaymentPage = ({
   };
 
   const handlePayment = async () => {
+    // 🟢 1. ดักการกดย้ำทันที (Double Click Prevention)
+    if (isProcessing) return;
+
     if (!selectedOrder) return;
 
     if (selectedItemIds.length === 0) {
@@ -490,6 +486,7 @@ const PaymentPage = ({
       }
     }
 
+    // 🟢 2. ล็อกสถานะเป็นกำลังประมวลผลทันที
     setIsProcessing(true);
 
     try {
@@ -502,7 +499,6 @@ const PaymentPage = ({
         return;
       }
 
-      // 🟢 ดึงเฉพาะ Order ID ของรายการที่คุณ "ติ๊กเลือก"
       const paidOrderIds = selectedOrder.items
         .filter((i: any) => selectedItemIds.includes(i.id))
         .map((i: any) => i.orderId);
@@ -511,7 +507,6 @@ const PaymentPage = ({
       let isAllSuccess = true;
 
       if (isSplitTender) {
-        // 🟢 วนลูปยิง API จ่ายตามช่องทางที่เลือก
         for (let i = 0; i < splitTenders.length; i++) {
           const tender = splitTenders[i];
 
@@ -540,7 +535,6 @@ const PaymentPage = ({
           }
         }
       } else {
-        // 🟢 โหมดปกติ
         const paymentPayload = {
           orderId: selectedOrder.runningCode,
           table: selectedOrder.table,
@@ -570,7 +564,6 @@ const PaymentPage = ({
         const isPayingAllItems =
           selectedItemIds.length === selectedOrder.items.length;
 
-        // 🟢 ถ้าจ่ายครบ คืนสถานะโต๊ะ
         if (isPayingAllItems) {
           await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
           toast.success("ชำระเงินครบถ้วน เคลียร์โต๊ะเรียบร้อย!");
@@ -595,6 +588,7 @@ const PaymentPage = ({
       console.error("Payment error:", error);
       toast.error("เกิดข้อผิดพลาดในการประมวลผลการชำระเงิน");
     } finally {
+      // 🟢 3. คืนค่าสถานะให้ปุ่มเมื่อประมวลผลจบแล้ว (ไม่ว่าจะสำเร็จหรือล้มเหลว)
       setIsProcessing(false);
     }
   };
@@ -827,10 +821,8 @@ const PaymentPage = ({
               </Button>
             </div>
 
-            {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <div className="p-4 md:p-6 space-y-6 pb-24">
-                {/* 🟢 Toggle Mode: จ่ายช่องทางเดียว / แบ่งจ่ายหลายช่องทาง */}
                 <div>
                   <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl">
                     <button
@@ -875,7 +867,6 @@ const PaymentPage = ({
                   </div>
                 </div>
 
-                {/* 🟢 เรียกใช้ UI ตาม Mode */}
                 {!isSplitTender ? (
                   <PaymentMethodsPanel
                     paymentMethod={paymentMethod}
@@ -1002,7 +993,6 @@ const PaymentPage = ({
               </div>
             </div>
 
-            {/* Footer Button Area */}
             <div className="p-4 md:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 pb-safe shrink-0 z-10">
               <div className="flex gap-3">
                 <AlertDialog>
@@ -1027,10 +1017,13 @@ const PaymentPage = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>ปิด</AlertDialogCancel>
+                      <AlertDialogCancel disabled={isProcessing}>
+                        ปิด
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-red-600 hover:bg-red-700"
                         onClick={handleCancelOrder}
+                        disabled={isProcessing}
                       >
                         ยืนยันการยกเลิก
                       </AlertDialogAction>
@@ -1080,9 +1073,32 @@ const PaymentPage = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                      <AlertDialogAction onClick={handlePayment}>
-                        ยืนยัน
+                      <AlertDialogCancel disabled={isProcessing}>
+                        ยกเลิก
+                      </AlertDialogCancel>
+
+                      {/* 🟢 ดักไม่ให้ Alert Modal ปิดถ้ากดรัวๆ ตอนโหลด */}
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          if (isProcessing) {
+                            e.preventDefault();
+                            return;
+                          }
+                          handlePayment();
+                        }}
+                        disabled={isProcessing}
+                        className={
+                          isProcessing ? "opacity-50 cursor-not-allowed" : ""
+                        }
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          "ยืนยัน"
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

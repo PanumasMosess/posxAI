@@ -174,7 +174,6 @@ const PaymentStatusPage = ({
 
   const splitRemaining = finalTotal - totalSplitAmount;
 
-  // ===== เพิ่ม: เช็คว่ามีการจ่ายด้วย Member ใน Split Tender หรือไม่ =====
   const hasMemberInSplit = useMemo(() => {
     return isSplitTender && splitTenders.some((t) => t.method === "MEMBER");
   }, [isSplitTender, splitTenders]);
@@ -185,7 +184,6 @@ const PaymentStatusPage = ({
       .filter((t) => t.method === "MEMBER")
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [isSplitTender, splitTenders]);
-  // ================================================================
 
   const toggleItemSelection = (itemId: string) => {
     setSelectedItemIds((prev) =>
@@ -436,6 +434,9 @@ const PaymentStatusPage = ({
   };
 
   const handlePayment = async () => {
+    // 🟢 1. ดักการกดย้ำทันที (Double Click Prevention)
+    if (isProcessing) return;
+
     if (!selectedOrder) return;
     if (selectedItemIds.length === 0)
       return toast.warn("กรุณาเลือกรายการที่ต้องการชำระเงิน");
@@ -446,14 +447,12 @@ const PaymentStatusPage = ({
           `ยอดแบ่งจ่ายไม่ครบ! ขาดอีก ${splitRemaining.toLocaleString()}`,
         );
 
-      // ===== เพิ่ม: ตรวจสอบ Member Validation ตอนกดแบ่งจ่าย =====
       if (hasMemberInSplit) {
         if (!memberData)
           return toast.warn("กรุณาตรวจสอบข้อมูลสมาชิกก่อนทำรายการแบ่งจ่าย");
         if (memberData.creditBalance < memberSplitAmount)
           return toast.error("เครดิตร้านค้าของสมาชิกไม่เพียงพอ");
       }
-      // =======================================================
     } else {
       if (paymentMethod === "CASH" && !isCashSufficient)
         return toast.error("ยอดเงินไม่เพียงพอ กรุณาตรวจสอบจำนวนเงิน");
@@ -465,40 +464,68 @@ const PaymentStatusPage = ({
       }
     }
 
+    // 🟢 2. ล็อกสถานะเป็นกำลังประมวลผลทันที
     setIsProcessing(true);
-    const activeShift = await checkActiveShift(organizationId);
 
-    if (!activeShift) {
-      toast.error("กรุณาเปิดกะ (Shift) ก่อนรับชำระเงินครับ!");
-      setIsProcessing(false);
-      setShowOpenShiftModal(true);
-      return;
-    }
+    try {
+      const activeShift = await checkActiveShift(organizationId);
 
-    const paidOrderIds = selectedOrder.items
-      .filter((i: any) => selectedItemIds.includes(i.id))
-      .map((i: any) => i.orderId);
+      if (!activeShift) {
+        toast.error("กรุณาเปิดกะ (Shift) ก่อนรับชำระเงินครับ!");
+        setShowOpenShiftModal(true);
+        return; // ออกจากฟังก์ชัน แล้ว finally จะปรับ isProcessing เป็น false ให้
+      }
 
-    const uniquePaidOrderIds = Array.from(new Set(paidOrderIds));
-    let isAllSuccess = true;
+      const paidOrderIds = selectedOrder.items
+        .filter((i: any) => selectedItemIds.includes(i.id))
+        .map((i: any) => i.orderId);
 
-    if (isSplitTender) {
-      for (let i = 0; i < splitTenders.length; i++) {
-        const tender = splitTenders[i];
+      const uniquePaidOrderIds = Array.from(new Set(paidOrderIds));
+      let isAllSuccess = true;
 
+      if (isSplitTender) {
+        for (let i = 0; i < splitTenders.length; i++) {
+          const tender = splitTenders[i];
+
+          const payload = {
+            orderId: selectedOrder.runningCode,
+            table: selectedOrder.table,
+            tableId: selectedOrder.tableId,
+            paymentMethod: tender.method,
+            accountId: selectedAccountId,
+            totalAmount: Number(tender.amount),
+            discount: i === 0 ? discountAmount : 0,
+            createdById: employeeId,
+            organizationId: organizationId,
+            cashReceived: Number(tender.amount),
+            change: 0,
+            memberPhone: tender.method === "MEMBER" ? memberPhone : undefined,
+            shiftId: activeShift.id,
+            paidOrderIds: uniquePaidOrderIds,
+          };
+
+          const res = await createPaymentOrder(payload);
+          if (!res.success) {
+            isAllSuccess = false;
+            toast.error(`บันทึกยอด ${tender.method} ล้มเหลว: ${res.message}`);
+            break;
+          }
+        }
+      } else {
         const payload = {
           orderId: selectedOrder.runningCode,
           table: selectedOrder.table,
           tableId: selectedOrder.tableId,
-          paymentMethod: tender.method,
+          paymentMethod: paymentMethod,
           accountId: selectedAccountId,
-          totalAmount: Number(tender.amount),
-          discount: i === 0 ? discountAmount : 0,
+          totalAmount: finalTotal,
+          discount: discountAmount,
           createdById: employeeId,
           organizationId: organizationId,
-          cashReceived: Number(tender.amount),
-          change: 0,
-          memberPhone: tender.method === "MEMBER" ? memberPhone : undefined,
+          cashReceived:
+            paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
+          change: paymentMethod === "CASH" ? change : 0,
+          memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
           shiftId: activeShift.id,
           paidOrderIds: uniquePaidOrderIds,
         };
@@ -506,68 +533,49 @@ const PaymentStatusPage = ({
         const res = await createPaymentOrder(payload);
         if (!res.success) {
           isAllSuccess = false;
-          toast.error(`บันทึกยอด ${tender.method} ล้มเหลว: ${res.message}`);
-          break;
+          toast.error(res.message || "ไม่สามารถบันทึกข้อมูลการรับเงินได้");
         }
       }
-    } else {
-      const payload = {
-        orderId: selectedOrder.runningCode,
-        table: selectedOrder.table,
-        tableId: selectedOrder.tableId,
-        paymentMethod: paymentMethod,
-        accountId: selectedAccountId,
-        totalAmount: finalTotal,
-        discount: discountAmount,
-        createdById: employeeId,
-        organizationId: organizationId,
-        cashReceived:
-          paymentMethod === "CASH" ? parseFloat(cashReceived) : finalTotal,
-        change: paymentMethod === "CASH" ? change : 0,
-        memberPhone: paymentMethod === "MEMBER" ? memberPhone : undefined,
-        shiftId: activeShift.id,
-        paidOrderIds: uniquePaidOrderIds,
-      };
 
-      const res = await createPaymentOrder(payload);
-      if (!res.success) {
-        isAllSuccess = false;
-        toast.error(res.message || "ไม่สามารถบันทึกข้อมูลการรับเงินได้");
-      }
-    }
+      if (isAllSuccess) {
+        try {
+          const isPayingAllItems =
+            selectedItemIds.length === selectedOrder.items.length;
+          if (isPayingAllItems) {
+            await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+            toast.success("ชำระเงินครบถ้วน เคลียร์โต๊ะเรียบร้อย!");
+          } else {
+            toast.success(
+              "ชำระเงินบางส่วนสำเร็จ! (รายการที่จ่ายแล้วจะถูกซ่อนไว้)",
+            );
+          }
 
-    if (isAllSuccess) {
-      try {
-        const isPayingAllItems =
-          selectedItemIds.length === selectedOrder.items.length;
-        if (isPayingAllItems) {
-          await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
-          toast.success("ชำระเงินครบถ้วน เคลียร์โต๊ะเรียบร้อย!");
-        } else {
-          toast.success(
-            "ชำระเงินบางส่วนสำเร็จ! (รายการที่จ่ายแล้วจะถูกซ่อนไว้)",
-          );
+          if (isAutoPrint) handlePrintReceipt(selectedOrder);
+
+          setSelectedOrder(null);
+          setSelectedItemIds([]);
+          setCashReceived("0");
+          setDiscount("0");
+          setIsSplitTender(false);
+          router.refresh();
+        } catch (updateError) {
+          console.error("เกิดข้อผิดพลาดตอนอัปเดตสถานะ:", updateError);
+          toast.error("บันทึกเงินสำเร็จ แต่อัปเดตสถานะโต๊ะล้มเหลว");
         }
-
-        if (isAutoPrint) handlePrintReceipt(selectedOrder);
-
-        setSelectedOrder(null);
-        setSelectedItemIds([]);
-        setCashReceived("0");
-        setDiscount("0");
-        setIsSplitTender(false);
-        router.refresh();
-      } catch (updateError) {
-        console.error("เกิดข้อผิดพลาดตอนอัปเดตสถานะ:", updateError);
-        toast.error("บันทึกเงินสำเร็จ แต่อัปเดตสถานะโต๊ะล้มเหลว");
       }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("เกิดข้อผิดพลาดในการประมวลผล");
+    } finally {
+      // 🟢 3. คืนค่าสถานะให้ปุ่มเมื่อประมวลผลจบแล้ว (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+      setIsProcessing(false);
     }
-
-    setIsProcessing(false);
   };
 
   const handleCancelOrder = async () => {
+    if (isProcessing) return; // 🟢 ดักการกดย้ำ
     if (!selectedOrder) return;
+
     setIsProcessing(true);
     try {
       for (const orderId of selectedOrder.allOrderIds) {
@@ -957,7 +965,6 @@ const PaymentStatusPage = ({
                       addSplitTender={addSplitTender}
                     />
 
-                    {/* ===== เพิ่ม: ฟอร์มเช็คสมาชิกเฉพาะตอน แบ่งจ่าย (Split Tender) ===== */}
                     {hasMemberInSplit && (
                       <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-900/50 rounded-xl space-y-3">
                         <Label className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-2">
@@ -1008,7 +1015,6 @@ const PaymentStatusPage = ({
                         )}
                       </div>
                     )}
-                    {/* ======================================================== */}
                   </div>
                 )}
 
@@ -1116,10 +1122,13 @@ const PaymentStatusPage = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>ปิด</AlertDialogCancel>
+                      <AlertDialogCancel disabled={isProcessing}>
+                        ปิด
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-red-600 hover:bg-red-700"
                         onClick={handleCancelOrder}
+                        disabled={isProcessing}
                       >
                         ยืนยันการยกเลิก
                       </AlertDialogAction>
@@ -1134,18 +1143,15 @@ const PaymentStatusPage = ({
                       disabled={
                         selectedItemIds.length === 0 ||
                         isProcessing ||
-                        // ตรวจสอบ Split Tender
                         (isSplitTender &&
                           (splitRemaining !== 0 ||
                             (hasMemberInSplit &&
                               (!memberData ||
                                 memberData.creditBalance <
                                   memberSplitAmount)))) ||
-                        // ตรวจสอบจ่ายปกติ เงินสด
                         (!isSplitTender &&
                           paymentMethod === "CASH" &&
                           !isCashSufficient) ||
-                        // ตรวจสอบจ่ายปกติ ตัดสมาชิก
                         (!isSplitTender &&
                           paymentMethod === "MEMBER" &&
                           (!memberData ||
@@ -1177,9 +1183,32 @@ const PaymentStatusPage = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                      <AlertDialogAction onClick={handlePayment}>
-                        ยืนยัน
+                      <AlertDialogCancel disabled={isProcessing}>
+                        ยกเลิก
+                      </AlertDialogCancel>
+
+                      {/* 🟢 ดักการกดย้ำในปุ่มยืนยัน */}
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          if (isProcessing) {
+                            e.preventDefault();
+                            return;
+                          }
+                          handlePayment();
+                        }}
+                        disabled={isProcessing}
+                        className={
+                          isProcessing ? "opacity-50 cursor-not-allowed" : ""
+                        }
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          "ยืนยัน"
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
