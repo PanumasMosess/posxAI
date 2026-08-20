@@ -223,19 +223,27 @@ export function Data_table_payment<TData, TValue>({
     let total = 0;
     const breakdown = { CASH: 0, QR: 0, MEMBER: 0 };
 
-    table.getFilteredRowModel().rows.forEach((row) => {
+    // ใช้ getFilteredRowModel().rows เพื่อเอาแถวที่ผ่านการกรองทั้งหมด (รวมทุกหน้า Pagination)
+    const currentRows = table.getFilteredRowModel().rows;
+
+    currentRows.forEach((row) => {
       const item = row.original as any;
       const amount = Number(item.totalAmount) || 0;
       total += amount;
 
-      const method = item.paymentMethod?.toUpperCase();
+      // ป้องกันกรณี Payment Method เป็น null หรือมีช่องว่าง
+      const method = String(item.paymentMethod || "")
+        .toUpperCase()
+        .trim();
+
       if (method === "CASH") breakdown.CASH += amount;
-      else if (method === "QR") breakdown.QR += amount;
+      else if (method === "QR" || method === "PROMPTPAY")
+        breakdown.QR += amount;
       else if (method === "MEMBER") breakdown.MEMBER += amount;
     });
 
     return { totalSum: total, filteredBreakdown: breakdown };
-  }, [table.getFilteredRowModel().rows]);
+  }, [filteredData, globalFilter, sorting]);
 
   const { todayTotal, todayBreakdown } = useMemo(() => {
     const today = new Date();
