@@ -20,7 +20,6 @@ const page = async () => {
       where: {
         organizationId: organizationId,
       },
-      take: 1000,
       orderBy: {
         createdAt: "desc",
       },
@@ -38,7 +37,6 @@ const page = async () => {
           select: {
             runningCode: true,
             order: {
-              // 💡 เพิ่มการกรอง: ดึงเฉพาะรายการที่จ่ายเงินแล้ว (ตัดอันที่ CANCELLED ทิ้ง)
               where: {
                 status: { in: ["PAY_COMPLETED", "COMPLETED"] } 
               },
