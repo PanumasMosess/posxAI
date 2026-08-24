@@ -1,4 +1,5 @@
 import React from "react";
+import { Check } from "lucide-react";
 
 export default function WizardHeader({ currentStep }: { currentStep: number }) {
   const steps = [
@@ -9,40 +10,51 @@ export default function WizardHeader({ currentStep }: { currentStep: number }) {
   ];
 
   return (
-    // เปลี่ยนพื้นหลังเป็นสีดำเทา (zinc-950) และเพิ่มเส้นขอบล่างสีเทาเข้ม
-    <div className="bg-zinc-950 p-6 text-zinc-100 border-b border-zinc-800">
-      <h2 className="text-2xl font-bold mb-6 text-center text-amber-500 tracking-wider">
-        จองโต๊ะ
+    <div className="bg-zinc-950/80 backdrop-blur-md p-6 text-zinc-100 border-b border-zinc-800/50">
+      <h2 className="text-2xl md:text-3xl font-black mb-8 text-center bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500 bg-clip-text text-transparent tracking-widest">
+        TABLE BOOKING
       </h2>
 
       <div className="relative max-w-lg mx-auto">
-        {/* เส้นเชื่อม Progress Line (สีเทาเข้ม) */}
-        <div className="absolute top-4 left-0 w-full h-1 bg-zinc-800 -z-10 transform -translate-y-1/2"></div>
+        {/* เส้นเชื่อม Progress Line */}
+        <div className="absolute top-5 left-[10%] right-[10%] h-1 bg-zinc-800 rounded-full -z-10 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-500 ease-out"
+            style={{
+              width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
+            }}
+          />
+        </div>
 
-        <div className="flex items-center justify-between text-sm font-medium">
+        <div className="flex items-start justify-between">
           {steps.map(({ num, label }) => {
-            const isActive = currentStep >= num; // เช็คว่าถึง Step นี้หรือยัง
+            const isActive = currentStep === num;
+            const isCompleted = currentStep > num;
 
             return (
               <div
                 key={num}
-                className="flex flex-col items-center gap-2 relative"
+                className="flex flex-col items-center gap-2 relative z-10 w-16"
               >
-                {/* วงกลมตัวเลข */}
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                     isActive
-                      ? "bg-amber-500 text-zinc-950 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)] font-bold" // สไตล์ Step ที่ผ่านมาแล้ว (สีทอง มีแสง)
-                      : "bg-zinc-900 text-zinc-600 border-zinc-700" // สไตล์ Step ที่ยังไม่ถึง (สีเทา)
+                      ? "bg-amber-500 text-zinc-950 shadow-[0_0_20px_rgba(245,158,11,0.5)] scale-110 font-bold"
+                      : isCompleted
+                        ? "bg-zinc-800 text-amber-400 border border-amber-500/30"
+                        : "bg-zinc-900 text-zinc-600 border border-zinc-800"
                   }`}
                 >
-                  {num}
+                  {isCompleted ? <Check className="w-5 h-5" /> : num}
                 </div>
 
-                {/* ข้อความบอก Step */}
                 <span
-                  className={`text-xs transition-colors ${
-                    isActive ? "text-amber-400 font-semibold" : "text-zinc-600"
+                  className={`text-[11px] md:text-xs text-center transition-colors duration-300 ${
+                    isActive
+                      ? "text-amber-400 font-bold"
+                      : isCompleted
+                        ? "text-zinc-300 font-medium"
+                        : "text-zinc-600"
                   }`}
                 >
                   {label}
