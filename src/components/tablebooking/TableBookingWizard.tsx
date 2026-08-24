@@ -49,8 +49,6 @@ export default function TableBookingWizard({
       }));
     }
     const selectedDateStr = new Date(bookingData.bookingDate).toDateString();
-
-    // 💡 ดึงเวลาที่ลูกค้าเลือกมาเพื่อเช็คว่าทับซ้อนกันไหม
     const selectedDateTime = bookingData.bookingDate.getTime();
 
     const bookedTableIds = initialBookings
@@ -78,19 +76,21 @@ export default function TableBookingWizard({
   }, [bookingData.bookingDate, initialTables, initialBookings]);
 
   return (
-    <div className="relative min-h-screen flex justify-center items-center p-4 md:p-8 font-sans text-zinc-100">
+    <div className="relative min-h-screen flex justify-center items-center p-4 md:p-8 font-sans text-zinc-100 selection:bg-amber-500/30">
+      {/* Background Image & Overlay */}
       <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat bg-fixed"
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat bg-fixed transform scale-105"
         style={{
           backgroundImage: `url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2000&auto=format&fit=crop')`,
         }}
       />
-      <div className="absolute inset-0 z-0 bg-zinc-950/65 backdrop-blur-[3px]" />
+      <div className="absolute inset-0 z-0 bg-zinc-950/80 backdrop-blur-[8px]" />
 
-      <div className="relative z-10 max-w-3xl w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden my-auto backdrop-blur-md">
+      {/* Main Card */}
+      <div className="relative z-10 max-w-3xl w-full bg-zinc-900/80 border border-white/5 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden my-auto backdrop-blur-xl">
         <WizardHeader currentStep={step} />
 
-        <div className="p-6 md:p-8">
+        <div className="p-6 md:p-10">
           {step === 1 && (
             <Step1GuestDate
               data={bookingData}

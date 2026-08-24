@@ -3,6 +3,13 @@
 import { PropsStep1GuestDate } from "@/lib/type";
 import React, { useState } from "react";
 import dateList from "@/lib/data_temp";
+import {
+  Users,
+  CalendarDays,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 export default function Step1GuestDate({
   data,
@@ -30,9 +37,6 @@ export default function Step1GuestDate({
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
-  // ==========================================
-  // 💡 Logic การเลือกวันที่ และคงเวลาเดิมไว้
-  // ==========================================
   const handleDateSelect = (day: number) => {
     const newDate = new Date(year, month, day);
     if (data.bookingDate && data.bookingDate.getHours() !== 0) {
@@ -46,9 +50,6 @@ export default function Step1GuestDate({
     updateData({ bookingDate: newDate });
   };
 
-  // ==========================================
-  // 💡 Logic การเลือกเวลา
-  // ==========================================
   const handleTimeSelect = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(":").map(Number);
     const newDate = data.bookingDate ? new Date(data.bookingDate) : new Date();
@@ -70,9 +71,6 @@ export default function Step1GuestDate({
       ? `${String(data.bookingDate.getHours()).padStart(2, "0")}:${String(data.bookingDate.getMinutes()).padStart(2, "0")}`
       : null;
 
-  // ==========================================
-  // 💡 ปรับ Logic: หาช่วงลูกค้าจากจำนวนคนปัจจุบัน (รองรับการใช้ค่า max)
-  // ==========================================
   let activeIndex = 0;
   if (data.guestCount >= 13) activeIndex = 3;
   else if (data.guestCount >= 9) activeIndex = 2;
@@ -84,14 +82,13 @@ export default function Step1GuestDate({
     ? dateList.GUEST_RANGES[activeIndex + 1].min - 1
     : 16;
 
-  // 💡 ปรับฟังก์ชันให้คำนวณและเก็บค่า "จำนวนคนมากที่สุด" (Max) ลง State
   const handleGuestRangeSelect = (index: number) => {
     const maxGuest = dateList.GUEST_RANGES[index + 1]
       ? dateList.GUEST_RANGES[index + 1].min - 1
       : 16;
 
     updateData({
-      guestCount: maxGuest, // 👈 เก็บค่า Max เช่น 4, 8, 12, 16 ลงใน data ทันที
+      guestCount: maxGuest,
       bookingDate: null,
       selectedTableId: null,
     });
@@ -145,8 +142,9 @@ export default function Step1GuestDate({
   return (
     <div className="space-y-8 animate-fade-in max-w-lg mx-auto">
       {/* 1. เลือกจำนวนลูกค้า */}
-      <div>
-        <label className="block text-base font-semibold text-zinc-100 mb-3 text-center">
+      <div className="space-y-4">
+        <label className="flex items-center gap-2 text-base font-medium text-zinc-200">
+          <Users className="w-5 h-5 text-amber-500" />
           จำนวนลูกค้า (ท่าน)
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -155,11 +153,11 @@ export default function Step1GuestDate({
             return (
               <button
                 key={range.min}
-                onClick={() => handleGuestRangeSelect(index)} // 💡 ส่ง index ไปเพื่อหาค่า max
-                className={`py-3 rounded-xl border transition-all text-center ${
+                onClick={() => handleGuestRangeSelect(index)}
+                className={`py-3.5 rounded-2xl border transition-all duration-300 text-center text-sm font-medium hover:scale-[1.02] active:scale-[0.98] ${
                   isSelected
-                    ? "bg-amber-500 border-amber-500 text-zinc-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-                    : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-amber-500/50 hover:bg-zinc-800"
+                    ? "bg-gradient-to-br from-amber-500 to-amber-400 border-amber-400 text-zinc-950 shadow-[0_8px_16px_rgba(245,158,11,0.25)]"
+                    : "bg-zinc-900/50 border-white/5 text-zinc-400 hover:border-amber-500/50 hover:bg-zinc-800/80 hover:text-zinc-200"
                 }`}
               >
                 {range.label}
@@ -170,106 +168,120 @@ export default function Step1GuestDate({
       </div>
 
       {/* 2. เลือกวันที่ */}
-      <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950/50 shadow-inner">
-        <div className="flex justify-between items-center mb-4 px-2">
-          <button
-            onClick={prevMonth}
-            className="p-2 text-zinc-400 hover:text-amber-500 hover:bg-zinc-800 rounded-full transition"
-          >
-            &lt;
-          </button>
-          <span className="font-bold text-zinc-100 text-lg tracking-wide">
-            {dateList.MONTHS[month]} {year + 543}
-          </span>
-          <button
-            onClick={nextMonth}
-            className="p-2 text-zinc-400 hover:text-amber-500 hover:bg-zinc-800 rounded-full transition"
-          >
-            &gt;
-          </button>
-        </div>
+      <div className="space-y-4">
+        <label className="flex items-center gap-2 text-base font-medium text-zinc-200">
+          <CalendarDays className="w-5 h-5 text-amber-500" />
+          วันที่ต้องการจอง
+        </label>
+        <div className="border border-white/5 rounded-3xl p-5 bg-zinc-900/40 shadow-inner">
+          <div className="flex justify-between items-center mb-6 px-2">
+            <button
+              onClick={prevMonth}
+              className="p-2 text-zinc-400 hover:text-amber-500 hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="font-bold text-zinc-100 text-lg tracking-wide">
+              {dateList.MONTHS[month]} {year + 543}
+            </span>
+            <button
+              onClick={nextMonth}
+              className="p-2 text-zinc-400 hover:text-amber-500 hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center mb-2">
-          {dateList.DAYS_OF_WEEK.map((day) => (
-            <div key={day} className="text-xs font-semibold text-zinc-500 py-1">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {blanks.map((_, i) => (
-            <div key={`blank-${i}`} className="p-2"></div>
-          ))}
-          {days.map((day) => {
-            const currentRenderDate = new Date(year, month, day);
-            currentRenderDate.setHours(0, 0, 0, 0);
-            const isOutOfRange =
-              currentRenderDate < today || currentRenderDate > maxDate;
-            const isFull =
-              !isOutOfRange && !hasAvailableTableForDate(currentRenderDate);
-            const isDisabled = isOutOfRange || isFull;
-            const selected = isSelectedDate(day);
-
-            return (
-              <button
+          <div className="grid grid-cols-7 gap-1 text-center mb-2">
+            {dateList.DAYS_OF_WEEK.map((day) => (
+              <div
                 key={day}
-                disabled={isDisabled}
-                onClick={() => handleDateSelect(day)}
-                className={`relative aspect-square flex flex-col items-center justify-center rounded-full text-sm transition-all
-                  ${
-                    isDisabled
-                      ? "text-zinc-600 bg-zinc-900/30 cursor-not-allowed"
-                      : selected
-                        ? "bg-amber-500 text-zinc-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105"
-                        : "text-zinc-300 hover:bg-zinc-800 hover:text-amber-400 border border-transparent hover:border-zinc-700"
-                  }`}
+                className="text-xs font-medium text-zinc-500 py-2 uppercase tracking-wider"
               >
-                <span>{day}</span>
-              </button>
-            );
-          })}
+                {day}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {blanks.map((_, i) => (
+              <div key={`blank-${i}`} className="p-2"></div>
+            ))}
+            {days.map((day) => {
+              const currentRenderDate = new Date(year, month, day);
+              currentRenderDate.setHours(0, 0, 0, 0);
+              const isOutOfRange =
+                currentRenderDate < today || currentRenderDate > maxDate;
+              const isFull =
+                !isOutOfRange && !hasAvailableTableForDate(currentRenderDate);
+              const isDisabled = isOutOfRange || isFull;
+              const selected = isSelectedDate(day);
+
+              return (
+                <button
+                  key={day}
+                  disabled={isDisabled}
+                  onClick={() => handleDateSelect(day)}
+                  className={`relative aspect-square flex items-center justify-center rounded-2xl text-sm transition-all duration-300
+                    ${
+                      isDisabled
+                        ? "text-zinc-700 bg-zinc-900/20 cursor-not-allowed"
+                        : selected
+                          ? "bg-gradient-to-br from-amber-500 to-amber-400 text-zinc-950 font-bold shadow-[0_4px_12px_rgba(245,158,11,0.3)] scale-105"
+                          : "text-zinc-300 hover:bg-zinc-800 hover:text-amber-400 border border-transparent hover:border-zinc-700"
+                    }`}
+                >
+                  <span>{day}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* 3. เลือกเวลา (Time Slots) */}
       {data.bookingDate && (
-        <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950/50 shadow-inner animate-fade-in">
-          <label className="block text-base font-semibold text-zinc-100 mb-3 text-center">
-            เวลาที่ต้องการจอง (Time)
+        <div className="space-y-4 animate-fade-in">
+          <label className="flex items-center gap-2 text-base font-medium text-zinc-200">
+            <Clock className="w-5 h-5 text-amber-500" />
+            เวลาที่ต้องการจอง
           </label>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {dateList.TIME_SLOTS.map((time) => {
-              const isSelected = selectedTime === time;
+          <div className="border border-white/5 rounded-3xl p-5 bg-zinc-900/40 shadow-inner">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {dateList.TIME_SLOTS.map((time) => {
+                const isSelected = selectedTime === time;
 
-              const isToday =
-                data.bookingDate?.toDateString() === new Date().toDateString();
-              const [h, m] = time.split(":").map(Number);
-              const currentHour = new Date().getHours();
-              const currentMinute = new Date().getMinutes();
-              const isPastTime =
-                isToday &&
-                (currentHour > h || (currentHour === h && currentMinute >= m));
+                const isToday =
+                  data.bookingDate?.toDateString() ===
+                  new Date().toDateString();
+                const [h, m] = time.split(":").map(Number);
+                const currentHour = new Date().getHours();
+                const currentMinute = new Date().getMinutes();
+                const isPastTime =
+                  isToday &&
+                  (currentHour > h ||
+                    (currentHour === h && currentMinute >= m));
 
-              return (
-                <button
-                  key={time}
-                  disabled={isPastTime}
-                  onClick={() => handleTimeSelect(time)}
-                  className={`py-2 rounded-lg border text-sm transition-all text-center
-                    ${
-                      isPastTime
-                        ? "bg-zinc-900/30 border-zinc-800/50 text-zinc-700 cursor-not-allowed"
-                        : isSelected
-                          ? "bg-amber-500 border-amber-500 text-zinc-950 font-bold shadow-md"
-                          : "bg-zinc-800/50 border-zinc-700 text-zinc-300 hover:border-amber-500/50 hover:bg-zinc-800 hover:text-amber-400"
-                    }
-                  `}
-                >
-                  {time}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={time}
+                    disabled={isPastTime}
+                    onClick={() => handleTimeSelect(time)}
+                    className={`py-3 rounded-2xl border text-sm font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]
+                      ${
+                        isPastTime
+                          ? "bg-zinc-900/20 border-white/5 text-zinc-700 cursor-not-allowed"
+                          : isSelected
+                            ? "bg-gradient-to-br from-amber-500 to-amber-400 border-amber-400 text-zinc-950 shadow-[0_4px_12px_rgba(245,158,11,0.25)]"
+                            : "bg-zinc-800/30 border-white/5 text-zinc-300 hover:border-amber-500/50 hover:bg-zinc-800/80 hover:text-amber-400"
+                      }
+                    `}
+                  >
+                    {time}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -277,8 +289,12 @@ export default function Step1GuestDate({
       <button
         onClick={onNext}
         disabled={!canProceed}
-        className={`w-full font-bold py-3 px-4 rounded-xl mt-4 transition-all shadow-lg
-          ${canProceed ? "bg-amber-500 hover:bg-amber-400 text-zinc-950" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"}`}
+        className={`w-full font-bold py-4 px-4 rounded-2xl mt-8 transition-all duration-300 shadow-lg text-lg hover:scale-[1.01] active:scale-[0.99]
+          ${
+            canProceed
+              ? "bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-zinc-950 shadow-amber-500/25"
+              : "bg-zinc-800/50 text-zinc-600 cursor-not-allowed border border-white/5"
+          }`}
       >
         ค้นหาโต๊ะว่าง
       </button>
