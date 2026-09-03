@@ -73,6 +73,9 @@ const MenuOrderPage = ({
   const [isShoutoutOpen, setIsShoutoutOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // 💡 1. เพิ่ม State สำหรับจัดการการกด Submit ซ้ำซ้อน
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [packageSelections, setPackageSelections] = useState<
     Record<number, boolean>
   >({});
@@ -96,7 +99,7 @@ const MenuOrderPage = ({
     if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2; 
+    const walk = (x - startX) * 2;
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -112,7 +115,9 @@ const MenuOrderPage = ({
   const filteredCartData = useMemo(() => {
     if (!relatedData.cartdatas) return [];
     if (tableNumber !== 0) {
-      return relatedData.cartdatas.filter((item: any) => item.tableId === tableNumber);
+      return relatedData.cartdatas.filter(
+        (item: any) => item.tableId === tableNumber,
+      );
     }
     return relatedData.cartdatas;
   }, [relatedData.cartdatas, tableNumber]);
@@ -196,12 +201,17 @@ const MenuOrderPage = ({
     }
   };
 
+  // 💡 2. แก้ไขฟังก์ชันให้ล็อกปุ่ม
   const handleConfirmOrder = async () => {
+    if (isSubmitting) return;
+
     try {
       if (filteredCartData.length === 0) {
         toast.warning("ไม่มีรายการในตะกร้า");
         return;
       }
+
+      setIsSubmitting(true);
 
       const cartDataWithEmployee = filteredCartData.map((item: any) => ({
         ...item,
@@ -229,6 +239,8 @@ const MenuOrderPage = ({
         position: "bottom-center",
         className: "responsive-toast",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -364,12 +376,16 @@ const MenuOrderPage = ({
             WebkitOverflowScrolling: "touch",
           }}
         >
-          <style dangerouslySetInnerHTML={{__html: `
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
             .hide-scrollbar::-webkit-scrollbar {
               display: none;
             }
-          `}} />
-          
+          `,
+            }}
+          />
+
           {categories.map((cat: any) => (
             <button
               key={cat}
@@ -448,7 +464,7 @@ const MenuOrderPage = ({
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <h3 className="font-semibold text-sm text-foreground line-clamp-2 leading-tight mb-1">
@@ -678,12 +694,20 @@ const MenuOrderPage = ({
                 {initialItems[0]?.unitPrice?.label || "฿"}
               </span>
             </div>
+            {/* 💡 3. เพิ่มเงื่อนไขปุ่มและไอคอนกำลังโหลด */}
             <Button
               className="w-full h-12 text-lg font-bold"
               onClick={handleConfirmOrder}
-              disabled={filteredCartData.length === 0}
+              disabled={filteredCartData.length === 0 || isSubmitting}
             >
-              ยืนยันการสั่งอาหาร
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  กำลังส่ง...
+                </div>
+              ) : (
+                "ยืนยันการสั่งอาหาร"
+              )}
             </Button>
           </div>
         </SheetContent>
