@@ -231,7 +231,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       });
 
       if (!currentTable) {
-        throw new Error("Table not found"); // ใช้ throw เพื่อยกเลิก Transaction ทันที
+        return { success: false, error: true, message: "Table not found" };
       }
 
       const menuIds = items.map((item) => item.menuId);
