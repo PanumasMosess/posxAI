@@ -219,150 +219,154 @@ export const deleteMenuInCart = async (data: any) => {
   }
 };
 
-
 export const createOrder = async (items: CartItemPayload[]) => {
   try {
     const organizationId = items[0].organizationId;
     const tableId = items[0].tableId;
 
-    const currentTable = await prisma.table.findUnique({
-      where: { id: tableId },
-    });
-
-    if (!currentTable) {
-      return { success: false, error: true, message: "Table not found" };
-    }
-
-    const menuIds = items.map((item) => item.menuId);
-    const menusInfo = await prisma.menu.findMany({
-      where: { id: { in: menuIds } },
-      include: { category: true },
-    });
-
-    const menuCategoryMap = new Map();
-    menusInfo.forEach((menu) => {
-      menuCategoryMap.set(menu.id, {
-        categoryName: menu.category?.categoryName,
-        requiresKitchen: menu.category?.requiresKitchen,
+    // 🚨 1. นำการทำงานทั้งหมดเข้าไปใน Interactive Transaction (ใช้ tx แทน prisma)
+    const result = await prisma.$transaction(async (tx) => {
+      const currentTable = await tx.table.findUnique({
+        where: { id: tableId },
       });
-    });
 
-    let runningCode = "";
+      if (!currentTable) {
+        throw new Error("Table not found"); // ใช้ throw เพื่อยกเลิก Transaction ทันที
+      }
 
-    // 💡 1. ค้นหาบิลล่าสุดของ "โต๊ะนี้" ที่ยังไม่ได้จ่ายเงิน
-    const lastActiveOrder = await prisma.order.findFirst({
-      where: {
-        tableId: tableId,
-        organizationId: organizationId,
-        status: { notIn: ["PAY_COMPLETED", "CANCELLED"] }, // ยังไม่จ่าย หรือ ยกเลิก
-      },
-      orderBy: { createdAt: "desc" },
-    });
+      const menuIds = items.map((item) => item.menuId);
+      const menusInfo = await tx.menu.findMany({
+        where: { id: { in: menuIds } },
+        include: { category: true },
+      });
 
-    if (lastActiveOrder && lastActiveOrder.order_running_code) {
-      // 💡 1.1 ถ้ามีบิลค้างอยู่ ให้ใช้เลข Order เดิมเลย (รวมบิล)
-      runningCode = lastActiveOrder.order_running_code;
-    } else {
-      // 💡 1.2 ถ้าไม่มีบิลค้าง (เริ่มสั่งใหม่) ให้สร้างเลข Order ใหม่
-      const dateStr = dayjs().format("YYYYMMDD");
-      
-      // 🚨 แก้ปัญหาเลขมั่ว: เลิกใช้ .count() แต่ให้หาเลขบิลล่าสุดของวันนี้ แล้วเอามา +1 แทน
-      const lastRunning = await prisma.orderrunning.findFirst({
+      const menuCategoryMap = new Map();
+      menusInfo.forEach((menu) => {
+        menuCategoryMap.set(menu.id, {
+          categoryName: menu.category?.categoryName,
+          requiresKitchen: menu.category?.requiresKitchen,
+        });
+      });
+
+      let runningCode = "";
+
+      // 💡 ค้นหาบิลล่าสุดของ "โต๊ะนี้" ที่ยังไม่ได้จ่ายเงิน
+      const lastActiveOrder = await tx.order.findFirst({
         where: {
+          tableId: tableId,
           organizationId: organizationId,
-          createdAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
-            lt: new Date(new Date().setHours(23, 59, 59, 999)),
-          },
+          status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
         },
-        orderBy: { id: "desc" }, // ดึงบิลที่เพิ่งสร้างล่าสุด
+        orderBy: { createdAt: "desc" },
       });
 
-      let nextSequence = 1;
-      if (lastRunning && lastRunning.runningCode) {
-        // แยกรหัสออกมา เช่น Q-1-20231010-0005 ให้ดึงเลข 0005 ออกมา +1
-        const parts = lastRunning.runningCode.split("-");
-        const lastNumber = parseInt(parts[parts.length - 1], 10);
-        if (!isNaN(lastNumber)) {
-          nextSequence = lastNumber + 1;
+      if (lastActiveOrder && lastActiveOrder.order_running_code) {
+        // 💡 1.1 ถ้ามีบิลค้างอยู่ ให้ใช้เลข Order เดิม
+        runningCode = lastActiveOrder.order_running_code;
+      } else {
+        // 💡 1.2 ถ้าไม่มีบิลค้าง ให้สร้างเลข Order ใหม่
+        const dateStr = dayjs().format("YYYYMMDD");
+
+        // ค้นหาเลขล่าสุดของวันนี้ (ใช้ tx เพื่อป้องกันการอ่านข้อมูลชนกัน)
+        const lastRunning = await tx.orderrunning.findFirst({
+          where: {
+            organizationId: organizationId,
+            createdAt: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0)),
+              lt: new Date(new Date().setHours(23, 59, 59, 999)),
+            },
+          },
+          orderBy: { id: "desc" },
+        });
+
+        let nextSequence = 1;
+        if (lastRunning && lastRunning.runningCode) {
+          const parts = lastRunning.runningCode.split("-");
+          const lastNumber = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastNumber)) {
+            nextSequence = lastNumber + 1;
+          }
         }
+
+        runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
+          .toString()
+          .padStart(4, "0")}`;
+
+        // บันทึกเลข Order ใหม่
+        await tx.orderrunning.create({
+          data: { runningCode, organizationId },
+        });
       }
 
-      runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
-        .toString()
-        .padStart(4, "0")}`;
+      // ==========================================
+      // สร้างรายการอาหาร (Order Items)
+      // ==========================================
+      // ใช้ for...of แทน .map() เพื่อให้ทำงานเป็นลำดับชั้นใน Transaction
+      for (const item of items) {
+        const modifiersList = item.modifiers || [];
+        const categoryInfo = menuCategoryMap.get(item.menuId);
 
-      // บันทึกเลข Order ใหม่ที่ถูกใช้ไป
-      await prisma.orderrunning.create({
-        data: { runningCode, organizationId },
-      });
-    }
+        let orderStatus = "NEW";
+        if (categoryInfo?.categoryName === "Entertainer") {
+          orderStatus = "READY";
+        } else if (
+          categoryInfo?.requiresKitchen === false ||
+          categoryInfo?.requiresKitchen === 0
+        ) {
+          orderStatus = "READY";
+        }
 
-    // ==========================================
-    // สร้างรายการอาหาร (Order Items)
-    // ==========================================
-    const transactionOperations: any[] = items.map((item) => {
-      const modifiersList = item.modifiers || [];
-      const categoryInfo = menuCategoryMap.get(item.menuId);
-
-      let orderStatus = "NEW";
-      if (categoryInfo?.categoryName === "Entertainer") {
-        orderStatus = "READY";
-      } else if (
-        categoryInfo?.requiresKitchen === false ||
-        categoryInfo?.requiresKitchen === 0
-      ) {
-        orderStatus = "READY";
-      }
-
-      return prisma.order.create({
-        data: {
-          quantity: item.quantity,
-          price_sum: item.price_sum,
-          price_pre_unit: item.price_pre_unit,
-          menuId: item.menuId,
-          tableId: item.tableId,
-          status: orderStatus,
-          organizationId: item.organizationId,
-          order_running_code: runningCode, // 👈 ใช้รหัสที่เราคำนวณไว้ด้านบน (จะเก่าหรือใหม่ขึ้นอยู่กับเงื่อนไข)
-          note: item.note || null,
-          employeeId: item.employeeId || null,
-          orderitems: {
-            create: {
-              menuId: item.menuId,
-              quantity: item.quantity,
-              price: item.price_pre_unit,
-              organizationId: item.organizationId,
-              selectedModifiers: {
-                create: modifiersList.map((mod: any) => ({
-                  modifierItemId: mod.modifierItemId,
-                  price: mod.price,
-                  organizationId: item.organizationId,
-                })),
+        await tx.order.create({
+          data: {
+            quantity: item.quantity,
+            price_sum: item.price_sum,
+            price_pre_unit: item.price_pre_unit,
+            menuId: item.menuId,
+            tableId: item.tableId,
+            status: orderStatus,
+            organizationId: item.organizationId,
+            order_running_code: runningCode,
+            note: item.note || null,
+            employeeId: item.employeeId || null,
+            orderitems: {
+              create: {
+                menuId: item.menuId,
+                quantity: item.quantity,
+                price: item.price_pre_unit,
+                organizationId: item.organizationId,
+                selectedModifiers: {
+                  create: modifiersList.map((mod: any) => ({
+                    modifierItemId: mod.modifierItemId,
+                    price: mod.price,
+                    organizationId: item.organizationId,
+                  })),
+                },
               },
             },
           },
-        },
-      });
-    });
+        });
+      }
 
-    // 💡 อัปเดตสถานะโต๊ะ ถ้าโต๊ะยังว่างอยู่ ให้เปลี่ยนเป็น BUSY
-    const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
-    if (newBillStatuses.includes(currentTable.status)) {
-      transactionOperations.push(
-        prisma.table.update({
+      // 💡 อัปเดตสถานะโต๊ะ
+      const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
+      if (newBillStatuses.includes(currentTable.status)) {
+        await tx.table.update({
           where: { id: tableId },
           data: { status: "BUSY" },
-        }),
-      );
-    }
+        });
+      }
 
-    await prisma.$transaction(transactionOperations);
+      return { success: true, error: false };
+    });
 
-    return { success: true, error: false };
+    return result; // คืนค่าความสำเร็จจาก Transaction
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.log("Create Order Transaction Error:", err);
+    return {
+      success: false,
+      error: true,
+      message: err instanceof Error ? err.message : "Unknown Error",
+    };
   }
 };
 
@@ -458,20 +462,20 @@ export const getKitchenOrders = async (organizationId: number) => {
           include: {
             menu: {
               include: {
-                unitPrice: true, 
-                category: true,  
-              }
+                unitPrice: true,
+                category: true,
+              },
             },
             selectedModifiers: {
               include: {
                 modifierItem: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
       },
-      orderBy: { 
-        createdAt: "asc" 
+      orderBy: {
+        createdAt: "asc",
       },
     });
 
