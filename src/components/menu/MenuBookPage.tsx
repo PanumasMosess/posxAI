@@ -24,7 +24,7 @@ import {
   Menu,
   MonitorUp,
   UtensilsCrossed,
-  Loader2, // 💡 มี import Loader2 ไว้แล้ว
+  Loader2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
@@ -94,7 +94,6 @@ const LanguageSwitcher = () => {
         return originalInsertBefore.call(this, newNode, referenceNode) as T;
       };
     }
-    // ---------------------------------------------------------
 
     if (document.getElementById("google-translate-script")) return;
 
@@ -116,17 +115,15 @@ const LanguageSwitcher = () => {
     };
     document.body.appendChild(addScript);
 
-    // เช็คค่าเริ่มต้นจาก Cookie
     const match = document.cookie.match(/googtrans=\/[^/]+\/([^;]+)/);
     if (match && match[1]) {
       const savedLang = languages.find((l) => l.code === match[1]);
       if (savedLang) {
-        setCurrentFlag(savedLang.flagUrl); // ถ้ามีคุกกี้ ก็เปลี่ยนไอคอนเป็นธงตามที่เคยเลือกไว้
+        setCurrentFlag(savedLang.flagUrl);
       }
     }
   }, []);
 
-  // ใช้ลิงก์รูปภาพแทน Emoji
   const languages = [
     { code: "th", flagUrl: "https://flagcdn.com/w40/th.png", name: "ไทย" },
     { code: "en", flagUrl: "https://flagcdn.com/w40/gb.png", name: "English" },
@@ -158,8 +155,6 @@ const LanguageSwitcher = () => {
   return (
     <div className="relative pointer-events-auto">
       <div id="google_translate_element" className="hidden"></div>
-
-      {/* ปุ่มธงชาติ/ลูกโลกมุมขวา */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all bg-black/60 backdrop-blur-md border border-white/20 overflow-hidden shadow-lg"
@@ -397,9 +392,7 @@ const MenuBookPage = ({
     Record<number, boolean>
   >({});
 
-  // 💡 1. เพิ่ม State ล็อกปุ่ม
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -425,19 +418,32 @@ const MenuBookPage = ({
     return ["All", ...catsArray];
   }, [initialItems, relatedData.categories]);
 
+  // 💡 กรองตะกร้าโดยใช้ EmployeeId แบ่งแยกข้อมูลสำหรับโต๊ะ 0
   const filteredCartData = useMemo(() => {
-    if (!relatedData.cartdatas) return [];
-    if (tableNumber !== 0) {
-      return relatedData.cartdatas.filter(
-        (item: any) => item.tableId === tableNumber,
-      );
-    }
-    return relatedData.cartdatas;
-  }, [relatedData.cartdatas, tableNumber]);
+    if (!relatedData?.cartdatas) return [];
 
+    const currentTableId = Number(tableNumber);
+
+    return relatedData.cartdatas.filter((item: any) => {
+      if (currentTableId !== 0) {
+        return Number(item.tableId) === currentTableId;
+      }
+
+      if (currentTableId === 0) {
+        const isTableZero = Number(item.tableId) === 0;
+        if (employeeId) {
+          return isTableZero && String(item.employeeId) === String(employeeId);
+        }
+        return isTableZero;
+      }
+      return false;
+    });
+  }, [relatedData.cartdatas, tableNumber, employeeId]);
+
+  // 💡 คำนวณยอดรวมโดยใช้ Number ป้องกัน String ตะเข็บ
   const totalPrice = useMemo(() => {
     return filteredCartData.reduce(
-      (sum, item: any) => sum + (item.price_sum || 0),
+      (sum, item: any) => sum + Number(item.price_sum || item.price || 0),
       0,
     );
   }, [filteredCartData]);
@@ -677,11 +683,28 @@ const MenuBookPage = ({
     setPackageSelections((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
   }, []);
 
+  // 💡 อัปเดต ส่งพนักงานและเปลี่ยนเส้นทาง URL
   const handleAddToCart = async (cartItem: CartItem) => {
+    const finalTableId =
+      cartItem.tableId !== undefined
+        ? Number(cartItem.tableId)
+        : Number(tableNumber);
+
     cartItem.organizationId = organizationId ?? 1;
-    if (tableNumber != 0) cartItem.tableId = tableNumber;
+    cartItem.tableId = finalTableId;
+
+    if (employeeId) {
+      (cartItem as any).employeeId = String(employeeId);
+    }
+
     const callBlack = await createMenuToCart(cartItem);
-    if (callBlack.success) router.refresh();
+    if (callBlack.success) {
+      if (Number(tableNumber) !== finalTableId && finalTableId !== 0) {
+        router.push(`?table=${finalTableId}`);
+      } else {
+        router.refresh();
+      }
+    }
   };
 
   const handleUpdateCartQuantity = async (
@@ -706,7 +729,6 @@ const MenuBookPage = ({
     if (callBlack.success) router.refresh();
   };
 
-  // 💡 2. แก้ไขฟังก์ชัน handleConfirmOrder ให้ล็อกปุ่ม
   const handleConfirmOrder = async () => {
     if (isSubmitting) return;
 
@@ -740,7 +762,7 @@ const MenuBookPage = ({
 
   useEffect(() => {
     const totalItemsQty = filteredCartData.reduce(
-      (sum, item: any) => sum + (item.quantity || 1),
+      (sum, item: any) => sum + (Number(item.quantity) || 1),
       0,
     );
     setCartCount(totalItemsQty);
@@ -794,7 +816,6 @@ const MenuBookPage = ({
         <OrderHandler setTableNumber={setTableNumber} />
       </Suspense>
 
-      {/* ================= TOP BAR ================= */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-start pt-4 px-4 sm:px-6 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
@@ -827,7 +848,6 @@ const MenuBookPage = ({
         </div>
       </div>
 
-      {/* ================= BOTTOM ACTION BAR ================= */}
       <div className="fixed bottom-3 sm:bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
         <div className="pointer-events-auto flex items-center p-1.5 sm:p-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
           <button
@@ -1522,7 +1542,6 @@ const MenuBookPage = ({
         </HTMLFlipBook>
       </div>
 
-      {/* Sidebar ซ้าย */}
       <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
         <SheetContent
           side="left"
@@ -1583,7 +1602,6 @@ const MenuBookPage = ({
         </SheetContent>
       </Sheet>
 
-      {/* ปุ่มเลื่อนหน้าซ้าย (แสดงทุกหน้าจอแล้ว) */}
       <div className="fixed top-1/2 left-2 sm:left-6 -translate-y-1/2 z-30 pointer-events-auto">
         <button
           onClick={() => bookRef.current?.pageFlip().flipPrev()}
@@ -1593,7 +1611,6 @@ const MenuBookPage = ({
         </button>
       </div>
 
-      {/* ปุ่มเลื่อนหน้าขวา (แสดงทุกหน้าจอแล้ว) */}
       <div className="fixed top-1/2 right-2 sm:right-6 -translate-y-1/2 z-30 pointer-events-auto">
         <button
           onClick={() => bookRef.current?.pageFlip().flipNext()}
@@ -1620,6 +1637,14 @@ const MenuBookPage = ({
                   const menuItem = initialItems.find(
                     (m: any) => m.id === item.menuId,
                   );
+
+                  const currentPriceSum = Number(
+                    item.price_sum || item.price || 0,
+                  );
+                  const currentQty = Number(item.quantity || 1);
+                  const unitPrice =
+                    currentQty > 0 ? currentPriceSum / currentQty : 0;
+
                   return (
                     <div
                       key={item.id}
@@ -1677,15 +1702,13 @@ const MenuBookPage = ({
                         )}
                         <div className="flex justify-between items-end mt-1">
                           <span className="font-black text-[#614D43] text-sm notranslate">
-                            {item.price_sum.toLocaleString()}.-
+                            {currentPriceSum.toLocaleString()}.-
                           </span>
                           <div className="flex items-center gap-3 bg-gray-50 rounded-full px-2 py-1 border border-gray-200">
                             <button
                               onClick={() => {
-                                if (item.quantity > 1) {
-                                  const newQty = item.quantity - 1;
-                                  const unitPrice =
-                                    item.price_sum / item.quantity;
+                                if (currentQty > 1) {
+                                  const newQty = currentQty - 1;
                                   handleUpdateCartQuantity(
                                     item.id,
                                     item.menuId,
@@ -1699,13 +1722,11 @@ const MenuBookPage = ({
                               <Minus size={12} />
                             </button>
                             <span className="text-sm font-bold min-w-[16px] text-center text-[#2A2422] notranslate">
-                              {item.quantity}
+                              {currentQty}
                             </span>
                             <button
                               onClick={() => {
-                                const newQty = item.quantity + 1;
-                                const unitPrice =
-                                  item.price_sum / item.quantity;
+                                const newQty = currentQty + 1;
                                 handleUpdateCartQuantity(
                                   item.id,
                                   item.menuId,
@@ -1742,7 +1763,7 @@ const MenuBookPage = ({
                 {totalPrice.toLocaleString()}.-
               </span>
             </div>
-            {/* 💡 3. เพิ่มเงื่อนไขปุ่มและไอคอนกำลังโหลด */}
+
             <Button
               className="w-full h-14 text-sm font-bold tracking-widest bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/20"
               onClick={handleConfirmOrder}
@@ -1761,7 +1782,6 @@ const MenuBookPage = ({
         </SheetContent>
       </Sheet>
 
-      {/* ของเดิมที่มีอยู่แล้ว */}
       <MenuOrderHistorySheet
         isOpen={isHistoryOpen}
         onOpenChange={setIsHistoryOpen}
@@ -1786,7 +1806,6 @@ const MenuBookPage = ({
         organizationId={organizationId ?? 1}
       />
 
-      {/* ROTATE DEVICE OVERLAY (แสดงเฉพาะมือถือแนวนอนเท่านั้น) */}
       <div className="hidden [@media(max-width:950px)_and_(max-height:500px)_and_(orientation:landscape)]:flex fixed inset-0 z-[99999] bg-[#0a0a0a]/95 backdrop-blur-xl flex-col items-center justify-center text-white px-6 text-center">
         <motion.div
           initial={{ rotate: -90 }}
@@ -1800,9 +1819,7 @@ const MenuBookPage = ({
           className="mb-8"
         >
           <div className="w-16 h-28 border-[3px] border-white/20 rounded-3xl flex items-center justify-center relative bg-black shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-            {/* ลำโพงบน */}
             <div className="w-5 h-1 bg-white/20 rounded-full absolute top-2.5" />
-            {/* หน้าจอจำลอง */}
             <div className="w-12 h-20 border-2 border-white/10 rounded-xl flex items-center justify-center bg-white/5">
               <UtensilsCrossed size={16} className="text-white/20" />
             </div>

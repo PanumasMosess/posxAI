@@ -55,7 +55,6 @@ const MenuOrderPage = ({
 
   const { employeeId } = useUser();
 
-  // State
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("All");
@@ -73,7 +72,6 @@ const MenuOrderPage = ({
   const [isShoutoutOpen, setIsShoutoutOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // 💡 1. เพิ่ม State สำหรับจัดการการกด Submit ซ้ำซ้อน
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [packageSelections, setPackageSelections] = useState<
@@ -112,19 +110,32 @@ const MenuOrderPage = ({
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
 
+  // 💡 กรองตะกร้าโดยใช้ EmployeeId แบ่งแยกข้อมูลสำหรับโต๊ะ 0
   const filteredCartData = useMemo(() => {
-    if (!relatedData.cartdatas) return [];
-    if (tableNumber !== 0) {
-      return relatedData.cartdatas.filter(
-        (item: any) => item.tableId === tableNumber,
-      );
-    }
-    return relatedData.cartdatas;
-  }, [relatedData.cartdatas, tableNumber]);
+    if (!relatedData?.cartdatas) return [];
 
+    const currentTableId = Number(tableNumber);
+
+    return relatedData.cartdatas.filter((item: any) => {
+      if (currentTableId !== 0) {
+        return Number(item.tableId) === currentTableId;
+      }
+
+      if (currentTableId === 0) {
+        const isTableZero = Number(item.tableId) === 0;
+        if (employeeId) {
+          return isTableZero && String(item.employeeId) === String(employeeId);
+        }
+        return isTableZero;
+      }
+      return false;
+    });
+  }, [relatedData.cartdatas, tableNumber, employeeId]);
+
+  // 💡 คำนวณยอดรวมโดยใช้ Number ป้องกัน String ตะเข็บ
   const totalPrice = useMemo(() => {
     return filteredCartData.reduce(
-      (sum, item: any) => sum + (item.price_sum || 0),
+      (sum, item: any) => sum + Number(item.price_sum || item.price || 0),
       0,
     );
   }, [filteredCartData]);
@@ -148,14 +159,27 @@ const MenuOrderPage = ({
     setIsOpenDetail(true);
   };
 
+  // 💡 อัปเดต ส่งพนักงานและเปลี่ยนเส้นทาง URL
   const handleAddToCart = async (cartItem: CartItem) => {
+    const finalTableId =
+      cartItem.tableId !== undefined
+        ? Number(cartItem.tableId)
+        : Number(tableNumber);
+
     cartItem.organizationId = organizationId ?? 1;
-    if (tableNumber != 0) {
-      cartItem.tableId = tableNumber;
+    cartItem.tableId = finalTableId;
+
+    if (employeeId) {
+      (cartItem as any).employeeId = String(employeeId);
     }
+
     const callBlack = await createMenuToCart(cartItem);
     if (callBlack.success) {
-      router.refresh();
+      if (Number(tableNumber) !== finalTableId && finalTableId !== 0) {
+        router.push(`?table=${finalTableId}`);
+      } else {
+        router.refresh();
+      }
     }
   };
 
@@ -201,7 +225,6 @@ const MenuOrderPage = ({
     }
   };
 
-  // 💡 2. แก้ไขฟังก์ชันให้ล็อกปุ่ม
   const handleConfirmOrder = async () => {
     if (isSubmitting) return;
 
@@ -272,7 +295,11 @@ const MenuOrderPage = ({
   }, [filteredItems]);
 
   useEffect(() => {
-    setCartCount(filteredCartData.length);
+    const totalItemsQty = filteredCartData.reduce(
+      (sum, item: any) => sum + (Number(item.quantity) || 1),
+      0,
+    );
+    setCartCount(totalItemsQty);
   }, [filteredCartData]);
 
   return (
@@ -575,6 +602,14 @@ const MenuOrderPage = ({
                   const menuItem = initialItems.find(
                     (m: any) => m.id === item.menuId,
                   );
+
+                  const currentPriceSum = Number(
+                    item.price_sum || item.price || 0,
+                  );
+                  const currentQty = Number(item.quantity || 1);
+                  const unitPrice =
+                    currentQty > 0 ? currentPriceSum / currentQty : 0;
+
                   return (
                     <div
                       key={item.id}
@@ -629,17 +664,15 @@ const MenuOrderPage = ({
                         )}
                         <div className="flex justify-between items-end mt-2">
                           <span className="font-bold text-primary text-sm">
-                            {item.price_sum.toLocaleString()}{" "}
+                            {currentPriceSum.toLocaleString()}{" "}
                             {menuItem?.unitPrice?.label || "฿"}
                           </span>
 
                           <div className="flex items-center gap-3 bg-muted rounded-lg px-2 py-1">
                             <button
                               onClick={() => {
-                                if (item.quantity > 1) {
-                                  const newQty = item.quantity - 1;
-                                  const unitPrice =
-                                    item.price_sum / item.quantity;
+                                if (currentQty > 1) {
+                                  const newQty = currentQty - 1;
                                   handleUpdateCartQuantity(
                                     item.id,
                                     item.menuId,
@@ -653,13 +686,11 @@ const MenuOrderPage = ({
                               <Minus size={14} />
                             </button>
                             <span className="text-sm font-bold min-w-[20px] text-center text-foreground flex items-center gap-1">
-                              {item.quantity}
+                              {currentQty}
                             </span>
                             <button
                               onClick={() => {
-                                const newQty = item.quantity + 1;
-                                const unitPrice =
-                                  item.price_sum / item.quantity;
+                                const newQty = currentQty + 1;
                                 handleUpdateCartQuantity(
                                   item.id,
                                   item.menuId,
@@ -694,7 +725,7 @@ const MenuOrderPage = ({
                 {initialItems[0]?.unitPrice?.label || "฿"}
               </span>
             </div>
-            {/* 💡 3. เพิ่มเงื่อนไขปุ่มและไอคอนกำลังโหลด */}
+
             <Button
               className="w-full h-12 text-lg font-bold"
               onClick={handleConfirmOrder}
