@@ -110,29 +110,31 @@ const MenuOrderPage = ({
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
 
-  // 💡 กรองตะกร้าโดยใช้ EmployeeId แบ่งแยกข้อมูลสำหรับโต๊ะ 0
+  // 💡 กรองตะกร้า: ซ่อนของที่ส่งแล้ว และแยกตะกร้าเฉพาะพนักงาน
   const filteredCartData = useMemo(() => {
     if (!relatedData?.cartdatas) return [];
 
     const currentTableId = Number(tableNumber);
 
     return relatedData.cartdatas.filter((item: any) => {
-      if (currentTableId !== 0) {
-        return Number(item.tableId) === currentTableId;
+      const isUnsent = item.status === "ON_CART";
+      if (!isUnsent) return false;
+
+      // 2. เช็คว่าเลขโต๊ะตรงกันไหม
+      const isSameTable = Number(item.tableId) === currentTableId;
+      if (!isSameTable) return false;
+
+      // 3. ถ้าเป็นโต๊ะ 0 (Admin) ให้เช็คว่าเป็นตะกร้าของตัวเองไหม
+      if (currentTableId === 0) {
+        if (employeeId) {
+          return String(item.employeeId) === String(employeeId);
+        }
       }
 
-      if (currentTableId === 0) {
-        const isTableZero = Number(item.tableId) === 0;
-        if (employeeId) {
-          return isTableZero && String(item.employeeId) === String(employeeId);
-        }
-        return isTableZero;
-      }
-      return false;
+      return true;
     });
   }, [relatedData.cartdatas, tableNumber, employeeId]);
 
-  // 💡 คำนวณยอดรวมโดยใช้ Number ป้องกัน String ตะเข็บ
   const totalPrice = useMemo(() => {
     return filteredCartData.reduce(
       (sum, item: any) => sum + Number(item.price_sum || item.price || 0),
@@ -159,7 +161,6 @@ const MenuOrderPage = ({
     setIsOpenDetail(true);
   };
 
-  // 💡 อัปเดต ส่งพนักงานและเปลี่ยนเส้นทาง URL
   const handleAddToCart = async (cartItem: CartItem) => {
     const finalTableId =
       cartItem.tableId !== undefined

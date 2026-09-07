@@ -220,6 +220,7 @@ model cart {
   price_pre_unit Float
   status         String?
   note           String?
+  employeeId     String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

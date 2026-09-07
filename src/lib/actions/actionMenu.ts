@@ -167,6 +167,7 @@ export const createMenuToCart = async (data: any) => {
         status: "ON_CART",
         note: data.note,
         organizationId: data.organizationId,
+        employeeId: data.employeeId || null,
         modifiers: {
           create: modifiers.map((mod: any) => ({
             modifierItemId: mod.modifierItemId,
@@ -250,24 +251,42 @@ export const createOrder = async (items: CartItemPayload[]) => {
 
       let runningCode = "";
 
-      // 💡 ค้นหาบิลล่าสุดของ "โต๊ะนี้" ที่ยังไม่ได้จ่ายเงิน
-      const lastActiveOrder = await tx.order.findFirst({
-        where: {
-          tableId: tableId,
-          organizationId: organizationId,
-          status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      // ==========================================
+      // 💡 ดักปัญหาเลข Order มั่ว: ตัดสินใจว่าจะ "รวมบิลเก่า" หรือไม่?
+      // ==========================================
+      let shouldGroupWithOldOrder = false;
 
-      if (lastActiveOrder && lastActiveOrder.order_running_code) {
-        // 💡 1.1 ถ้ามีบิลค้างอยู่ ให้ใช้เลข Order เดิม
-        runningCode = lastActiveOrder.order_running_code;
-      } else {
-        // 💡 1.2 ถ้าไม่มีบิลค้าง ให้สร้างเลข Order ใหม่
+      // เราจะหาบิลเก่ามารวม ก็ต่อเมื่อ:
+      // 1. ไม่ใช่โต๊ะ 0 (โต๊ะ 0 = สั่งหน้าเคาน์เตอร์ ต้องเปิดบิลใหม่ตลอด ห้ามรวม!)
+      // 2. สถานะโต๊ะ "ไม่ว่าง" (กำลังกินอยู่) ถึงจะแปลว่าสั่งอาหารเพิ่มโต๊ะเดิม
+      const emptyStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
+
+      if (tableId !== 0 && !emptyStatuses.includes(currentTable.status)) {
+        shouldGroupWithOldOrder = true;
+      }
+
+      if (shouldGroupWithOldOrder) {
+        // ค้นหาบิลล่าสุดของ "โต๊ะนี้" ที่ยังไม่ได้จ่ายเงิน
+        const lastActiveOrder = await tx.order.findFirst({
+          where: {
+            tableId: tableId,
+            organizationId: organizationId,
+            status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (lastActiveOrder && lastActiveOrder.order_running_code) {
+          runningCode = lastActiveOrder.order_running_code;
+        }
+      }
+
+      // ==========================================
+      // 💡 ถ้าไม่ได้รวมบิล (โต๊ะ 0 หรือ โต๊ะเพิ่งเปิดใหม่) ให้สร้างเลขบิลใหม่
+      // ==========================================
+      if (!runningCode) {
         const dateStr = dayjs().format("YYYYMMDD");
 
-        // ค้นหาเลขล่าสุดของวันนี้ (ใช้ tx เพื่อป้องกันการอ่านข้อมูลชนกัน)
         const lastRunning = await tx.orderrunning.findFirst({
           where: {
             organizationId: organizationId,
@@ -292,7 +311,6 @@ export const createOrder = async (items: CartItemPayload[]) => {
           .toString()
           .padStart(4, "0")}`;
 
-        // บันทึกเลข Order ใหม่
         await tx.orderrunning.create({
           data: { runningCode, organizationId },
         });
@@ -301,7 +319,6 @@ export const createOrder = async (items: CartItemPayload[]) => {
       // ==========================================
       // สร้างรายการอาหาร (Order Items)
       // ==========================================
-      // ใช้ for...of แทน .map() เพื่อให้ทำงานเป็นลำดับชั้นใน Transaction
       for (const item of items) {
         const modifiersList = item.modifiers || [];
         const categoryInfo = menuCategoryMap.get(item.menuId);
@@ -359,7 +376,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       return { success: true, error: false };
     });
 
-    return result; // คืนค่าความสำเร็จจาก Transaction
+    return result;
   } catch (err) {
     console.log("Create Order Transaction Error:", err);
     return {
