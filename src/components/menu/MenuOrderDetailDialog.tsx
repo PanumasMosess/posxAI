@@ -3,8 +3,7 @@ import { Button } from "../ui/button";
 import { CartItem, MenuOrderDetailProps } from "@/lib/type";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
-// เปลี่ยนจากของเดิม ให้มีไอคอนเหล่านี้เพิ่มเข้ามา
-import { Loader2, Minus, Plus, X, Table, ZoomIn, Share2, PlusCircle, Info } from "lucide-react";
+import { Loader2, Minus, Plus, X, Table } from "lucide-react";
 
 import {
   Select,
@@ -29,7 +28,8 @@ const MenuOrderDetailDialog = ({
 }: MenuOrderDetailProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [tableNumberSelect, setTableNumberSelect] = useState(0);
+
+  const [tableNumberSelect, setTableNumberSelect] = useState<string>("");
 
   const [selections, setSelections] = useState<Record<number, number[]>>({});
   const [isImageZoomed, setIsImageZoomed] = useState(false);
@@ -38,16 +38,16 @@ const MenuOrderDetailDialog = ({
     if (open) {
       setQuantity(1);
       setSelections({});
-      setTableNumberSelect(0);
+      setTableNumberSelect(tableNumber !== 0 ? String(tableNumber) : "");
     }
-  }, [open, menuDetail]);
+  }, [open, menuDetail, tableNumber]);
 
   const onClose = () => {
     stateDialog(false);
   };
 
   const onTableChange = (val: any) => {
-    setTableNumberSelect(parseInt(val));
+    setTableNumberSelect(String(val));
   };
 
   const handleSelect = (
@@ -80,10 +80,8 @@ const MenuOrderDetailDialog = ({
     });
   };
 
-  // ✅ ดึงค่าสถานะว่าลูกค้ากดเลือกแบบ "เหมา" หรือไม่
   const isPackage = menuDetail?.isPackageSelected || false;
 
-  // ✅ ถ้าระบุว่าเหมา ให้ใช้ราคาเหมา ถ้าไม่ใช่ ให้ใช้ราคาต่อชม. (price_sale)
   const basePrice = isPackage
     ? menuDetail?.price_package || 0
     : menuDetail?.price_sale || 0;
@@ -102,7 +100,6 @@ const MenuOrderDetailDialog = ({
       });
     });
 
-    // ✅ นำราคาตั้งต้น (basePrice) มาบวกของเสริม แล้วคูณจำนวน
     return (basePrice + modifierPrice) * quantity;
   }, [menuDetail, selections, quantity, basePrice]);
 
@@ -117,13 +114,9 @@ const MenuOrderDetailDialog = ({
   }, [menuDetail, selections]);
 
   const handleAddToCartClick = () => {
-    if (tableNumber == 0 && tableNumberSelect == 0) {
-      toast.error(`กรุณาเลือกโต๊ะ!`, {
-        position: "bottom-center",
-        className: "responsive-toast",
-      });
-      return;
-    }
+    const finalTableId = tableNumberSelect
+      ? Number(tableNumberSelect)
+      : Number(tableNumber);
 
     if (!isValid) {
       toast.warning(`กรุณาเลือกตัวเลือกให้ครบถ้วน`, {
@@ -154,8 +147,8 @@ const MenuOrderDetailDialog = ({
     const cartItem: CartItem = {
       id: menuDetail.id,
       menuId: menuDetail.id,
-      tableId: tableNumber !== 0 ? tableNumber : tableNumberSelect,
-      price_pre_unit: basePrice,
+      tableId: finalTableId,
+      price_pre_unit: basePrice, 
       quantity: quantity,
       price_sum: totalPrice,
       organizationId: menuDetail.organizationId,
@@ -194,10 +187,10 @@ const MenuOrderDetailDialog = ({
             <X className="h-5 w-5" />
           </Button>
 
-          {/* แก้ไข div ตัวนี้ให้กดได้ถ้าเป็น Entertainer */}
           <div
-            className={`relative w-full h-48 sm:h-56 flex-shrink-0 bg-muted ${isEntertainer && menuDetail?.img ? "cursor-pointer" : ""
-              }`}
+            className={`relative w-full h-48 sm:h-56 flex-shrink-0 bg-muted ${
+              isEntertainer && menuDetail?.img ? "cursor-pointer" : ""
+            }`}
             onClick={() => {
               if (isEntertainer && menuDetail?.img) {
                 setIsImageZoomed(true);
@@ -215,7 +208,6 @@ const MenuOrderDetailDialog = ({
             <div className="absolute bottom-4 left-6 right-6 text-white">
               <h3 className="text-2xl font-bold leading-tight shadow-sm flex items-center gap-2">
                 {menuDetail?.menuName}
-                {/* ✅ โชว์ป้ายกำกับว่านี่คือราคาเหมา */}
                 {isPackage && (
                   <span className="text-sm bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium shadow-md">
                     เหมา {menuDetail.package_hours} ชม.
@@ -360,21 +352,10 @@ const MenuOrderDetailDialog = ({
           </div>
 
           <div className="flex-shrink-0 p-4 bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10 safe-area-bottom">
-            {/* ✅ แก้ที่ 1: เปลี่ยนมาใช้ justify-between เสมอ */}
-          <div className="flex items-center justify-between gap-4 mb-4">
-            {/* ✅ แก้ที่ 2: เอาปีกกา {tableNumber == 0 &&} ออก เพื่อให้ช่องแสดงตลอดเวลา */}
-            <Select
-              // ✅ แก้ที่ 3: เพิ่ม value เพื่อให้ระบบจำและแสดงชื่อโต๊ะที่ถูกเลือกอยู่
-                value={
-                  tableNumberSelect !== 0
-                    ? String(tableNumberSelect)
-                    : tableNumber !== 0
-                      ? String(tableNumber)
-                      : undefined
-                }
-                onValueChange={(value) =>
-                  onTableChange(value === "ALL" ? null : value)
-                }
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <Select
+                value={tableNumberSelect || undefined}
+                onValueChange={onTableChange}
               >
                 <SelectTrigger className="w-[140px] bg-background">
                   <div className="flex items-center text-foreground">
@@ -382,7 +363,6 @@ const MenuOrderDetailDialog = ({
                     <SelectValue placeholder="เลือกโต๊ะ" />
                   </div>
                 </SelectTrigger>
-                {/* ✅ แก้ที่ 4: เพิ่ม z-[70] เพื่อดันให้ Dropdown ลอยอยู่เหนือ Modal (ที่ลอยอยู่ z-[60]) */}
                 <SelectContent className="z-[70]">
                   {dataTable?.map((table) => (
                     <SelectItem key={table.id} value={String(table.id)}>
@@ -429,8 +409,10 @@ const MenuOrderDetailDialog = ({
 
             <Button
               className={`w-full h-12 text-lg font-bold transition-all ${
-                !isValid ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02]"
-                }`}
+                !isValid
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:scale-[1.02]"
+              }`}
               onClick={handleAddToCartClick}
               disabled={!isValid}
             >
@@ -441,17 +423,15 @@ const MenuOrderDetailDialog = ({
           </div>
         </div>
       </motion.div>
-<AnimatePresence>
+      <AnimatePresence>
         {isImageZoomed && menuDetail?.img && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            // พื้นหลังดำโปร่งแสง พร้อมเอฟเฟกต์เบลอ (blur) ลึกๆ
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-2xl p-4 md:p-8"
             onClick={() => setIsImageZoomed(false)}
           >
-            {/* ปุ่มปิด X สไตล์ Glassmorphism เรียบหรู */}
             <motion.button
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -465,9 +445,7 @@ const MenuOrderDetailDialog = ({
               <X size={28} strokeWidth={1.5} />
             </motion.button>
 
-            {/* คอนเทนเนอร์หลักของรูปภาพ */}
             <motion.div
-              // เพิ่มอนิเมชันให้รูปเหมือนลอยเข้ามาจากด้านหน้า (scale) และพับลงมานิดๆ (rotateX)
               initial={{ scale: 0.85, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.85, opacity: 0, y: 30 }}
@@ -475,17 +453,14 @@ const MenuOrderDetailDialog = ({
               className="relative flex items-center justify-center w-full max-w-5xl group"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* เอฟเฟกต์แสงเรืองๆ (Glow) ด้านหลังรูปภาพ */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 rounded-[2rem] blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-700 animate-pulse"></div>
 
-              {/* รูปภาพหลัก */}
               <img
                 src={menuDetail.img}
                 alt={menuDetail.menuName || "Full image"}
                 className="relative max-w-full max-h-[65vh] md:max-h-[75vh] rounded-[2rem] border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] object-contain select-none z-10 bg-black/20"
               />
 
-              {/* ป้ายชื่อเมนูลอยๆ ด้านข้าง (โชว์เฉพาะจอใหญ่) */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -500,7 +475,9 @@ const MenuOrderDetailDialog = ({
                   Premium Selection
                 </p>
                 <p className="text-white/40 text-[10px] tracking-wider uppercase">
-                  {isPackage ? `Package • ${menuDetail.package_hours} Hrs` : "Available Now"}
+                  {isPackage
+                    ? `Package • ${menuDetail.package_hours} Hrs`
+                    : "Available Now"}
                 </p>
               </motion.div>
             </motion.div>

@@ -373,6 +373,8 @@ const MenuBookPage = ({
 }: MenuPOSPageClientProps) => {
   const router = useRouter();
   const bookRef = useRef<any>(null);
+
+  // 💡 ใช้แค่ employeeId เหมือนเดิม ไม่มีการเปลี่ยนชื่อ
   const { employeeId } = useUser();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -391,6 +393,7 @@ const MenuBookPage = ({
   const [packageSelections, setPackageSelections] = useState<
     Record<number, boolean>
   >({});
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -418,29 +421,31 @@ const MenuBookPage = ({
     return ["All", ...catsArray];
   }, [initialItems, relatedData.categories]);
 
-  // 💡 กรองตะกร้าโดยใช้ EmployeeId แบ่งแยกข้อมูลสำหรับโต๊ะ 0
+  // 💡 กรองตะกร้า: ซ่อนของที่ส่งแล้ว และแยกตะกร้าเฉพาะพนักงาน
   const filteredCartData = useMemo(() => {
     if (!relatedData?.cartdatas) return [];
 
     const currentTableId = Number(tableNumber);
 
     return relatedData.cartdatas.filter((item: any) => {
-      if (currentTableId !== 0) {
-        return Number(item.tableId) === currentTableId;
+      const isUnsent = item.status === "ON_CART";
+      if (!isUnsent) return false;
+
+      // 2. เช็คว่าเลขโต๊ะตรงกันไหม
+      const isSameTable = Number(item.tableId) === currentTableId;
+      if (!isSameTable) return false;
+
+      // 3. ถ้าเป็นโต๊ะ 0 (Admin) ให้เช็คว่าเป็นตะกร้าของตัวเองไหม
+      if (currentTableId === 0) {
+        if (employeeId) {
+          return String(item.employeeId) === String(employeeId);
+        }
       }
 
-      if (currentTableId === 0) {
-        const isTableZero = Number(item.tableId) === 0;
-        if (employeeId) {
-          return isTableZero && String(item.employeeId) === String(employeeId);
-        }
-        return isTableZero;
-      }
-      return false;
+      return true;
     });
   }, [relatedData.cartdatas, tableNumber, employeeId]);
 
-  // 💡 คำนวณยอดรวมโดยใช้ Number ป้องกัน String ตะเข็บ
   const totalPrice = useMemo(() => {
     return filteredCartData.reduce(
       (sum, item: any) => sum + Number(item.price_sum || item.price || 0),
@@ -683,7 +688,6 @@ const MenuBookPage = ({
     setPackageSelections((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
   }, []);
 
-  // 💡 อัปเดต ส่งพนักงานและเปลี่ยนเส้นทาง URL
   const handleAddToCart = async (cartItem: CartItem) => {
     const finalTableId =
       cartItem.tableId !== undefined
@@ -1788,6 +1792,7 @@ const MenuBookPage = ({
         relatedData={relatedData}
         tableNumber={tableNumber}
       />
+
       <AnimatePresence>
         {isOpenDetail && (
           <MenuOrderDetailDialog
@@ -1800,42 +1805,49 @@ const MenuBookPage = ({
           />
         )}
       </AnimatePresence>
+
       <ShoutoutDialog
         isOpen={isShoutoutOpen}
         onClose={() => setIsShoutoutOpen(false)}
         organizationId={organizationId ?? 1}
       />
 
-      <div className="hidden [@media(max-width:950px)_and_(max-height:500px)_and_(orientation:landscape)]:flex fixed inset-0 z-[99999] bg-[#0a0a0a]/95 backdrop-blur-xl flex-col items-center justify-center text-white px-6 text-center">
-        <motion.div
-          initial={{ rotate: -90 }}
-          animate={{ rotate: [-90, 0, 0, -90] }}
-          transition={{
-            repeat: Infinity,
-            duration: 2.5,
-            ease: "easeInOut",
-            times: [0, 0.4, 0.8, 1],
-          }}
-          className="mb-8"
-        >
-          <div className="w-16 h-28 border-[3px] border-white/20 rounded-3xl flex items-center justify-center relative bg-black shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-            <div className="w-5 h-1 bg-white/20 rounded-full absolute top-2.5" />
-            <div className="w-12 h-20 border-2 border-white/10 rounded-xl flex items-center justify-center bg-white/5">
-              <UtensilsCrossed size={16} className="text-white/20" />
-            </div>
-          </div>
-        </motion.div>
-
-        <h2 className="text-2xl font-serif text-white/90 font-bold tracking-[0.2em] mb-4 notranslate uppercase drop-shadow-lg">
-          Portrait Only
-        </h2>
-        <p className="text-white/60 text-sm leading-relaxed tracking-wide">
-          กรุณาหมุนโทรศัพท์ของคุณเป็น{" "}
-          <span className="text-orange-500 font-bold">แนวตั้ง</span>
-          <br />
-          เพื่อการแสดงผลสมุดเมนูที่สมบูรณ์
-        </p>
-      </div>
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+            onClick={() => setPreviewImage(null)}
+          >
+            <button
+              className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-colors z-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewImage(null);
+              }}
+            >
+              <X size={24} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md h-[70vh] md:h-[85vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={previewImage}
+                alt="Full preview"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
