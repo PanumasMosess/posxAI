@@ -374,7 +374,7 @@ const MenuBookPage = ({
   const router = useRouter();
   const bookRef = useRef<any>(null);
 
-  // 💡 ใช้แค่ employeeId เหมือนเดิม ไม่มีการเปลี่ยนชื่อ
+  // 💡 ใช้แค่ employeeId เหมือนเดิม
   const { employeeId } = useUser();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -421,7 +421,7 @@ const MenuBookPage = ({
     return ["All", ...catsArray];
   }, [initialItems, relatedData.categories]);
 
-  // 💡 กรองตะกร้า: ซ่อนของที่ส่งแล้ว และแยกตะกร้าเฉพาะพนักงาน
+  // 💡 กรองตะกร้า
   const filteredCartData = useMemo(() => {
     if (!relatedData?.cartdatas) return [];
 
@@ -431,11 +431,9 @@ const MenuBookPage = ({
       const isUnsent = item.status === "ON_CART";
       if (!isUnsent) return false;
 
-      // 2. เช็คว่าเลขโต๊ะตรงกันไหม
       const isSameTable = Number(item.tableId) === currentTableId;
       if (!isSameTable) return false;
 
-      // 3. ถ้าเป็นโต๊ะ 0 (Admin) ให้เช็คว่าเป็นตะกร้าของตัวเองไหม
       if (currentTableId === 0) {
         if (employeeId) {
           return String(item.employeeId) === String(employeeId);
@@ -742,8 +740,10 @@ const MenuBookPage = ({
 
       setIsSubmitting(true);
 
+      // 🚨 บังคับยัด tableId ของโต๊ะปัจจุบัน
       const cartDataWithEmployee = filteredCartData.map((item: any) => ({
         ...item,
+        tableId: Number(tableNumber),
         employeeId: employeeId ? String(employeeId) : null,
       }));
       const result = await createOrder(cartDataWithEmployee);
