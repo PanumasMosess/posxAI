@@ -110,7 +110,6 @@ const MenuOrderPage = ({
     return ["All", ...Array.from(cats)];
   }, [initialItems]);
 
-  // 💡 กรองตะกร้า: ซ่อนของที่ส่งแล้ว และแยกตะกร้าเฉพาะพนักงาน
   const filteredCartData = useMemo(() => {
     if (!relatedData?.cartdatas) return [];
 
@@ -120,11 +119,9 @@ const MenuOrderPage = ({
       const isUnsent = item.status === "ON_CART";
       if (!isUnsent) return false;
 
-      // 2. เช็คว่าเลขโต๊ะตรงกันไหม
       const isSameTable = Number(item.tableId) === currentTableId;
       if (!isSameTable) return false;
 
-      // 3. ถ้าเป็นโต๊ะ 0 (Admin) ให้เช็คว่าเป็นตะกร้าของตัวเองไหม
       if (currentTableId === 0) {
         if (employeeId) {
           return String(item.employeeId) === String(employeeId);
@@ -237,8 +234,10 @@ const MenuOrderPage = ({
 
       setIsSubmitting(true);
 
+      // 🚨 บังคับยัด tableId ปัจจุบันเข้าไปก่อนส่ง ป้องกันการโดนตะกร้าโต๊ะอื่นแทรกแซง
       const cartDataWithEmployee = filteredCartData.map((item: any) => ({
         ...item,
+        tableId: Number(tableNumber),
         employeeId: employeeId ? String(employeeId) : null,
       }));
 

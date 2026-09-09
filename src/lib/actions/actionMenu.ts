@@ -225,7 +225,6 @@ export const createOrder = async (items: CartItemPayload[]) => {
     const organizationId = items[0].organizationId;
     const tableId = items[0].tableId;
 
-    // 🚨 1. นำการทำงานทั้งหมดเข้าไปใน Interactive Transaction (ใช้ tx แทน prisma)
     const result = await prisma.$transaction(async (tx) => {
       const currentTable = await tx.table.findUnique({
         where: { id: tableId },
@@ -250,15 +249,7 @@ export const createOrder = async (items: CartItemPayload[]) => {
       });
 
       let runningCode = "";
-
-      // ==========================================
-      // 💡 ดักปัญหาเลข Order มั่ว: ตัดสินใจว่าจะ "รวมบิลเก่า" หรือไม่?
-      // ==========================================
       let shouldGroupWithOldOrder = false;
-
-      // เราจะหาบิลเก่ามารวม ก็ต่อเมื่อ:
-      // 1. ไม่ใช่โต๊ะ 0 (โต๊ะ 0 = สั่งหน้าเคาน์เตอร์ ต้องเปิดบิลใหม่ตลอด ห้ามรวม!)
-      // 2. สถานะโต๊ะ "ไม่ว่าง" (กำลังกินอยู่) ถึงจะแปลว่าสั่งอาหารเพิ่มโต๊ะเดิม
       const emptyStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
 
       if (tableId !== 0 && !emptyStatuses.includes(currentTable.status)) {
@@ -266,7 +257,6 @@ export const createOrder = async (items: CartItemPayload[]) => {
       }
 
       if (shouldGroupWithOldOrder) {
-        // ค้นหาบิลล่าสุดของ "โต๊ะนี้" ที่ยังไม่ได้จ่ายเงิน
         const lastActiveOrder = await tx.order.findFirst({
           where: {
             tableId: tableId,
@@ -282,43 +272,59 @@ export const createOrder = async (items: CartItemPayload[]) => {
       }
 
       // ==========================================
-      // 💡 ถ้าไม่ได้รวมบิล (โต๊ะ 0 หรือ โต๊ะเพิ่งเปิดใหม่) ให้สร้างเลขบิลใหม่
+      // 🚨 การสร้างเลขคิวใหม่แบบ "เรียงวิ 0001", "รีเซ็ตตามวัน", "ป้องกันกดพร้อมกัน"
       // ==========================================
       if (!runningCode) {
-        const dateStr = dayjs().format("YYYYMMDD");
+        // 1. ดึงข้อมูลตาราง OrderRunning แถวล่าสุดของร้านมา เพื่อใช้ทำเป็นกุญแจล็อก (Row Lock)
+        const latestRun = await tx.orderrunning.findFirst({
+          where: { organizationId },
+          orderBy: { id: "desc" },
+        });
 
-        const lastRunning = await tx.orderrunning.findFirst({
+        // 2. 🔒 ล็อกคิว! ด้วยคำสั่ง Update หลอกๆ
+        // Database จะสั่งบล็อกรายการสั่งอาหารจากโต๊ะอื่นที่เข้ามาพร้อมกัน ให้ยืนรอจนกว่าคิวนี้จะทำงานเสร็จ
+        if (latestRun) {
+          await tx.orderrunning.update({
+            where: { id: latestRun.id },
+            data: { organizationId }, // แค่สั่งอัปเดตค่าเดิม เพื่อให้เกิดการ Lock
+          });
+        }
+
+        // 3. แปลงเวลาเป็นไทย (UTC+7) เสมอ เพื่อการตัดรอบวันที่ถูกต้องเป๊ะๆ
+        const thaiTime = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+        const yyyy = thaiTime.getUTCFullYear();
+        const mm = String(thaiTime.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(thaiTime.getUTCDate()).padStart(2, "0");
+        const dateStr = `${yyyy}${mm}${dd}`; // ผลลัพธ์: 20260909
+
+        // 4. ดึงบิลล่าสุดของ "วันนี้" เท่านั้น (ถ้ารหัสไม่มีวันที่ของวันนี้แปลว่าขึ้นวันใหม่)
+        const lastToday = await tx.orderrunning.findFirst({
           where: {
-            organizationId: organizationId,
-            createdAt: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0)),
-              lt: new Date(new Date().setHours(23, 59, 59, 999)),
-            },
+            organizationId,
+            runningCode: { contains: dateStr }, // กรองหาเฉพาะบิลที่มีคำว่า 20260909
           },
           orderBy: { id: "desc" },
         });
 
-        let nextSequence = 1;
-        if (lastRunning && lastRunning.runningCode) {
-          const parts = lastRunning.runningCode.split("-");
+        let nextSequence = 1; // เริ่มต้นที่ 0001 ทันทีถ้ายังไม่มีบิลของวันนี้
+
+        if (lastToday && lastToday.runningCode) {
+          const parts = lastToday.runningCode.split("-");
           const lastNumber = parseInt(parts[parts.length - 1], 10);
           if (!isNaN(lastNumber)) {
-            nextSequence = lastNumber + 1;
+            nextSequence = lastNumber + 1; // นำบิลล่าสุดของวันนี้มา +1
           }
         }
 
-        runningCode = `Q-${organizationId}-${dateStr}-${nextSequence
-          .toString()
-          .padStart(4, "0")}`;
+        // 5. จัด Format บิลให้เป็น 0001, 0002
+        runningCode = `Q-${organizationId}-${dateStr}-${String(nextSequence).padStart(4, "0")}`;
 
+        // 6. บันทึกลงตาราง ให้คนต่อไปที่รอคิวอยู่เอาไปรันต่อได้
         await tx.orderrunning.create({
           data: { runningCode, organizationId },
         });
       }
 
-      // ==========================================
-      // สร้างรายการอาหาร (Order Items)
-      // ==========================================
       for (const item of items) {
         const modifiersList = item.modifiers || [];
         const categoryInfo = menuCategoryMap.get(item.menuId);
@@ -364,7 +370,6 @@ export const createOrder = async (items: CartItemPayload[]) => {
         });
       }
 
-      // 💡 อัปเดตสถานะโต๊ะ
       const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
       if (newBillStatuses.includes(currentTable.status)) {
         await tx.table.update({
