@@ -576,14 +576,31 @@ const PaymentStatusPage = ({
     if (isProcessing) return; // 🟢 ดักการกดย้ำ
     if (!selectedOrder) return;
 
+    // 🚨 ดักตรงนี้: ถ้ายังไม่ได้ติ๊กเลือกรายการอาหารเลย ให้แจ้งเตือนและหยุดทำงาน
+    if (selectedItemIds.length === 0) {
+      toast.warn("กรุณาเลือกรายการที่ต้องการยกเลิก");
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      for (const orderId of selectedOrder.allOrderIds) {
+      const orderIdsToCancel: string[] = selectedOrder.items
+        .filter((i: any) => selectedItemIds.includes(i.id))
+        .map((i: any) => String(i.orderId));
+
+      const uniqueOrderIds = Array.from(new Set<string>(orderIdsToCancel));
+
+      for (const orderId of uniqueOrderIds) {
         await updateStatusOrder(orderId, "CANCELLED");
       }
-      await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
-      toast.success("ยกเลิกบิลเรียบร้อยแล้ว");
+
+      if (selectedItemIds.length === selectedOrder.items.length) {
+        await updateStatusTable(selectedOrder.tableId, "AVAILABLE");
+      }
+
+      toast.success("ยกเลิกรายการเรียบร้อยแล้ว");
       setSelectedOrder(null);
+      setSelectedItemIds([]);
       router.refresh();
     } catch (error) {
       console.error("Cancel Order Error:", error);
@@ -1105,7 +1122,7 @@ const PaymentStatusPage = ({
                     <Button
                       variant="outline"
                       className="w-12 h-12 shrink-0 rounded-xl border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
-                      disabled={isProcessing}
+                      disabled={isProcessing || selectedItemIds.length === 0}
                       title="ยกเลิกบิลนี้"
                     >
                       <Trash2 className="h-5 w-5" />

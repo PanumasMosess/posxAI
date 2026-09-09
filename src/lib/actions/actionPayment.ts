@@ -5,9 +5,7 @@ import prisma from "../prisma";
 export const updateStatusOrder = async (idRunning: string, status: string) => {
   try {
     const updatedOrderStatus = await prisma.order.updateMany({
-      where: {
-        order_running_code: idRunning,
-      },
+      where: { id: Number(idRunning) },
       data: {
         status: status,
         updatedAt: new Date(),
@@ -142,7 +140,6 @@ export const createPaymentOrder = async (data: any) => {
           tableId: data.tableId,
           order_running_code: data.orderId,
           shiftId: data.shiftId || null,
-          
         },
       });
 
@@ -152,21 +149,21 @@ export const createPaymentOrder = async (data: any) => {
         data.paidOrderIds.length > 0
       ) {
         await tx.order.updateMany({
-          where: { 
-            id: { in: data.paidOrderIds } },
+          where: {
+            id: { in: data.paidOrderIds },
+          },
           data: { status: "PAY_COMPLETED", updatedAt: new Date() },
         });
       }
 
       // 🟢 2. บันทึกรายรับเข้า "บัญชีหน้าร้าน" ที่เลือกไว้ในตั้งค่า (ไม่ต้องรอรับ id จากหน้าบ้าน)
       if (["CASH", "QR"].includes(data.paymentMethod)) {
-        
         // ค้นหาบัญชีที่ตั้งค่าเป็นบัญชีรับเงินหน้าร้าน (accPosPayment: true)
         let posAccount = await tx.account.findFirst({
-          where: { 
-            organizationId: data.organizationId, 
+          where: {
+            organizationId: data.organizationId,
             status: "ACTIVE",
-            accPosPayment: true 
+            accPosPayment: true,
           },
         });
 
@@ -174,16 +171,19 @@ export const createPaymentOrder = async (data: any) => {
         if (!posAccount) {
           posAccount = await tx.account.findFirst({
             where: { organizationId: data.organizationId, status: "ACTIVE" },
-            orderBy: { id: "asc" }
+            orderBy: { id: "asc" },
           });
         }
 
         if (!posAccount) {
-          throw new Error("ไม่พบบัญชีสำหรับรับเงินหน้าร้าน กรุณาเพิ่มบัญชีการเงินก่อนครับ");
+          throw new Error(
+            "ไม่พบบัญชีสำหรับรับเงินหน้าร้าน กรุณาเพิ่มบัญชีการเงินก่อนครับ",
+          );
         }
 
         // คำนวณยอดเงินคงเหลือใหม่
-        const newBalance = Number(posAccount.balance) + Number(data.totalAmount);
+        const newBalance =
+          Number(posAccount.balance) + Number(data.totalAmount);
 
         // บันทึก Log ธุรกรรม
         await tx.account_transaction.create({
@@ -195,7 +195,7 @@ export const createPaymentOrder = async (data: any) => {
             amount: data.totalAmount,
             note: `รับชำระค่าอาหาร (บิล: ${data.orderId}) - ${data.paymentMethod}`,
             createdById: data.createdById,
-            title: `รายรับค่าอาหาร บิล ${data.orderId}`, 
+            title: `รายรับค่าอาหาร บิล ${data.orderId}`,
             accountBalance: newBalance,
             date: new Date(),
           },
@@ -298,21 +298,21 @@ export const getActiveAccounts = async (organizationId: any) => {
     const orgIdParsed = Number(organizationId);
 
     const accounts = await prisma.account.findMany({
-      where: { 
-        organizationId: orgIdParsed, 
-        status: "ACTIVE" 
+      where: {
+        organizationId: orgIdParsed,
+        status: "ACTIVE",
       },
-      select: { 
-        id: true, 
-        accountName: true, 
-        balance: true 
+      select: {
+        id: true,
+        accountName: true,
+        balance: true,
       },
-      orderBy: { accountName: 'asc' }
+      orderBy: { accountName: "asc" },
     });
 
     return { success: true, data: accounts };
   } catch (error) {
-    console.error("❌ Prisma Error in getActiveAccounts:", error); 
+    console.error("❌ Prisma Error in getActiveAccounts:", error);
     return { success: false, message: "ดึงข้อมูลบัญชีล้มเหลว" };
   }
 };
