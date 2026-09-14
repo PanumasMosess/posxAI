@@ -257,11 +257,25 @@ export const createOrder = async (items: CartItemPayload[]) => {
       }
 
       if (shouldGroupWithOldOrder) {
+        // 1. กำหนดเวลา: บิลเก่าที่จะดึงมารวมได้ ต้องสร้างขึ้นในรอบ 8 ชั่วโมงที่ผ่านมาเท่านั้น
+        // (ถ้าโต๊ะนี้ถูกทิ้งร้างไว้เกิน 8 ชม. จะถือว่าเป็นลูกค้ากลุ่มใหม่ทันที)
+        const hoursLimit = 8;
+        const timeThreshold = new Date(
+          Date.now() - hoursLimit * 60 * 60 * 1000,
+        );
+
         const lastActiveOrder = await tx.order.findFirst({
           where: {
             tableId: tableId,
             organizationId: organizationId,
-            status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
+            // 2. ดักสถานะที่แปลว่า "จบการขายแล้ว" เพิ่มเติมให้ครอบคลุม ป้องกันบิลจ่ายแล้วโผล่มา
+            status: {
+              notIn: ["PAY_COMPLETED", "CANCELLED", "SUCCESS", "PAID"],
+            },
+            // 3. เงื่อนไขเวลา: ต้องเป็นออเดอร์ที่ใหม่กว่าขีดจำกัดที่เราตั้งไว้
+            createdAt: {
+              gte: timeThreshold,
+            },
           },
           orderBy: { createdAt: "desc" },
         });
