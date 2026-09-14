@@ -257,25 +257,11 @@ export const createOrder = async (items: CartItemPayload[]) => {
       }
 
       if (shouldGroupWithOldOrder) {
-        // 1. กำหนดเวลา: บิลเก่าที่จะดึงมารวมได้ ต้องสร้างขึ้นในรอบ 8 ชั่วโมงที่ผ่านมาเท่านั้น
-        // (ถ้าโต๊ะนี้ถูกทิ้งร้างไว้เกิน 8 ชม. จะถือว่าเป็นลูกค้ากลุ่มใหม่ทันที)
-        const hoursLimit = 8;
-        const timeThreshold = new Date(
-          Date.now() - hoursLimit * 60 * 60 * 1000,
-        );
-
         const lastActiveOrder = await tx.order.findFirst({
           where: {
             tableId: tableId,
             organizationId: organizationId,
-            // 2. ดักสถานะที่แปลว่า "จบการขายแล้ว" เพิ่มเติมให้ครอบคลุม ป้องกันบิลจ่ายแล้วโผล่มา
-            status: {
-              notIn: ["PAY_COMPLETED", "CANCELLED", "SUCCESS", "PAID"],
-            },
-            // 3. เงื่อนไขเวลา: ต้องเป็นออเดอร์ที่ใหม่กว่าขีดจำกัดที่เราตั้งไว้
-            createdAt: {
-              gte: timeThreshold,
-            },
+            status: { notIn: ["PAY_COMPLETED", "CANCELLED"] },
           },
           orderBy: { createdAt: "desc" },
         });
@@ -404,7 +390,211 @@ export const createOrder = async (items: CartItemPayload[]) => {
       message: err instanceof Error ? err.message : "Unknown Error",
     };
   }
-};
+}; 
+
+// export const createOrder = async (items: CartItemPayload[]) => {
+//   try {
+//     const organizationId = items[0].organizationId;
+//     const tableId = items[0].tableId;
+
+//     // ==========================================
+//     // 🧪 ไทม์แมชชีนสำหรับจำลองเวลาเทส (เลือกเปิดใช้งานแค่อันเดียว)
+//     // ==========================================
+//     // 1. เทสตอนตี 1 ครึ่ง (ยังไม่ถึงเวลาปิดร้านตี 4 -> ต้องรันเลขต่อจากของเมื่อวาน)
+//     // const MOCK_NOW = new Date("2026-09-15T01:30:00Z").getTime(); 
+
+//     // 2. เทสตอนตี 5 (ร้านปิดตัดรอบไปแล้ว -> ต้องขึ้นวันที่ใหม่ และรีเซ็ตคิวเป็น 0001)
+//     const MOCK_NOW = new Date("2026-09-15T05:00:00Z").getTime(); 
+
+//     // 3. เวลาความเป็นจริง (ใช้ตั้งตอนเอาขึ้นระบบจริง / Production)
+//     // const MOCK_NOW = Date.now();
+//     // ==========================================
+
+//     const result = await prisma.$transaction(async (tx) => {
+//       const currentTable = await tx.table.findUnique({
+//         where: { id: tableId },
+//       });
+
+//       if (!currentTable) {
+//         return { success: false, error: true, message: "Table not found" };
+//       }
+
+//       const menuIds = items.map((item) => item.menuId);
+//       const menusInfo = await tx.menu.findMany({
+//         where: { id: { in: menuIds } },
+//         include: { category: true },
+//       });
+
+//       const menuCategoryMap = new Map();
+//       menusInfo.forEach((menu) => {
+//         menuCategoryMap.set(menu.id, {
+//           categoryName: menu.category?.categoryName,
+//           requiresKitchen: menu.category?.requiresKitchen,
+//         });
+//       });
+
+//       let runningCode = "";
+//       let shouldGroupWithOldOrder = false;
+//       const emptyStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
+
+//       if (tableId !== 0 && !emptyStatuses.includes(currentTable.status)) {
+//         shouldGroupWithOldOrder = true;
+//       }
+
+//       if (shouldGroupWithOldOrder) {
+//         // 1. กำหนดเวลา: บิลเก่าที่จะดึงมารวมได้ ต้องสร้างขึ้นในรอบ 8 ชั่วโมงที่ผ่านมาเท่านั้น
+//         const hoursLimit = 8;
+//         const timeThreshold = new Date(
+//           MOCK_NOW - hoursLimit * 60 * 60 * 1000, // 💡 ใช้ MOCK_NOW แทน Date.now()
+//         );
+
+//         const lastActiveOrder = await tx.order.findFirst({
+//           where: {
+//             tableId: tableId,
+//             organizationId: organizationId,
+//             // 2. ดักสถานะที่แปลว่า "จบการขายแล้ว"
+//             status: {
+//               notIn: ["PAY_COMPLETED", "CANCELLED", "SUCCESS", "PAID"],
+//             },
+//             // 3. เงื่อนไขเวลา: ต้องเป็นออเดอร์ที่ใหม่กว่า 8 ชม.
+//             createdAt: {
+//               gte: timeThreshold,
+//             },
+//           },
+//           orderBy: { createdAt: "desc" },
+//         });
+
+//         if (lastActiveOrder && lastActiveOrder.order_running_code) {
+//           runningCode = lastActiveOrder.order_running_code;
+//         }
+//       }
+
+//       // ==========================================
+//       // 🚨 การสร้างเลขคิวใหม่แบบ "เรียงวิ 0001", "รีเซ็ตตามวัน", "ป้องกันกดพร้อมกัน"
+//       // ==========================================
+//       if (!runningCode) {
+//         // 1. ดึงข้อมูลตาราง OrderRunning แถวล่าสุดมาทำเป็นกุญแจล็อก (Row Lock)
+//         const latestRun = await tx.orderrunning.findFirst({
+//           where: { organizationId },
+//           orderBy: { id: "desc" },
+//         });
+
+//         // 2. 🔒 ล็อกคิว! ด้วยคำสั่ง Update หลอกๆ
+//         if (latestRun) {
+//           await tx.orderrunning.update({
+//             where: { id: latestRun.id },
+//             data: { organizationId }, 
+//           });
+//         }
+
+//         // 3. แปลงเวลาเป็นไทย (UTC+7) โดยอิงจากเวลาจำลองที่เราตั้งไว้
+//         const thaiTime = new Date(MOCK_NOW + 7 * 60 * 60 * 1000); // 💡 ใช้ MOCK_NOW แทน Date.now()
+        
+//         let businessDate = new Date(thaiTime);
+//         // ถ้าเวลาปัจจุบันยังไม่ถึง ตี 4 (04:00) ให้ถือว่าเป็นวันของเมื่อวาน
+//         if (thaiTime.getUTCHours() < 4) {
+//           businessDate.setUTCDate(businessDate.getUTCDate() - 1);
+//         }
+
+//         const yyyy = businessDate.getUTCFullYear();
+//         const mm = String(businessDate.getUTCMonth() + 1).padStart(2, "0");
+//         const dd = String(businessDate.getUTCDate()).padStart(2, "0");
+//         const dateStr = `${yyyy}${mm}${dd}`;
+
+//         // 4. ดึงบิลล่าสุดของ "วันนี้" เท่านั้น
+//         const lastToday = await tx.orderrunning.findFirst({
+//           where: {
+//             organizationId,
+//             runningCode: { contains: dateStr },
+//           },
+//           orderBy: { id: "desc" },
+//         });
+
+//         let nextSequence = 1; 
+
+//         if (lastToday && lastToday.runningCode) {
+//           const parts = lastToday.runningCode.split("-");
+//           const lastNumber = parseInt(parts[parts.length - 1], 10);
+//           if (!isNaN(lastNumber)) {
+//             nextSequence = lastNumber + 1; 
+//           }
+//         }
+
+//         // 5. จัด Format บิลให้เป็น 0001, 0002
+//         runningCode = `Q-${organizationId}-${dateStr}-${String(nextSequence).padStart(4, "0")}`;
+
+//         // 6. บันทึกลงตาราง ให้คนต่อไปที่รอคิวอยู่เอาไปรันต่อได้
+//         await tx.orderrunning.create({
+//           data: { runningCode, organizationId },
+//         });
+//       }
+
+//       for (const item of items) {
+//         const modifiersList = item.modifiers || [];
+//         const categoryInfo = menuCategoryMap.get(item.menuId);
+
+//         let orderStatus = "NEW";
+//         if (categoryInfo?.categoryName === "Entertainer") {
+//           orderStatus = "READY";
+//         } else if (
+//           categoryInfo?.requiresKitchen === false ||
+//           categoryInfo?.requiresKitchen === 0
+//         ) {
+//           orderStatus = "READY";
+//         }
+
+//         await tx.order.create({
+//           data: {
+//             quantity: item.quantity,
+//             price_sum: item.price_sum,
+//             price_pre_unit: item.price_pre_unit,
+//             menuId: item.menuId,
+//             tableId: item.tableId,
+//             status: orderStatus,
+//             organizationId: item.organizationId,
+//             order_running_code: runningCode,
+//             note: item.note || null,
+//             employeeId: item.employeeId || null,
+//             orderitems: {
+//               create: {
+//                 menuId: item.menuId,
+//                 quantity: item.quantity,
+//                 price: item.price_pre_unit,
+//                 organizationId: item.organizationId,
+//                 selectedModifiers: {
+//                   create: modifiersList.map((mod: any) => ({
+//                     modifierItemId: mod.modifierItemId,
+//                     price: mod.price,
+//                     organizationId: item.organizationId,
+//                   })),
+//                 },
+//               },
+//             },
+//           },
+//         });
+//       }
+
+//       const newBillStatuses = ["AVAILABLE", "DIRTY", "WAIT_BOOKING"];
+//       if (newBillStatuses.includes(currentTable.status)) {
+//         await tx.table.update({
+//           where: { id: tableId },
+//           data: { status: "BUSY" },
+//         });
+//       }
+
+//       return { success: true, error: false };
+//     });
+
+//     return result;
+//   } catch (err) {
+//     console.log("Create Order Transaction Error:", err);
+//     return {
+//       success: false,
+//       error: true,
+//       message: err instanceof Error ? err.message : "Unknown Error",
+//     };
+//   }
+// };
 
 export const updateCartStatusNEW = async (items: CartItemPayload[]) => {
   try {

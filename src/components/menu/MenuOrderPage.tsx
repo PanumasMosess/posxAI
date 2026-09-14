@@ -15,6 +15,7 @@ import {
   Search,
   X,
   MonitorUp,
+  Bomb, // 💡 นำเข้า Icon Bomb
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MenuOrderDetailDialog from "./MenuOrderDetailDialog";
@@ -73,6 +74,7 @@ const MenuOrderPage = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTesting, setIsTesting] = useState(false); // 🚨 State สำหรับปุ่ม Test
 
   const [packageSelections, setPackageSelections] = useState<
     Record<number, boolean>
@@ -234,7 +236,6 @@ const MenuOrderPage = ({
 
       setIsSubmitting(true);
 
-      // 🚨 บังคับยัด tableId ปัจจุบันเข้าไปก่อนส่ง ป้องกันการโดนตะกร้าโต๊ะอื่นแทรกแซง
       const cartDataWithEmployee = filteredCartData.map((item: any) => ({
         ...item,
         tableId: Number(tableNumber),
@@ -266,6 +267,51 @@ const MenuOrderPage = ({
       setIsSubmitting(false);
     }
   };
+
+  // ==========================================
+  // 💣 ฟังก์ชันยิงเทสจำลองเหตุการณ์พนักงานกดพร้อมกัน 10 คน
+  // ==========================================
+  // const handleStressTest = async () => {
+  //   if (filteredCartData.length === 0) {
+  //     toast.warning("เพิ่มสินค้าลงตะกร้าก่อนเทสครับ!");
+  //     return;
+  //   }
+
+  //   setIsTesting(true);
+  //   toast.info("💣 จำลอง 10 โต๊ะ (โต๊ะ 1-10) สั่งพร้อมกันในเสี้ยววิ!", {
+  //     position: "top-center",
+  //   });
+
+  //   try {
+  //     // 🚨 จำลองว่า โต๊ะ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 กดส่งออเดอร์พร้อมกันเป๊ะๆ!
+  //     const promises = Array.from({ length: 10 }).map((_, index) => {
+  //       const testPayload = filteredCartData.map((item: any) => ({
+  //         ...item,
+  //         tableId: index + 1, // บังคับให้เปลี่ยนเป็นโต๊ะ 1 ถึง 10
+  //         employeeId: employeeId ? String(employeeId) : null,
+  //       }));
+  //       return createOrder(testPayload);
+  //     });
+
+  //     const results = await Promise.all(promises);
+  //     console.log("Test Results:", results);
+
+  //     if (results.some((r: any) => r.success)) {
+  //       toast.success(
+  //         "✅ ยิงเสร็จแล้ว! เข้าไปดูเลขบิลใน DB ได้เลย ต้องเรียง 0001-0010 สวยงาม!",
+  //         { position: "top-center" },
+  //       );
+  //       setIsCartOpen(false);
+  //     } else {
+  //       toast.error("Test Failed! เช็ค Console");
+  //     }
+  //   } catch (error) {
+  //     toast.error("Test Failed!");
+  //     console.error(error);
+  //   } finally {
+  //     setIsTesting(false);
+  //   }
+  // };
 
   useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
@@ -726,20 +772,41 @@ const MenuOrderPage = ({
               </span>
             </div>
 
-            <Button
-              className="w-full h-12 text-lg font-bold"
-              onClick={handleConfirmOrder}
-              disabled={filteredCartData.length === 0 || isSubmitting}
-            >
-              {isSubmitting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  กำลังส่ง...
-                </div>
-              ) : (
-                "ยืนยันการสั่งอาหาร"
-              )}
-            </Button>
+            {/* 🚨 เพิ่มปุ่มระเบิดตรงนี้ ขนาบข้างปุ่มยืนยัน */}
+            <div className="flex gap-2">
+              {/* <Button
+                variant="destructive"
+                className="w-[60px] h-12 shrink-0 flex items-center justify-center transition-all hover:scale-105"
+                title="ยิง 10 ออเดอร์พร้อมกันเพื่อทดสอบบั๊ก"
+                disabled={
+                  filteredCartData.length === 0 || isTesting || isSubmitting
+                }
+                onClick={handleStressTest}
+              >
+                {isTesting ? (
+                  <Loader2 className="animate-spin h-5 w-5" />
+                ) : (
+                  <Bomb className="h-5 w-5" />
+                )}
+              </Button> */}
+
+              <Button
+                className="flex-1 h-12 text-lg font-bold"
+                onClick={handleConfirmOrder}
+                disabled={
+                  filteredCartData.length === 0 || isSubmitting || isTesting
+                }
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    กำลังส่ง...
+                  </div>
+                ) : (
+                  "ยืนยันการสั่งอาหาร"
+                )}
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
