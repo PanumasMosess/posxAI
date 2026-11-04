@@ -423,7 +423,7 @@ const positionStatuses = [
 ];
 
 const exchangeRates = {
-  THB: 670,
+  THB: 660,
   USD: 21000,
 };
 
