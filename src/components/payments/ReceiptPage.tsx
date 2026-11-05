@@ -161,8 +161,8 @@ export const ReceiptPage = forwardRef<HTMLDivElement, ReceiptProps>(
             <div className="mb-0.5 pb-0.5 border-b border-gray-300 w-fit">
               ອັດຕາແລກປ່ຽນ
             </div>
-            <div>B: 670</div>
-            <div>$: 21,000</div>
+            <div>B: {appConfig.exchangeRates.THB.toLocaleString()}</div>
+            <div>$: {appConfig.exchangeRates.USD.toLocaleString()}</div>
           </div>
 
           <div className="flex flex-col items-end flex-grow pl-4">
